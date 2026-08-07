@@ -53,7 +53,7 @@ def run_radar_loop():
     log("🚀 Criptobot Radar Daemon iniciado en VPS (Tracking 24/7 de Transacciones Cripto)...")
     init_db()
     
-    crypto_keywords = ["bitcoin", "btc", "ethereum", "eth", "solana", "sol", "dogecoin", "doge", "xrp", "bnb", "up or down", "crypto"]
+    crypto_keywords = ["bitcoin", "btc", "ethereum", "eth", "solana", "sol", "dogecoin", "doge", "dogo", "xrp", "bnb", "hype", "up or down", "up/down", "subir o bajar", "arriba o abajo", "above", "crypto"]
     
     processed_count = 0
     
