@@ -1,40 +1,32 @@
-# 📊 Matriz de Cruce de Mercado por Criptomoneda y Temporalidad (Criptobot)
+# 📊 Cantidad de Mercados Únicos Disponibles por Cripto y Temporalidad (#)
 
-> **Origen**: Análisis Forense de `criptobot.db` (+350,000 transacciones capturadas en VPS)  
+> **Origen**: Conteo Estricto de Mercados Únicos Registrados en `criptobot.db`  
 > **Fecha**: 7 de Agosto, 2026  
-> **Estado**: Documento Oficial de la Fase 1 (Investigación y Selección de Alfa)
+> **Estado**: Documento Oficial de Disponibilidad de Mercados
 
 ---
 
-## 📌 1. Matriz General de Volumen Total (Cripto vs. Timeframe en USDC)
+![Tabla de Cantidad de Mercados Únicos Disponibles](cripto_markets_count_table.png)
 
-Esta tabla representa el desglose cruzado de capital operado por las ballenas en Polymarket según activo cripto y temporalidad de mercado:
+---
 
-| Criptomoneda | 1 Hora (1h) | 4 Horas (4h) | Diario (1 Día) | Multidía / Rango | **VOLUMEN TOTAL (USDC)** |
+## 📌 Tabla Completa de Disponibilidad (# de Mercados)
+
+| Criptomoneda | 1 Hora (1h Completa) | 4 Horas (4h) | Diario (1 Día) | 5m / 15m (Ultracorto) | **TOTAL MERCADOS DISPONIBLES (#)** |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| 🥇 **Bitcoin (BTC)** | **$8,710,984.00** | $628,450.00 | $608,620.00 | $14,907.00 | **$9,962,961.00** |
-| 🥈 **Ethereum (ETH)** | **$937,054.80** | $120,450.00 | $83,095.61 | $24,894.00 | **$1,165,494.41** |
-| 🥉 **Solana (SOL)** | $60,498.86 | **$472,564.00** | $6,861.04 | $315.20 | **$540,239.10** |
-| 🌐 **Ripple (XRP)** | $23,356.21 | $131,962.00 | $8,052.03 | $6,630.17 | **$170,000.41** |
-| 📦 **Otras Criptos** | $0.00 | $0.00 | $134,324.82 | $4,754.32 | **$139,079.14** |
-| 🟡 **Binance (BNB)** | $24,793.07 | $75,439.00 | $15,904.77 | $0.00 | **$116,136.84** |
-| 💧 **Hyperliquid (HYPE)** | **$86,109.59** | $0.00 | $0.00 | $0.00 | **$86,109.59** |
-| 🐕 **Dogecoin (DOGE)** | $10,634.78 | $43,682.89 | $0.00 | $0.00 | **$54,317.67** |
+| 🥇 **Bitcoin (BTC)** | **23 mercados** | **5 mercados** | **35 mercados** | 209 mercados | **272 mercados disponibles** |
+| 🥈 **Ethereum (ETH)** | **18 mercados** | **5 mercados** | **14 mercados** | 182 mercados | **219 mercados disponibles** |
+| 🥉 **Solana (SOL)** | **7 mercados** | **4 mercados** | **3 mercados** | 148 mercados | **162 mercados disponibles** |
+| 🌐 **Ripple (XRP)** | **7 mercados** | **2 mercados** | **4 mercados** | 113 mercados | **126 mercados disponibles** |
+| 🐕 **Dogecoin (DOGE)** | **4 mercados** | 0 mercados | 0 mercados | 81 mercados | **85 mercados disponibles** |
+| 🟡 **Binance (BNB)** | **2 mercados** | **3 mercados** | **2 mercados** | 74 mercados | **81 mercados disponibles** |
+| 💧 **Hyperliquid (HYPE)** | **2 mercados** | **2 mercados** | 0 mercados | 62 mercados | **66 mercados disponibles** |
+| 📦 **Otras Criptos** | 0 mercados | 0 mercados | **13 mercados** | 12 mercados | **25 mercados disponibles** |
 
 ---
 
-## 🔎 2. Descubrimientos de Selección de Alfas
+## 📌 Conclusiones Clave de Oferta de Mercado
 
-1. **Hyperliquid (HYPE - 1 Hora)**:
-   * Concentra el **100% de su volumen ($86,109.59 USDC)** en los mercados de **1 Hora (`HYPE Up or Down - 1h`)**.
-   * Operado principalmente por un **Enjambre coordinado de 5 billeteras** que entran en la apertura (segundo 0:00) a cuota $0.500 USD.
-
-2. **Solana (SOL - 4 Horas)**:
-   * Concentra **$472,564.00 USDC** en las ventanas de **4 Horas**, superando por casi 8 veces su volumen de 1 hora.
-   * Dominado por un grupo de ballenas especializadas (48% exclusivas de SOL) con operaciones unitarias promedio de mayor volumen ($55.92 USDC por bala).
-
-3. **Bitcoin (BTC) y Ethereum (ETH)**:
-   * Concentran volumen institucional masivo (>80% del mercado), pero sirven principalmente para monitoreo de niveles de soporte/resistencia y correlación spot.
-
----
-*Criptobot — Módulo de Inteligencia de Mercado*
+1. **Bitcoin (BTC)** encabeza la oferta con **58 mercados utilizables al día** (23 de 1h + 35 Diarios).
+2. **Ethereum (ETH)** sigue en segundo lugar con **32 mercados utilizables al día** (18 de 1h + 14 Diarios).
+3. **Hyperliquid (HYPE)** solo ofrece **4 mercados utilizables al día** (2 de 1h + 2 de 4h).
