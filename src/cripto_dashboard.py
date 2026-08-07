@@ -57,15 +57,37 @@ else:
         
         tables = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table'", conn)['name'].values
         n_lags = pd.read_sql("SELECT COUNT(*) as cnt FROM price_discrepancies", conn)['cnt'].iloc[0] if 'price_discrepancies' in tables else 0
+        n_ticks = pd.read_sql("SELECT COUNT(*) as cnt FROM high_freq_ticks", conn)['cnt'].iloc[0] if 'high_freq_ticks' in tables else 0
+        n_anomalies = pd.read_sql("SELECT COUNT(*) as cnt FROM high_freq_ticks WHERE is_anomaly=1", conn)['cnt'].iloc[0] if 'high_freq_ticks' in tables else 0
         
+        c1, c2, c3, c4, c5 = st.columns(5)
         with c1:
             st.metric("Mercados Indexados", f"{n_markets:,}")
         with c2:
-            st.metric("Trades Capturados 24/7", f"{n_trades:,}")
+            st.metric("Trades Capturados", f"{n_trades:,}")
         with c3:
-            st.metric("Billeteras Activas", f"{n_whales:,}")
+            st.metric("Ticks 5s Capturados", f"{n_ticks:,}")
         with c4:
+            st.metric("Anomalías 5s (Saltos >5%)", f"{n_anomalies:,}")
+        with c5:
             st.metric("Descalces Binance", f"{n_lags:,}")
+            
+        st.markdown("---")
+        
+        st.subheader("⏱️ Ticks de Alta Frecuencia en Vivo (Cada 5 Segundos)")
+        if 'high_freq_ticks' in tables and n_ticks > 0:
+            df_ticks = pd.read_sql('''
+                SELECT timestamp as Timestamp, symbol as Cripto, binance_spot as Spot_Binance, market_title as Mercado, polymarket_yes as YES_Precio, polymarket_no as NO_Precio, price_change_5s as Cambio_5s, is_anomaly as Anomalia
+                FROM high_freq_ticks
+                ORDER BY id DESC LIMIT 15
+            ''', conn)
+            df_ticks['Spot_Binance'] = df_ticks['Spot_Binance'].apply(lambda x: f"${x:,.2f}")
+            df_ticks['YES_Precio'] = df_ticks['YES_Precio'].apply(lambda x: f"${x:.3f}")
+            df_ticks['NO_Precio'] = df_ticks['NO_Precio'].apply(lambda x: f"${x:.3f}")
+            df_ticks['Cambio_5s'] = df_ticks['Cambio_5s'].apply(lambda x: f"{x:+.3f}")
+            st.dataframe(df_ticks, use_container_width=True)
+        else:
+            st.info("Capturando los primeros ticks de 5 segundos...")
             
         st.markdown("---")
         
@@ -120,6 +142,7 @@ else:
         st.error(f"Error procesando datos: {e}")
     finally:
         conn.close()
+
 
 time_now = datetime.now().strftime("%H:%M:%S")
 st.caption(f"Última actualización visual: {time_now}")
