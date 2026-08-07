@@ -1,0 +1,47 @@
+Usage: streamlit run [OPTIONS] [TARGET] [ARGS]...
+Try 'streamlit run --help' for help.
+
+Error: Invalid value: File does not exist: /home/anton/criptobot/src/cripto_dashboard.py
+Usage: streamlit run [OPTIONS] [TARGET] [ARGS]...
+Try 'streamlit run --help' for help.
+
+Error: Invalid value: File does not exist: /home/anton/criptobot/src/cripto_dashboard.py
+Usage: streamlit run [OPTIONS] [TARGET] [ARGS]...
+Try 'streamlit run --help' for help.
+
+Error: Invalid value: File does not exist: /home/anton/criptobot/src/cripto_dashboard.py
+Usage: streamlit run [OPTIONS] [TARGET] [ARGS]...
+Try 'streamlit run --help' for help.
+
+Error: Invalid value: File does not exist: /home/anton/criptobot/src/cripto_dashboard.py
+Usage: streamlit run [OPTIONS] [TARGET] [ARGS]...
+Try 'streamlit run --help' for help.
+
+Error: Invalid value: File does not exist: /home/anton/criptobot/src/cripto_dashboard.py
+Usage: streamlit run [OPTIONS] [TARGET] [ARGS]...
+Try 'streamlit run --help' for help.
+
+Error: Invalid value: File does not exist: /home/anton/criptobot/src/cripto_dashboard.py
+
+Collecting usage statistics. To deactivate, set browser.gatherUsageStats to false.
+
+2026-08-06 22:01:48.612 Uvicorn server started on 0.0.0.0:8504
+
+  You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8504
+  Network URL: http://192.168.100.15:8504
+  External URL: http://181.42.178.250:8504
+
+  Stopping...
+
+Collecting usage statistics. To deactivate, set browser.gatherUsageStats to false.
+
+2026-08-06 22:02:23.462 Uvicorn server started on 0.0.0.0:8504
+
+  You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8504
+  Network URL: http://192.168.100.15:8504
+  External URL: http://181.42.178.250:8504
+
