@@ -1,88 +1,83 @@
-# ARQUITECTURA MAESTRA Y ROADMAP: HIGH-FREQUENCY LATENCY SNIPER BOT (CRIPTOBOT)
+# ARQUITECTURA MAESTRA Y ROADMAP: HIGH-FREQUENCY LATENCY SNIPER BOT (CRIPTOBOT v2.0)
 
 **Proyecto:** Criptobot HFT Engine  
-**Versión:** 2.0 (Post-Auditoría Forense)  
+**Versión:** 2.0 (Especificación de Producción Definitiva)  
 **Autor:** Antigravity AI & Anton  
-**Estado:** Especificación Técnica de Producción  
-**Objetivo Capital:** 6 Balas de $2.00 USDC ($12.00 USDC Total Balance)  
+**Estado:** Listo para Desarrollo  
+**Capital Inicial:** $13.00 USDC (Flujo de Caja Reciclable Horario)  
 
 ---
 
-## 1. Lecciones Aprendidas y Lecciones de Cero-Error (Anti-Washybot / Anti-Tenybot)
+## 1. Reglas de Hierro y Garantía Anti-Errores (Cero Hardcodeo)
 
-Para garantizar que el bot funcione en **LIVE exactamente igual que en SHADOW**, prohibimos los 4 errores del pasado:
+Para erradicar los fallos sufridos en Washybot y Tenybot, Criptobot v2.0 se rige por 4 pilares tecnológicos innegociables:
 
-| Error en Bots Anteriores | Solución de Hierro en Criptobot v2 |
-| :--- | :--- |
-| **Dependencia de la BD Local para Estado**: Guardar estados en SQLite causaba desincronización con la blockchain si una orden fallaba. | **Cero BD para Decisiones**: La BD local es 100% pasiva (solo log de historial). Las decisiones de ejecución se toman leyendo en vivo la API de Polymarket (`getOpenOrders`, `getTrades`) y el WebSocket de Binance. |
-| **Falsa Liquidez (Slippage Negativo)**: Comprar a mercado terminaba pagando cuotas infladas. | **Órdenes Límite FOK (Fill-Or-Kill)**: Único tipo de orden permitida. Si a $0.35 no está la liquidez exacta de $2.00 USD, la orden se cancela sola a nivel de protocolo sin gastar nada. |
-| **Copy Trading con Retardo**: Intentar copiar a una ballena llegaba tarde al desfasaje. | **Arbitraje de Latencia Directo en Spot**: No copiamos ballenas; leemos directamente el precio de Binance Spot y disparamos antes que el mercado de 1H en Polymarket despierte. |
-| **Desincronización de Balance**: El bot intentaba enviar órdenes sin confirmar el saldo real de USDC en Polygon. | **Reconciliación Directa de Saldo**: Verificación en tiempo real del saldo disponible en el Proxy Wallet antes de autorizar cualquier bala. |
+| Componente | Regla de Hierro | Implementación Técnica |
+| :--- | :--- | :--- |
+| **Dashboard** | **100% Datos en Vivo de la API/Blockchain (Cero Valores MOCK/Hardcodeados)** | Conexión directa a `clobClient.getCollateralBalance()`, `clobClient.getOpenOrders()` y Polygon RPC para mostrar: <br>1. **Saldo Total en Wallet** <br>2. **Saldo Disponible Libre para Operar** <br>3. **Posiciones Activas Abiertas** <br>4. **Historial de Resoluciones** |
+| **Órdenes** | **Únicamente Órdenes Límite FOK (Fill-Or-Kill)** | Cero órdenes a mercado. Si no está la liquidez exacta a $2.00 USD al precio límite deseado, la orden se rechaza automáticamente a nivel de protocolo sin gastar nada. |
+| **Decisiones** | **Cero dependencia de la BD local para operar** | La BD SQLite es un log administrativo pasivo. El motor toma decisiones leyendo en tiempo real el WebSocket de Binance Spot y el servidor CLOB de Polymarket. |
+| **Gestión Washybot** | **Modo RESOLVE_ONLY (Congelación de Nuevas Posiciones)** | Washybot entra en modo pasivo de liquidación: no abre nuevas posiciones y únicamente gestiona el cobro u oráculo de las posiciones existentes para proteger los $13.00 USDC. |
 
 ---
 
 ## 2. Matriz Operativa por Moneda (XRP, SOL, DOGE)
 
-### 🔹 Moneda 1: XRP (Estrategia: Francotirador Scalper)
+### 🔹 Moneda 1: XRP (Francotirador Scalper)
 * **Ventana Temporal**: **Minutos 15 a 28** del ciclo de 1 Hora.
 * **Rango de Cuota Entrada**: **$0.31 a $0.42** (Descuento del 58% al 69%).
-* **Condición Binance Spot**: `Precio_Spot_Actual > Precio_Apertura_Ciclo` (+0.05% mínimo).
+* **Condición Binance Spot**: `Distance-to-Strike > +0.05%` respecto a la apertura 00:00.
 * **Gestión de Salida**: 
-  * *Ruta A (Scalping)*: Re-venta en el libro con Limit Sell a **$0.65 - $0.85** (+50% a +100% ROI rápido en 2-5 min).
-  * *Ruta B (Oráculo)*: Si la volatilidad es limpia, sostener hasta expiración de $1.00 USD.
+  * *Salida A (Scalping)*: Re-venta en el libro con Limit Sell a **$0.65 - $0.85** (+50% a +100% ROI rápido).
+  * *Salida B (Oráculo)*: Sostener hasta expiración de $1.00 USD (+138% a +221% ROI).
 
-### 🔹 Moneda 2: SOL (Estrategia: Cobertura Asimétrica 75/25)
+### 开启 Moneda 2: SOLANA (Cobertura Asimétrica 75% / 25%)
 * **Ventana Temporal**: **Minutos 33 a 43** del ciclo de 1 Hora.
-* **Rango de Cuota Entrada**: **$0.15 a $0.30** (Lado desfavorecido/seguro) y **$0.40 a $0.45** (Lado dominante).
-* **Condición Binance Spot**: Desviación acumulada >0.15% en el precio spot.
-* **Mecanismo Dual**:
-  * 75% del capital ($1.50 USD) asignado al lado dominante con tendencia spot en Binance.
-  * 25% del capital ($0.50 USD) asignado al lado secundario como póliza de seguro barata a $0.15 - $0.25.
+* **Capital por Ciclo**: **$2.66 USDC total** por ciclo de Solana.
+  * **Bala 1 (Lado Dominante - 75%)**: **$2.00 USDC** al lado con tendencia en Binance Spot (ej. UP a $0.40).
+  * **Bala 2 (Seguro Desfavorecido - 25%)**: **$0.66 USDC** al lado opuesto a precio super descuento ($0.15 - $0.25).
 * **Gestión de Salida**: 100% Hold to Oracle ($1.00 USD settlement).
 
-### 🔹 Moneda 3: DOGE (Estrategia: Cazador Tardío de 1 Minuto)
+### 🟡 Moneda 3: DOGECOIN (Cazador Tardío de 1 Minuto)
 * **Ventana Temporal**: **Minutos 33 a 58** del ciclo de 1 Hora (Libros desiertos en la primera media hora).
 * **Rango de Cuota Entrada**: **$0.20 a $0.35** (En la segunda mitad del ciclo).
-* **Condición Binance Spot**: Desviación limpia del precio spot respecto a la apertura (Distance-to-Strike).
-* **Gestión de Salida**: Hold to Oracle o Re-venta instantánea en pico de liquidez.
+* **Condición Binance Spot**: Desviación acumulada limpia en Binance Spot.
+* **Gestión de Salida**: Hold to Oracle ($1.00 USD).
 
 ---
 
-## 3. Arquitectura del Sistema (TypeScript / Node.js)
+## 3. Modelo Financiero: Reciclaje de Capital Horario y Compuesto
+
+Dado que los mercados de 1 Hora resuelven al finalizar cada hora (10:00, 11:00, 12:00, etc.):
+* **Inyección Inmediata**: Al cerrar la hora, el Smart Contract de Polymarket liquida la posición ganadora e inyecta el dinero de vuelta al wallet en tiempo real.
+* **Reutilización de las 6 Balas**: Los $13.00 USDC se reciclan hora tras hora, permitiendo realizar entre **15 y 24 operaciones diarias**.
+* **Escalamiento Automático**: A medida que el saldo en el wallet crezca de $13 a $25, $50 y $100+ USDC, el bot escalará el tamaño de la bala de $2.00 USD a $5.00 USD de forma automática.
+
+---
+
+## 4. Web Dashboard en Tiempo Real (API Driven)
+
+El Dashboard en tiempo real utilizará **Express + WebSockets + Vanilla CSS**, leyendo datos directos de la API oficial sin mocks:
 
 ```
-criptobot/
-├── src/
-│   ├── config/
-│   │   └── environment.ts        # Variables de entorno y llaves Polygon
-│   ├── connectors/
-│   │   ├── BinanceWebsocket.ts   # Conexión ultra-rápida (wss://stream.binance.com)
-│   │   └── PolymarketClob.ts     # Wrapper oficial @polymarket/clob-client
-│   ├── engine/
-│   │   ├── LatencyDetector.ts    # Comparador en vivo: Spot vs. Odds en 1H
-│   │   ├── BulletManager.ts      # Control estricto del banco (6 balas de $2 USD)
-│   │   └── ExecutionEngine.ts    # Generador de órdenes Límite FOK
-│   ├── storage/
-│   │   └── AuditLogger.ts        # Log pasivo en SQLite (Cero influencia en ejecuciones)
-│   └── index.ts                  # Punto de entrada principal (Async Event Loop)
++-----------------------------------------------------------------------------------+
+| CRIPTOBOT v2.0 - LIVE CONTROL DASHBOARD | [MODO: LIVE / SHADOW]                   |
++-----------------------------------------------------------------------------------+
+| SALDO TOTAL WALLET: $13.00 USDC | DISPONIBLE LIBRE: $13.00 USDC | EN ÓRDENES: $0.00 |
++-----------------------------------------------------------------------------------+
+| TICKERS EN VIVO (BINANCE SPOT vs POLYMARKET 1H)                                   |
+| - XRPUSDT:  $1.0220 | Open: $1.0210 | Delta: +0.10% | Poly UP: $0.35 | Sello: 🎯 UP|
+| - SOLUSDT:  $73.85  | Open: $73.72  | Delta: +0.18% | Poly UP: $0.23 | Sello: 🎯 UP|
+| - DOGEUSDT: $0.0697 | Open: $0.0697 | Delta:  0.00% | Poly UP: $0.50 | Sello: ⏸️ WAIT|
++-----------------------------------------------------------------------------------+
+| POSICIONES REALES EN WALLET (LIVE CLOB API)                                       |
+| [2026-08-08 00:28] XRP 1H UP | Qty: 5.71 | Price: $0.35 | Invertido: $2.00 | Status: OPEN |
++-----------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 4. Roadmap de Implementación (Paso a Paso)
+## 5. Transición de Washybot (Resolución de Posiciones)
 
-### 🗓️ Fase 1: Motor Conector y Stream de Binance (Día 1)
-- Implementar `BinanceWebsocket.ts` monitoreando `XRPUSDT`, `SOLUSDT` y `DOGEUSDT` en tiempo real.
-- Calcular el precio de apertura de la vela de 1 Hora y el delta en tiempo real (`spot_price - open_price`).
-
-### 🗓️ Fase 2: Monitor de Latencia Polymarket (Día 2)
-- Conectar con el libro de órdenes en vivo de Polymarket para los mercados de 1H activos.
-- Detectar cuotas desfasadas ($0.15 a $0.42) en presencia de una tendencia en Binance Spot.
-
-### 🗓️ Fase 3: Módulo de Ejecución FOK y Prueba Shadow (Días 3 - 4)
-- Desarrollar `ExecutionEngine.ts` configurado para órdenes `FOK` de $2.00 USDC.
-- Correr el bot durante **24 horas continuas en MODO SHADOW** registrando cada oportunidad, fill teórico y PnL simulado.
-
-### 🗓️ Fase 4: Despliegue LIVE con 6 Balas ($12.00 USDC) (Día 5)
-- Activar el bot en modo **LIVE en VPS** con la primera bala de $2.00 USDC.
-- Verificar la latencia de ejecución final en la blockchain de Polygon y validar el llenado a precio exacto.
+1. Configurar Washybot en flag `RESOLVE_ONLY = true` para evitar que vuelva a abrir nuevas entradas.
+2. Permitir únicamente la ejecución del módulo de resolución/venta TP en las posiciones abiertas existentes para liberar la liquidez remanente e integrarla al saldo total de $13.00 USDC de Criptobot.
