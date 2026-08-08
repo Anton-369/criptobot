@@ -1,4 +1,4 @@
-import { ClobClient } from '@polymarket/clob-client';
+import { ClobClient, Chain, SignatureTypeV2 } from '@polymarket/clob-client-v2';
 import { Wallet } from 'ethers';
 import { CONFIG } from '../config/environment';
 
@@ -26,20 +26,21 @@ export class PolymarketClobConnector {
   constructor() {
     if (CONFIG.PK) {
       try {
-        const wallet = new Wallet(CONFIG.PK);
+        const wallet = new Wallet(CONFIG.PK) as any;
         const creds = {
           key: process.env.CLOB_API_KEY || '',
           secret: process.env.CLOB_SECRET || '',
           passphrase: process.env.CLOB_PASSPHRASE || ''
         };
-        this.clobClient = new ClobClient(
-          CONFIG.CLOB_API_URL,
-          CONFIG.CHAIN_ID,
-          wallet,
+        this.clobClient = new ClobClient({
+          host: CONFIG.CLOB_API_URL,
+          chain: Chain.POLYGON,
+          signer: wallet,
           creds,
-          3 as any, // SignatureType.POLY_GNOSIS_SAFE / Proxy Wallet
-          CONFIG.PROXY_WALLET
-        );
+          signatureType: SignatureTypeV2.POLY_1271,
+          funderAddress: CONFIG.PROXY_WALLET
+        });
+        console.log(`[PolyCLOB] Cliente TypeScript V2 inicializado correctamente con Proxy Wallet (POLY_1271).`);
       } catch (err) {
         console.warn(`[PolyCLOB] No se pudo autenticar cliente privado. Usando modo público.`);
       }

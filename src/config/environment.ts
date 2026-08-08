@@ -25,6 +25,6 @@ export const CONFIG = {
   
   // Bullet Sizing & Risk Rules
   DEFAULT_BULLET_USDC: 2.00,
-  SOL_INSURANCE_BULLET_USDC: 0.66,
+  SOL_INSURANCE_BULLET_USDC: 1.00,
   TOTAL_MAX_CAPITAL_USDC: 13.00,
 };

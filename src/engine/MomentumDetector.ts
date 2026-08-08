@@ -43,9 +43,19 @@ export class MomentumDetector extends EventEmitter {
       const now = new Date();
       const currentMinute = now.getMinutes(); // 0 to 59
 
-      // Active trading window: Minutes 2 to 55 of the 1H cycle
-      const inWindow = currentMinute >= 2 && currentMinute <= 55;
-      if (!inWindow) return;
+      // -------------------------------------------------------------
+      // TRES VENTANAS DE TIEMPO DEL CICLO DE 1 HORA (BASADO EN DB Y ARXIV)
+      // -------------------------------------------------------------
+      // Ventana 1 (Minuto 12 a 25): Entrada Principal (Binance Spot Impulse + Odds $0.25-$0.45)
+      // Ventana 2 (Minuto 33 a 43): Póliza Cobertura Asimétrica (Gamma Over-discount Odds $0.15-$0.30)
+      // Ventana 3 (Minuto 44 a 60): ZONA DE CANDADO (Cero entradas, Hold-to-Oracle)
+      const isMainBulletWindow = currentMinute >= 12 && currentMinute <= 25;
+      const isInsuranceWindow = currentMinute >= 33 && currentMinute <= 43;
+
+      if (!isMainBulletWindow && !isInsuranceWindow) {
+        // Estrictamente fuera de las dos ventanas activas (incluye el candado Min 44-60)
+        return;
+      }
 
       for (const pair of CONFIG.PAIRS) {
         const coin = pair.coin;
@@ -60,94 +70,91 @@ export class MomentumDetector extends EventEmitter {
         const odds: BestOdds = await this.polyClob.getBestOdds(market.upTokenId, market.downTokenId);
 
         // -------------------------------------------------------------
-        // CAPA 1: FILTRO DE MERCADO PLANO (DEAD/SIDEWAYS MARKET)
+        // VENTANA 1 (MINUTO 12 A 25): BALA PRINCIPAL DIRECCIONAL
         // -------------------------------------------------------------
-        // If 1H movement is flat (< 0.15%), skip directional entries to protect balance
-        const isFlatMarket = Math.abs(ticker.deltaPct) < 0.15;
-        if (isFlatMarket) {
-          // Continue to insurance hedge check below, but skip directional entries
-        } else {
-          // Coin-specific base Binance Spot Delta Thresholds
-          let baseReqDelta = 0.25; // XRP default (+0.25%)
-          if (coin === 'SOL') baseReqDelta = 0.30;   // SOL (+0.30%)
-          if (coin === 'DOGE') baseReqDelta = 0.35;  // DOGE (+0.35%)
+        if (isMainBulletWindow) {
+          const isFlatMarket = Math.abs(ticker.deltaPct) < 0.15;
+          if (!isFlatMarket) {
+            let baseReqDelta = 0.25; // XRP default (+0.25%)
+            if (coin === 'SOL') baseReqDelta = 0.30;   // SOL (+0.30%)
+            if (coin === 'DOGE') baseReqDelta = 0.35;  // DOGE (+0.35%)
 
-          const isMacro24HUp = (ticker.delta24HPct || 0) > 0.5;
-          const isMacro24HDown = (ticker.delta24HPct || 0) < -0.5;
+            const isMacro24HUp = (ticker.delta24HPct || 0) > 0.5;
+            const isMacro24HDown = (ticker.delta24HPct || 0) < -0.5;
 
-          // -------------------------------------------------------------
-          // CAPA 2 & CAPA 3: IMPULSO REQUERIDO DINÁMICO (MACRO VS 1H)
-          // -------------------------------------------------------------
-          // If 1H opposes 24H macro trend (Counter-trend Reversal), require strong acceleration (+0.65%)
-          // If 1H aligns with 24H macro trend (Tide aligned), require base impulse (0.25% - 0.35%)
-          let upReqDelta = isMacro24HDown ? 0.65 : baseReqDelta;
-          let downReqDelta = isMacro24HUp ? 0.65 : baseReqDelta;
+            let upReqDelta = isMacro24HDown ? 0.65 : baseReqDelta;
+            let downReqDelta = isMacro24HUp ? 0.65 : baseReqDelta;
 
-          // 1. UP Signal Check: Binance Spot is UP (>= upReqDelta) AND Polymarket UP odds are cheap ($0.25 - $0.45)
-          if (ticker.deltaPct >= upReqDelta && odds.upBestAsk >= 0.25 && odds.upBestAsk <= 0.45) {
-            const strat = coin === 'XRP' ? 'XRP_SNIPER' : (coin === 'SOL' ? 'SOL_ASYMMETRIC_HEDGE' : 'DOGE_LATE_HUNTER');
-            const trendTag = isMacro24HUp ? 'ALINEADO_MACRO_24H' : (isMacro24HDown ? 'REVERSAL_CONFIRMADO' : 'IMPULSO_NORMAL');
-            this.emitOpportunity({
-              coin: coin,
-              strategy: strat,
-              targetSide: 'UP',
-              targetTokenId: market.upTokenId,
-              targetPrice: odds.upBestAsk,
-              bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
-              spotDeltaPct: ticker.deltaPct,
-              cycleMinute: currentMinute,
-              reason: `${coin} Spot UP (+${ticker.deltaPct.toFixed(2)}% | 24H: ${ticker.delta24HPct.toFixed(1)}% [${trendTag}]) a $${odds.upBestAsk.toFixed(3)} (Min ${currentMinute})`,
-              timestamp: Date.now()
-            });
+            // 1. UP Signal Check
+            if (ticker.deltaPct >= upReqDelta && odds.upBestAsk >= 0.25 && odds.upBestAsk <= 0.45) {
+              const strat = coin === 'XRP' ? 'XRP_SNIPER' : (coin === 'SOL' ? 'SOL_ASYMMETRIC_HEDGE' : 'DOGE_LATE_HUNTER');
+              const trendTag = isMacro24HUp ? 'ALINEADO_MACRO_24H' : (isMacro24HDown ? 'REVERSAL_CONFIRMADO' : 'IMPULSO_NORMAL');
+              this.emitOpportunity({
+                coin: coin,
+                strategy: strat,
+                targetSide: 'UP',
+                targetTokenId: market.upTokenId,
+                targetPrice: odds.upBestAsk,
+                bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
+                spotDeltaPct: ticker.deltaPct,
+                cycleMinute: currentMinute,
+                reason: `${coin} Spot UP (+${ticker.deltaPct.toFixed(2)}% | 24H: ${ticker.delta24HPct.toFixed(1)}% [${trendTag}]) a $${odds.upBestAsk.toFixed(3)} (Ventana 1 - Min ${currentMinute})`,
+                timestamp: Date.now()
+              });
+            }
+            // 2. DOWN Signal Check
+            else if (ticker.deltaPct <= -downReqDelta && odds.downBestAsk >= 0.25 && odds.downBestAsk <= 0.45) {
+              const strat = coin === 'XRP' ? 'XRP_SNIPER' : (coin === 'SOL' ? 'SOL_ASYMMETRIC_HEDGE' : 'DOGE_LATE_HUNTER');
+              const trendTag = isMacro24HDown ? 'ALINEADO_MACRO_24H' : (isMacro24HUp ? 'REVERSAL_CONFIRMADO' : 'IMPULSO_NORMAL');
+              this.emitOpportunity({
+                coin: coin,
+                strategy: strat,
+                targetSide: 'DOWN',
+                targetTokenId: market.downTokenId,
+                targetPrice: odds.downBestAsk,
+                bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
+                spotDeltaPct: ticker.deltaPct,
+                cycleMinute: currentMinute,
+                reason: `${coin} Spot DOWN (${ticker.deltaPct.toFixed(2)}% | 24H: ${ticker.delta24HPct.toFixed(1)}% [${trendTag}]) a $${odds.downBestAsk.toFixed(3)} (Ventana 1 - Min ${currentMinute})`,
+                timestamp: Date.now()
+              });
+            }
           }
-          // 2. DOWN Signal Check: Binance Spot is DOWN (<= -downReqDelta) AND Polymarket DOWN odds are cheap ($0.25 - $0.45)
-          else if (ticker.deltaPct <= -downReqDelta && odds.downBestAsk >= 0.25 && odds.downBestAsk <= 0.45) {
+        }
+
+        // -------------------------------------------------------------
+        // VENTANA 2 (MINUTO 33 A 43): PÓLIZA DE SEGURO SOBRE-DESCUENTADA ($0.15 - $0.30)
+        // -------------------------------------------------------------
+        if (isInsuranceWindow) {
+          if (odds.downBestAsk >= 0.15 && odds.downBestAsk <= 0.30) {
             const strat = coin === 'XRP' ? 'XRP_SNIPER' : (coin === 'SOL' ? 'SOL_ASYMMETRIC_HEDGE' : 'DOGE_LATE_HUNTER');
-            const trendTag = isMacro24HDown ? 'ALINEADO_MACRO_24H' : (isMacro24HUp ? 'REVERSAL_CONFIRMADO' : 'IMPULSO_NORMAL');
             this.emitOpportunity({
               coin: coin,
               strategy: strat,
               targetSide: 'DOWN',
               targetTokenId: market.downTokenId,
               targetPrice: odds.downBestAsk,
-              bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
+              bulletSizeUSDC: CONFIG.SOL_INSURANCE_BULLET_USDC || 1.00,
               spotDeltaPct: ticker.deltaPct,
               cycleMinute: currentMinute,
-              reason: `${coin} Spot DOWN (${ticker.deltaPct.toFixed(2)}% | 24H: ${ticker.delta24HPct.toFixed(1)}% [${trendTag}]) a $${odds.downBestAsk.toFixed(3)} (Min ${currentMinute})`,
+              reason: `🛡️ PÓLIZA SEGURO: ${coin} DOWN sobre-descuentado a $${odds.downBestAsk.toFixed(3)} (Ventana 2 - Min ${currentMinute})`,
+              timestamp: Date.now()
+            });
+          } else if (odds.upBestAsk >= 0.15 && odds.upBestAsk <= 0.30) {
+            const strat = coin === 'XRP' ? 'XRP_SNIPER' : (coin === 'SOL' ? 'SOL_ASYMMETRIC_HEDGE' : 'DOGE_LATE_HUNTER');
+            this.emitOpportunity({
+              coin: coin,
+              strategy: strat,
+              targetSide: 'UP',
+              targetTokenId: market.upTokenId,
+              targetPrice: odds.upBestAsk,
+              bulletSizeUSDC: CONFIG.SOL_INSURANCE_BULLET_USDC || 1.00,
+              spotDeltaPct: ticker.deltaPct,
+              cycleMinute: currentMinute,
+              reason: `🛡️ PÓLIZA SEGURO: ${coin} UP sobre-descuentado a $${odds.upBestAsk.toFixed(3)} (Ventana 2 - Min ${currentMinute})`,
               timestamp: Date.now()
             });
           }
-        }
-
-        // 3. INSURANCE HEDGE CHECK: If opposite side drops to dirt-cheap insurance zone ($0.12 - $0.22)
-        if (odds.downBestAsk >= 0.12 && odds.downBestAsk <= 0.22) {
-          const strat = coin === 'XRP' ? 'XRP_SNIPER' : (coin === 'SOL' ? 'SOL_ASYMMETRIC_HEDGE' : 'DOGE_LATE_HUNTER');
-          this.emitOpportunity({
-            coin: coin,
-            strategy: strat,
-            targetSide: 'DOWN',
-            targetTokenId: market.downTokenId,
-            targetPrice: odds.downBestAsk,
-            bulletSizeUSDC: CONFIG.SOL_INSURANCE_BULLET_USDC || 0.66,
-            spotDeltaPct: ticker.deltaPct,
-            cycleMinute: currentMinute,
-            reason: `🛡️ PÓLIZA SEGURO: ${coin} DOWN regalado a $${odds.downBestAsk.toFixed(3)} (Garantiza arbitraje sin riesgo)`,
-            timestamp: Date.now()
-          });
-        } else if (odds.upBestAsk >= 0.12 && odds.upBestAsk <= 0.22) {
-          const strat = coin === 'XRP' ? 'XRP_SNIPER' : (coin === 'SOL' ? 'SOL_ASYMMETRIC_HEDGE' : 'DOGE_LATE_HUNTER');
-          this.emitOpportunity({
-            coin: coin,
-            strategy: strat,
-            targetSide: 'UP',
-            targetTokenId: market.upTokenId,
-            targetPrice: odds.upBestAsk,
-            bulletSizeUSDC: CONFIG.SOL_INSURANCE_BULLET_USDC || 0.66,
-            spotDeltaPct: ticker.deltaPct,
-            cycleMinute: currentMinute,
-            reason: `🛡️ PÓLIZA SEGURO: ${coin} UP regalado a $${odds.upBestAsk.toFixed(3)} (Garantiza arbitraje sin riesgo)`,
-            timestamp: Date.now()
-          });
         }
       }
     } catch (err: any) {

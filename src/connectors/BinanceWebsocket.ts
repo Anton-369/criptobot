@@ -9,7 +9,7 @@ export interface BinanceTickerState {
   openPrice1H: number;      // Open price at top of 1H cycle
   highPrice1H: number;
   lowPrice1H: number;
-  deltaAbs: number;          // Current - Open
+  deltaAbs: number;          // Current - Open1H
   deltaPct: number;          // % change from 1H open
   delta24HPct: number;       // % 24H macro change from Binance
   trend: 'UP' | 'DOWN' | 'NEUTRAL';
@@ -44,9 +44,28 @@ export class BinanceWebsocketEngine extends EventEmitter {
     }
   }
 
+  public async fetch1HOpenPrices(): Promise<void> {
+    for (const pair of CONFIG.PAIRS) {
+      try {
+        const resp = await fetch(`https://api.binance.com/api/v3/klines?symbol=${pair.symbol.toUpperCase()}&interval=1h&limit=1`);
+        if (resp.ok) {
+          const klines: any = await resp.json();
+          if (Array.isArray(klines) && klines.length > 0) {
+            const openPrice1H = parseFloat(klines[0][1]);
+            this.setOpenPrice1H(pair.symbol, openPrice1H);
+            console.log(`[BinanceWS] 📊 Precio Apertura 1H obtenido para ${pair.coin}: $${openPrice1H.toFixed(4)}`);
+          }
+        }
+      } catch (e: any) {
+        console.warn(`[BinanceWS] No se pudo obtener kline 1H para ${pair.symbol}: ${e.message}`);
+      }
+    }
+  }
+
   public start(): void {
     if (this.isRunning) return;
     this.isRunning = true;
+    this.fetch1HOpenPrices();
     this.connect();
   }
 
@@ -85,22 +104,18 @@ export class BinanceWebsocketEngine extends EventEmitter {
       if (!payload || !payload.data) return;
 
       const d = payload.data;
-      // d.s: Symbol (e.g. XRPUSDT)
-      // d.c: Current close price
-      // d.o: Open price (24h open, but we use d.o for ticker reference)
-      // d.E: Event time
       const symbol = d.s as string;
       const currentPrice = parseFloat(d.c);
-      const openPrice1H = parseFloat(d.o); // 24h open from ticker, updated per cycle
       const eventTime = d.E as number;
       const latencyMs = receiveTime - eventTime;
 
       const state = this.tickerStates.get(symbol);
       if (state) {
         state.currentPrice = currentPrice;
-        // Keep initial openPrice1H if already set, or initialize
+        
+        // If openPrice1H hasn't been fetched yet, fallback to current price
         if (state.openPrice1H === 0) {
-          state.openPrice1H = openPrice1H;
+          state.openPrice1H = currentPrice;
         }
 
         state.deltaAbs = currentPrice - state.openPrice1H;
@@ -139,8 +154,10 @@ export class BinanceWebsocketEngine extends EventEmitter {
     const state = this.tickerStates.get(symbol.toUpperCase());
     if (state) {
       state.openPrice1H = openPrice;
-      state.deltaAbs = state.currentPrice - openPrice;
-      state.deltaPct = ((state.currentPrice - openPrice) / openPrice) * 100;
+      if (state.currentPrice > 0) {
+        state.deltaAbs = state.currentPrice - openPrice;
+        state.deltaPct = ((state.currentPrice - openPrice) / openPrice) * 100;
+      }
     }
   }
 

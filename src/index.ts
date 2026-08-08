@@ -44,14 +44,24 @@ async function main() {
 
   detector.start(2000);
 
-  // 5. Periodic 60-second refresh to auto-bind new hourly market cycles
+  // 5. Periodic 60-second refresh to auto-bind new hourly market cycles & 1H open prices
   setInterval(async () => {
     try {
-      const refreshed = await polyClob.fetchActive1HMarkets();
+      await polyClob.fetchActive1HMarkets();
+      await binanceWs.fetch1HOpenPrices();
     } catch (e: any) {
       console.error(`[Main] Error refrescando mercados de 1H: ${e.message}`);
     }
   }, 60000);
+
+  // 5b. Periodic 10-second wallet reconciliation loop (Syncs manual web trades & live USDC cash)
+  setInterval(async () => {
+    try {
+      await execEngine.refreshWalletBalances();
+    } catch (e: any) {
+      // Soft ignore RPC errors
+    }
+  }, 10000);
 
   // 6. Start Real-time Web Control Dashboard
   const dashboard = new DashboardServer(binanceWs, polyClob, execEngine, 8505);

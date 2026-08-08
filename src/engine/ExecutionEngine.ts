@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { ClobClient } from '@polymarket/clob-client';
+import { ClobClient, OrderType, Side } from '@polymarket/clob-client-v2';
 import { Wallet } from 'ethers';
 import { CONFIG } from '../config/environment';
 import { OpportunitySignal } from './MomentumDetector';
@@ -26,11 +26,12 @@ export class ExecutionEngine extends EventEmitter {
   private polyClob: PolymarketClobConnector;
   private mode: 'SHADOW' | 'LIVE';
   private positions: PositionRecord[] = [];
-  
+
   // Real-time wallet tracking
   private totalBalanceUSDC: number = 0;
   private availableBalanceUSDC: number = 0;
   private inOrdersUSDC: number = 0;
+  private isExecutingSignal: boolean = false;
 
   constructor(polyClob: PolymarketClobConnector) {
     super();
@@ -56,8 +57,8 @@ export class ExecutionEngine extends EventEmitter {
             .map((p: any) => ({
               id: p.conditionId || p.asset,
               coin: p.title?.toUpperCase().includes('XRP') ? 'XRP' :
-                    p.title?.toUpperCase().includes('SOL') ? 'SOL' :
-                    p.title?.toUpperCase().includes('DOGE') ? 'DOGE' : 'CLIMA/WASHY',
+                p.title?.toUpperCase().includes('SOL') ? 'SOL' :
+                  p.title?.toUpperCase().includes('DOGE') ? 'DOGE' : 'CLIMA/WASHY',
               strategy: 'WASHY/LEGACY',
               side: (p.outcome || 'YES').toUpperCase() as any,
               tokenId: p.asset,
@@ -70,15 +71,10 @@ export class ExecutionEngine extends EventEmitter {
               title: p.title
             }));
 
-          // Merge live wallet positions with active local Criptobot SHADOW positions (< 60 mins old)
+          // Keep active local SHADOW positions (< 60 mins old) and replace LIVE entries with official Polymarket API data
           const ONE_HOUR_MS = 60 * 60 * 1000;
-          const shadowPos = this.positions.filter(p => {
-            if (p.id.startsWith('SHADOW_')) {
-              return (Date.now() - p.entryTimestamp) < ONE_HOUR_MS;
-            }
-            return p.id.startsWith('LIVE_');
-          });
-          this.positions = [...shadowPos, ...livePos];
+          const shadowPos = this.positions.filter(p => p.id.startsWith('SHADOW_') && (Date.now() - p.entryTimestamp) < ONE_HOUR_MS);
+          this.positions = [...livePos, ...shadowPos];
         }
       }
     } catch (err: any) {
@@ -174,46 +170,67 @@ export class ExecutionEngine extends EventEmitter {
   }
 
   public async executeSignal(sig: OpportunitySignal): Promise<boolean> {
-    // Refresh live wallet state first
-    await this.refreshWalletBalances();
-
-    // Check if free balance is sufficient
-    if (this.availableBalanceUSDC < sig.bulletSizeUSDC) {
-      console.warn(`[ExecutionEngine] ⚠️ Saldo disponible insuficiente ($${this.availableBalanceUSDC.toFixed(2)} USD) para la bala ($${sig.bulletSizeUSDC.toFixed(2)} USD)`);
+    if (this.isExecutingSignal) {
+      console.warn(`[ExecutionEngine] ⚠️ Lock activo. Ignorando señal concurrente para ${sig.coin} (${sig.strategy}).`);
       return false;
     }
 
-    // Filter active open positions for this coin in the current 1H cycle
-    const currentCyclePositions = this.positions.filter(
-      p => p.coin === sig.coin && p.status === 'OPEN' && (Date.now() - p.entryTimestamp) < 60 * 60 * 1000
-    );
+    this.isExecutingSignal = true;
 
-    const isInsuranceSig = sig.bulletSizeUSDC <= 1.0;
+    try {
+      // Refresh live wallet state first
+      await this.refreshWalletBalances();
 
-    if (isInsuranceSig) {
-      // Max 1 Insurance Bullet per coin per 1H cycle
-      const hasInsurance = currentCyclePositions.some(p => p.investedUSDC <= 1.0);
-      if (hasInsurance) {
+      // Check if free balance is sufficient
+      if (this.availableBalanceUSDC < sig.bulletSizeUSDC) {
+        console.warn(`[ExecutionEngine] ⚠️ Saldo disponible insuficiente ($${this.availableBalanceUSDC.toFixed(2)} USD) para la bala ($${sig.bulletSizeUSDC.toFixed(2)} USD)`);
         return false;
       }
-    } else {
-      // Max 2 Main Directional Bullets ($2.00 each) per coin per 1H cycle
-      const mainBulletsCount = currentCyclePositions.filter(p => p.investedUSDC > 1.0).length;
-      if (mainBulletsCount >= 2) {
+
+      const now = new Date();
+      const cycleStartMs = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0, 0).getTime();
+
+      // Filter active open positions for this coin in the current 1H cycle
+      const currentCyclePositions = this.positions.filter(
+        p => p.coin === sig.coin && p.status === 'OPEN' && p.entryTimestamp >= cycleStartMs
+      );
+
+      const isInsuranceSig = sig.bulletSizeUSDC <= 1.0;
+
+      if (isInsuranceSig) {
+        // STRICT SAFETY RULE: Insurance bullets MUST have an open main directional position (> $1.0) in the opposite direction
+        const hasOppositeMainBullet = currentCyclePositions.some(p => p.investedUSDC > 1.0 && p.side !== sig.targetSide);
+        if (!hasOppositeMainBullet) {
+          console.warn(`[ExecutionEngine] ⛔ Seguro rechazado: No existe bala principal opuesta en ${sig.coin} para asegurar.`);
+          return false;
+        }
+
+        // Max 1 Insurance Bullet per coin per 1H cycle
+        const hasInsurance = currentCyclePositions.some(p => p.investedUSDC <= 1.0);
+        if (hasInsurance) {
+          return false;
+        }
+      } else {
+        // Max 2 Main Directional Bullets ($2.00 each) per coin per 1H cycle
+        const mainBulletsCount = currentCyclePositions.filter(p => p.investedUSDC > 1.0).length;
+        if (mainBulletsCount >= 2) {
+          return false;
+        }
+      }
+
+      // Cooldown: Minimum 3 minutes gap between any bullet entries on the same coin
+      const hasRecentEntry = currentCyclePositions.some(p => (Date.now() - p.entryTimestamp) < 180000);
+      if (hasRecentEntry) {
         return false;
       }
-    }
 
-    // Cooldown: Minimum 3 minutes gap between any bullet entries on the same coin
-    const hasRecentEntry = currentCyclePositions.some(p => (Date.now() - p.entryTimestamp) < 180000);
-    if (hasRecentEntry) {
-      return false;
-    }
-
-    if (this.mode === 'SHADOW') {
-      return this.executeShadowFill(sig);
-    } else {
-      return this.executeLiveFOK(sig);
+      if (this.mode === 'SHADOW') {
+        return this.executeShadowFill(sig);
+      } else {
+        return await this.executeLiveFOK(sig);
+      }
+    } finally {
+      this.isExecutingSignal = false;
     }
   }
 
@@ -257,17 +274,15 @@ export class ExecutionEngine extends EventEmitter {
     try {
       console.log(`\n💥 [LIVE FOK EXECUTION] Enviando orden FOK de $${sig.bulletSizeUSDC.toFixed(2)} USD a Polymarket...`);
 
-      // Off-chain EIP-712 Order Creation
-      const orderResp = await client.createAndPostOrder({
+      const orderResp = await client.createAndPostMarketOrder({
         tokenID: sig.targetTokenId,
         price: sig.targetPrice,
-        side: 'BUY' as any,
-        size: sig.bulletSizeUSDC / sig.targetPrice,
-        feeRateBps: 0
-      });
+        amount: sig.bulletSizeUSDC,
+        side: Side.BUY
+      }, undefined, OrderType.FOK as any);
 
-      if (orderResp && orderResp.success) {
-        const shares = sig.bulletSizeUSDC / sig.targetPrice;
+      if (orderResp && (orderResp.success || orderResp.orderID)) {
+        const shares = Math.floor(sig.bulletSizeUSDC / sig.targetPrice);
         const pos: PositionRecord = {
           id: orderResp.orderID || `LIVE_${Date.now()}`,
           coin: sig.coin,
@@ -288,7 +303,7 @@ export class ExecutionEngine extends EventEmitter {
         this.emit('position_opened', pos);
         return true;
       } else {
-        console.warn(`❌ [LIVE REJECTED] Orden FOK rechazada o sin profundidad suficiente.`);
+        console.warn(`❌ [LIVE REJECTED] Orden FOK rechazada: ${JSON.stringify(orderResp)}`);
         return false;
       }
     } catch (err: any) {
