@@ -183,11 +183,30 @@ export class ExecutionEngine extends EventEmitter {
       return false;
     }
 
-    // Prevent duplicate entries on same coin in same minute
-    const hasActiveSameCoin = this.positions.some(
-      p => p.coin === sig.coin && p.status === 'OPEN' && (Date.now() - p.entryTimestamp) < 180000
+    // Filter active open positions for this coin in the current 1H cycle
+    const currentCyclePositions = this.positions.filter(
+      p => p.coin === sig.coin && p.status === 'OPEN' && (Date.now() - p.entryTimestamp) < 60 * 60 * 1000
     );
-    if (hasActiveSameCoin) {
+
+    const isInsuranceSig = sig.bulletSizeUSDC <= 1.0;
+
+    if (isInsuranceSig) {
+      // Max 1 Insurance Bullet per coin per 1H cycle
+      const hasInsurance = currentCyclePositions.some(p => p.investedUSDC <= 1.0);
+      if (hasInsurance) {
+        return false;
+      }
+    } else {
+      // Max 2 Main Directional Bullets ($2.00 each) per coin per 1H cycle
+      const mainBulletsCount = currentCyclePositions.filter(p => p.investedUSDC > 1.0).length;
+      if (mainBulletsCount >= 2) {
+        return false;
+      }
+    }
+
+    // Cooldown: Minimum 3 minutes gap between any bullet entries on the same coin
+    const hasRecentEntry = currentCyclePositions.some(p => (Date.now() - p.entryTimestamp) < 180000);
+    if (hasRecentEntry) {
       return false;
     }
 
