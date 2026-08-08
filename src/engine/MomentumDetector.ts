@@ -43,6 +43,10 @@ export class MomentumDetector extends EventEmitter {
       const now = new Date();
       const currentMinute = now.getMinutes(); // 0 to 59
 
+      // Active trading window: Minutes 2 to 55 of the 1H cycle
+      const inWindow = currentMinute >= 2 && currentMinute <= 55;
+      if (!inWindow) return;
+
       for (const pair of CONFIG.PAIRS) {
         const coin = pair.coin;
         const ticker = this.binanceWs.getTickerState(pair.symbol);
@@ -55,130 +59,48 @@ export class MomentumDetector extends EventEmitter {
         // Fetch live orderbook odds from Polymarket
         const odds: BestOdds = await this.polyClob.getBestOdds(market.upTokenId, market.downTokenId);
 
-        // 1. XRP Strategy Rules
-        if (coin === 'XRP') {
-          this.evaluateXRP(ticker, market, odds, currentMinute);
-        }
+        // Coin-specific Binance Spot Delta Thresholds
+        let reqDelta = 0.25; // XRP default (+0.25%)
+        if (coin === 'SOL') reqDelta = 0.30;   // SOL (+0.30%)
+        if (coin === 'DOGE') reqDelta = 0.35;  // DOGE (+0.35%)
 
-        // 2. SOL Strategy Rules
-        if (coin === 'SOL') {
-          this.evaluateSOL(ticker, market, odds, currentMinute);
+        // 1. UP Signal Check: Binance Spot is UP (>= reqDelta) AND Polymarket UP odds are cheap ($0.25 - $0.45)
+        if (ticker.deltaPct >= reqDelta && odds.upBestAsk >= 0.25 && odds.upBestAsk <= 0.45) {
+          const strat = coin === 'XRP' ? 'XRP_SNIPER' : (coin === 'SOL' ? 'SOL_ASYMMETRIC_HEDGE' : 'DOGE_LATE_HUNTER');
+          this.emitOpportunity({
+            coin: coin,
+            strategy: strat,
+            targetSide: 'UP',
+            targetTokenId: market.upTokenId,
+            targetPrice: odds.upBestAsk,
+            bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
+            spotDeltaPct: ticker.deltaPct,
+            cycleMinute: currentMinute,
+            reason: `${coin} Spot subiendo (+${ticker.deltaPct.toFixed(2)}%) en Binance con cuota UP desfasada a $${odds.upBestAsk.toFixed(3)} (Minuto ${currentMinute})`,
+            timestamp: Date.now()
+          });
         }
-
-        // 3. DOGE Strategy Rules
-        if (coin === 'DOGE') {
-          this.evaluateDOGE(ticker, market, odds, currentMinute);
+        // 2. DOWN Signal Check: Binance Spot is DOWN (<= -reqDelta) AND Polymarket DOWN odds are cheap ($0.25 - $0.45)
+        else if (ticker.deltaPct <= -reqDelta && odds.downBestAsk >= 0.25 && odds.downBestAsk <= 0.45) {
+          const strat = coin === 'XRP' ? 'XRP_SNIPER' : (coin === 'SOL' ? 'SOL_ASYMMETRIC_HEDGE' : 'DOGE_LATE_HUNTER');
+          this.emitOpportunity({
+            coin: coin,
+            strategy: strat,
+            targetSide: 'DOWN',
+            targetTokenId: market.downTokenId,
+            targetPrice: odds.downBestAsk,
+            bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
+            spotDeltaPct: ticker.deltaPct,
+            cycleMinute: currentMinute,
+            reason: `${coin} Spot cayendo (${ticker.deltaPct.toFixed(2)}%) en Binance con cuota DOWN desfasada a $${odds.downBestAsk.toFixed(3)} (Minuto ${currentMinute})`,
+            timestamp: Date.now()
+          });
         }
       }
     } catch (err: any) {
       // Handle soft errors
     } finally {
       this.isEvaluating = false;
-    }
-  }
-
-  private evaluateXRP(ticker: BinanceTickerState, market: Polymarket1HMarket, odds: BestOdds, minute: number): void {
-    // Window: Minutes 15 to 28
-    const inWindow = minute >= 15 && minute <= 28;
-    
-    if (ticker.trend === 'UP' && odds.upBestAsk >= 0.31 && odds.upBestAsk <= 0.42 && inWindow) {
-      this.emitOpportunity({
-        coin: 'XRP',
-        strategy: 'XRP_SNIPER',
-        targetSide: 'UP',
-        targetTokenId: market.upTokenId,
-        targetPrice: odds.upBestAsk,
-        bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
-        spotDeltaPct: ticker.deltaPct,
-        cycleMinute: minute,
-        reason: `XRP en Spot subiendo (+${ticker.deltaPct.toFixed(2)}%) con cuota UP desfasada a $${odds.upBestAsk.toFixed(3)} (Minuto ${minute})`,
-        timestamp: Date.now()
-      });
-    } else if (ticker.trend === 'DOWN' && odds.downBestAsk >= 0.31 && odds.downBestAsk <= 0.42 && inWindow) {
-      this.emitOpportunity({
-        coin: 'XRP',
-        strategy: 'XRP_SNIPER',
-        targetSide: 'DOWN',
-        targetTokenId: market.downTokenId,
-        targetPrice: odds.downBestAsk,
-        bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
-        spotDeltaPct: ticker.deltaPct,
-        cycleMinute: minute,
-        reason: `XRP en Spot cayendo (${ticker.deltaPct.toFixed(2)}%) con cuota DOWN desfasada a $${odds.downBestAsk.toFixed(3)} (Minuto ${minute})`,
-        timestamp: Date.now()
-      });
-    }
-  }
-
-  private evaluateSOL(ticker: BinanceTickerState, market: Polymarket1HMarket, odds: BestOdds, minute: number): void {
-    // Window: Minutes 33 to 43
-    const inWindow = minute >= 33 && minute <= 43;
-    if (!inWindow) return;
-
-    // Dominant side bullet ($2.00)
-    if (ticker.trend === 'UP' && odds.upBestAsk <= 0.45) {
-      this.emitOpportunity({
-        coin: 'SOL',
-        strategy: 'SOL_ASYMMETRIC_HEDGE',
-        targetSide: 'UP',
-        targetTokenId: market.upTokenId,
-        targetPrice: odds.upBestAsk,
-        bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
-        spotDeltaPct: ticker.deltaPct,
-        cycleMinute: minute,
-        reason: `SOL Bala Principal Dominante UP a $${odds.upBestAsk.toFixed(3)} (Spot: +${ticker.deltaPct.toFixed(2)}%)`,
-        timestamp: Date.now()
-      });
-    }
-
-    // Insurance side bullet ($0.66)
-    if (odds.downBestAsk >= 0.15 && odds.downBestAsk <= 0.30) {
-      this.emitOpportunity({
-        coin: 'SOL',
-        strategy: 'SOL_ASYMMETRIC_HEDGE',
-        targetSide: 'DOWN',
-        targetTokenId: market.downTokenId,
-        targetPrice: odds.downBestAsk,
-        bulletSizeUSDC: CONFIG.SOL_INSURANCE_BULLET_USDC,
-        spotDeltaPct: ticker.deltaPct,
-        cycleMinute: minute,
-        reason: `SOL Bala de Seguro DOWN a precio desfasado $${odds.downBestAsk.toFixed(3)} (Póliza Barata 25%)`,
-        timestamp: Date.now()
-      });
-    }
-  }
-
-  private evaluateDOGE(ticker: BinanceTickerState, market: Polymarket1HMarket, odds: BestOdds, minute: number): void {
-    // Window: Minutes 33 to 58
-    const inWindow = minute >= 33 && minute <= 58;
-    if (!inWindow) return;
-
-    if (ticker.trend === 'UP' && odds.upBestAsk >= 0.20 && odds.upBestAsk <= 0.35) {
-      this.emitOpportunity({
-        coin: 'DOGE',
-        strategy: 'DOGE_LATE_HUNTER',
-        targetSide: 'UP',
-        targetTokenId: market.upTokenId,
-        targetPrice: odds.upBestAsk,
-        bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
-        spotDeltaPct: ticker.deltaPct,
-        cycleMinute: minute,
-        reason: `DOGE Cazador Tardío UP a $${odds.upBestAsk.toFixed(3)} en libro desierto (Minuto ${minute})`,
-        timestamp: Date.now()
-      });
-    } else if (ticker.trend === 'DOWN' && odds.downBestAsk >= 0.20 && odds.downBestAsk <= 0.35) {
-      this.emitOpportunity({
-        coin: 'DOGE',
-        strategy: 'DOGE_LATE_HUNTER',
-        targetSide: 'DOWN',
-        targetTokenId: market.downTokenId,
-        targetPrice: odds.downBestAsk,
-        bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
-        spotDeltaPct: ticker.deltaPct,
-        cycleMinute: minute,
-        reason: `DOGE Cazador Tardío DOWN a $${odds.downBestAsk.toFixed(3)} en libro desierto (Minuto ${minute})`,
-        timestamp: Date.now()
-      });
     }
   }
 
