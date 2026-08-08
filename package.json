@@ -1,0 +1,25 @@
+{
+  "name": "criptobot-hft",
+  "version": "2.0.0",
+  "description": "Ultra-Fast Latency Sniper Bot for Polymarket 1H Cycles (XRP, SOL, DOGE)",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/index.ts",
+    "test:ws": "ts-node src/test_binance_stream.ts"
+  },
+  "dependencies": {
+    "@polymarket/clob-client": "^5.0.0",
+    "dotenv": "^16.4.5",
+    "ethers": "^5.7.2",
+    "express": "^4.19.2",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.14.9",
+    "@types/ws": "^8.5.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.2"
+  }
+}
