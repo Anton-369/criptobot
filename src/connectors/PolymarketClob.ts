@@ -61,8 +61,8 @@ export class PolymarketClobConnector {
 
   public async fetchActive1HMarkets(): Promise<Map<string, Polymarket1HMarket>> {
     try {
-      // Query Polymarket Gamma API for open events ordered by startDate descending to capture live 5m/15m/1h Up or Down markets
-      const url = `https://gamma-api.polymarket.com/events?closed=false&order=startDate&ascending=false&limit=300`;
+      // Query Polymarket Gamma API specifically for tag_slug=1h ordered by endDate ascending
+      const url = `https://gamma-api.polymarket.com/events?tag_slug=1h&closed=false&order=endDate&ascending=true&limit=100`;
       const resp = await fetch(url);
 
       if (resp.ok) {
@@ -70,7 +70,7 @@ export class PolymarketClobConnector {
 
         if (Array.isArray(events)) {
           const nowMs = Date.now();
-          const oneDayMs = 24 * 60 * 60 * 1000;
+          const candidateMarkets = new Map<string, { market: Polymarket1HMarket; diffMins: number }>();
 
           for (const ev of events) {
             const title = (ev.title || '').toUpperCase();
@@ -95,10 +95,11 @@ export class PolymarketClobConnector {
                   const isMicroMarket = s.includes('-5m-') || s.includes('-15m-') || q.includes('5M-') || q.includes('15M-') || q.includes('5-MINUTE') || q.includes('15-MINUTE');
                   if (isMicroMarket) continue;
 
-                  const endDateMs = m.endDateIso ? new Date(m.endDateIso).getTime() : (ev.endDate ? new Date(ev.endDate).getTime() : 0);
-                  
-                  // Must be a 1-Hour Up or Down market or end within 48 hours
-                  const is1HMarket = (q.includes('UP OR DOWN') || q.includes('1H') || q.includes('HOURLY')) && (endDateMs > 0 ? (endDateMs - nowMs) <= (48 * 60 * 60 * 1000) : true);
+                  const endDateMs = ev.endDate ? new Date(ev.endDate).getTime() : (m.endDateIso ? new Date(m.endDateIso).getTime() : (m.endDate ? new Date(m.endDate).getTime() : 0));
+                  const diffMins = (endDateMs - nowMs) / (60 * 1000);
+
+                  // Must be a 1-Hour Up or Down market ending in the current/next cycle (0 to 120 minutes from now)
+                  const is1HMarket = (q.includes('UP OR DOWN') || q.includes('1H') || q.includes('HOURLY')) && (diffMins > 0 && diffMins <= 120);
 
                   if (is1HMarket) {
                     const clobTokenIds = typeof m.clobTokenIds === 'string' ? JSON.parse(m.clobTokenIds) : m.clobTokenIds;
@@ -114,15 +115,22 @@ export class PolymarketClobConnector {
                         endDateISO: m.endDateIso || ev.endDate || ''
                       };
 
-                      // Set active 1-Hour market
-                      if (!this.activeMarkets.has(coin) || q.includes('UP OR DOWN')) {
-                        this.activeMarkets.set(coin, marketObj);
+                      // Pick the market with the smallest positive time difference (the immediate active hour)
+                      const existing = candidateMarkets.get(coin);
+                      if (!existing || diffMins < existing.diffMins) {
+                        candidateMarkets.set(coin, { market: marketObj, diffMins });
                       }
                     }
                   }
                 }
               }
             }
+          }
+
+          // Populate activeMarkets with closest active hourly markets
+          this.activeMarkets.clear();
+          for (const [coin, item] of candidateMarkets.entries()) {
+            this.activeMarkets.set(coin, item.market);
           }
         }
       }
@@ -144,10 +152,10 @@ export class PolymarketClobConnector {
       if (respUp.ok) {
         const dataUp: any = await respUp.json();
         if (dataUp && Array.isArray(dataUp.asks) && dataUp.asks.length > 0) {
-          odds.upBestAsk = parseFloat(dataUp.asks[0].price);
+          odds.upBestAsk = parseFloat(dataUp.asks[dataUp.asks.length - 1].price);
         }
         if (dataUp && Array.isArray(dataUp.bids) && dataUp.bids.length > 0) {
-          odds.upBestBid = parseFloat(dataUp.bids[0].price);
+          odds.upBestBid = parseFloat(dataUp.bids[dataUp.bids.length - 1].price);
         }
       }
 
@@ -158,10 +166,10 @@ export class PolymarketClobConnector {
       if (respDown.ok) {
         const dataDown: any = await respDown.json();
         if (dataDown && Array.isArray(dataDown.asks) && dataDown.asks.length > 0) {
-          odds.downBestAsk = parseFloat(dataDown.asks[0].price);
+          odds.downBestAsk = parseFloat(dataDown.asks[dataDown.asks.length - 1].price);
         }
         if (dataDown && Array.isArray(dataDown.bids) && dataDown.bids.length > 0) {
-          odds.downBestBid = parseFloat(dataDown.bids[0].price);
+          odds.downBestBid = parseFloat(dataDown.bids[dataDown.bids.length - 1].price);
         }
       }
 
