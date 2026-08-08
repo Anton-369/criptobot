@@ -46,27 +46,29 @@ export class ExecutionEngine extends EventEmitter {
 
   public async fetchLiveWalletPositions(): Promise<PositionRecord[]> {
     try {
-      const url = `https://data-api.polymarket.com/positions?user=${CONFIG.PROXY_WALLET}`;
+      const url = `https://data-api.polymarket.com/positions?user=${CONFIG.PROXY_WALLET}&sizeThreshold=0`;
       const resp = await fetch(url);
       if (resp.ok) {
         const rawPositions: any = await resp.json();
         if (Array.isArray(rawPositions)) {
-          const livePos: PositionRecord[] = rawPositions.map((p: any) => ({
-            id: p.conditionId || p.asset,
-            coin: p.title?.toUpperCase().includes('XRP') ? 'XRP' :
-                  p.title?.toUpperCase().includes('SOL') ? 'SOL' :
-                  p.title?.toUpperCase().includes('DOGE') ? 'DOGE' : 'CLIMA/WASHY',
-            strategy: 'WASBY/LEGACY',
-            side: (p.outcome || 'YES').toUpperCase() as any,
-            tokenId: p.asset,
-            entryPrice: p.avgPrice || 0,
-            shares: p.size || 0,
-            investedUSDC: p.initialValue || 0,
-            currentValueUSDC: p.currentValue || 0,
-            status: 'OPEN',
-            entryTimestamp: Date.now(),
-            title: p.title
-          }));
+          const livePos: PositionRecord[] = rawPositions
+            .filter((p: any) => (parseFloat(p.size) || 0) > 0)
+            .map((p: any) => ({
+              id: p.conditionId || p.asset,
+              coin: p.title?.toUpperCase().includes('XRP') ? 'XRP' :
+                    p.title?.toUpperCase().includes('SOL') ? 'SOL' :
+                    p.title?.toUpperCase().includes('DOGE') ? 'DOGE' : 'CLIMA/WASHY',
+              strategy: 'WASHY/LEGACY',
+              side: (p.outcome || 'YES').toUpperCase() as any,
+              tokenId: p.asset,
+              entryPrice: parseFloat(p.avgPrice) || 0,
+              shares: parseFloat(p.size) || 0,
+              investedUSDC: parseFloat(p.initialValue) || 0,
+              currentValueUSDC: parseFloat(p.currentValue) || 0,
+              status: 'OPEN',
+              entryTimestamp: Date.now(),
+              title: p.title
+            }));
 
           // Merge live wallet positions with local Criptobot positions
           const shadowPos = this.positions.filter(p => p.id.startsWith('SHADOW_') || p.id.startsWith('LIVE_'));
@@ -80,15 +82,40 @@ export class ExecutionEngine extends EventEmitter {
     return this.positions;
   }
 
-  public async refreshWalletBalances(): Promise<{ total: number; free: number; locked: number }> {
+  public async refreshWalletBalances(): Promise<{ total: number; free: number; locked: number; nativeGasPOL: number }> {
+    let maticGas = 0;
     try {
-      // 1. Check Native USDC and USDC.e balance on Polygon RPC for EOA & Proxy Wallets
+      // 1. Fetch live open positions first to ensure locked capital is up to date
+      await this.fetchLiveWalletPositions();
+
+      // 2. Check Native POL/MATIC gas balance on Polygon RPC for EOA Wallet
+      const respGas = await fetch(CONFIG.POLYGON_RPC_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'eth_getBalance',
+          params: [CONFIG.EOA_WALLET, 'latest'],
+          id: 1
+        })
+      });
+      if (respGas.ok) {
+        const jsonGas: any = await respGas.json();
+        if (jsonGas.result && jsonGas.result !== '0x') {
+          maticGas = parseInt(jsonGas.result, 16) / 1e18;
+        }
+      }
+
+      // 3. Query Polymarket CLOB Collateral balance (SignatureType 3 / Poly Proxy)
+      const polyClobCash = await this.polyClob.getCollateralBalance();
+
+      // 4. Check Native USDC and USDC.e balance on Polygon RPC for EOA & Proxy Wallets
       const usdcNativeContract = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
       const usdcBridgedContract = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174';
 
-      let totalCashUSDC = 0;
+      let rpcCashUSDC = 0;
 
-      for (const walletAddr of [CONFIG.PROXY_WALLET, '0xa19b8118Cd5bF919214a6B43858401444Fc1B079']) {
+      for (const walletAddr of [CONFIG.PROXY_WALLET, CONFIG.EOA_WALLET]) {
         for (const contract of [usdcNativeContract, usdcBridgedContract]) {
           try {
             const resp = await fetch(CONFIG.POLYGON_RPC_URL, {
@@ -109,7 +136,7 @@ export class ExecutionEngine extends EventEmitter {
               const resJson: any = await resp.json();
               if (resJson.result && resJson.result !== '0x') {
                 const val = parseInt(resJson.result, 16) / 1e6;
-                totalCashUSDC += val;
+                rpcCashUSDC += val;
               }
             }
           } catch (e) {
@@ -118,7 +145,8 @@ export class ExecutionEngine extends EventEmitter {
         }
       }
 
-      this.totalBalanceUSDC = totalCashUSDC;
+      (this as any).nativeGasPOL = maticGas;
+      this.totalBalanceUSDC = polyClobCash > 0 ? polyClobCash : rpcCashUSDC;
     } catch (err: any) {
       console.warn(`[ExecutionEngine] No se pudo obtener saldo en vivo: ${err.message}`);
     }
@@ -131,7 +159,8 @@ export class ExecutionEngine extends EventEmitter {
     const result = {
       total: this.totalBalanceUSDC + this.inOrdersUSDC, // Total Portfolio Value (Cash + Positions)
       free: this.totalBalanceUSDC,                     // Free Liquid USDC Cash
-      locked: this.inOrdersUSDC                         // In active positions
+      locked: this.inOrdersUSDC,                        // In active positions
+      nativeGasPOL: maticGas                            // Native Gas
     };
 
     this.emit('balance_updated', result);
@@ -256,6 +285,7 @@ export class ExecutionEngine extends EventEmitter {
       total: this.totalBalanceUSDC + this.inOrdersUSDC,
       free: this.availableBalanceUSDC,
       locked: this.inOrdersUSDC,
+      nativeGasPOL: (this as any).nativeGasPOL || 0,
       mode: this.mode
     };
   }

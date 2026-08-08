@@ -2,6 +2,7 @@ import express from 'express';
 import http from 'http';
 import WebSocket from 'ws';
 import path from 'path';
+import fs from 'fs';
 import { BinanceWebsocketEngine } from '../connectors/BinanceWebsocket';
 import { PolymarketClobConnector } from '../connectors/PolymarketClob';
 import { ExecutionEngine } from '../engine/ExecutionEngine';
@@ -37,7 +38,9 @@ export class DashboardServer {
   }
 
   private setupRoutes(): void {
-    const publicDir = path.join(__dirname, 'public');
+    const publicDir = fs.existsSync(path.join(__dirname, 'public'))
+      ? path.join(__dirname, 'public')
+      : path.resolve(__dirname, '../../src/dashboard/public');
     this.app.use(express.static(publicDir));
 
     this.app.get('/api/status', async (req, res) => {

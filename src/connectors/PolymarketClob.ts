@@ -27,15 +27,36 @@ export class PolymarketClobConnector {
     if (CONFIG.PK) {
       try {
         const wallet = new Wallet(CONFIG.PK);
+        const creds = {
+          key: process.env.CLOB_API_KEY || '',
+          secret: process.env.CLOB_SECRET || '',
+          passphrase: process.env.CLOB_PASSPHRASE || ''
+        };
         this.clobClient = new ClobClient(
           CONFIG.CLOB_API_URL,
           CONFIG.CHAIN_ID,
-          wallet
+          wallet,
+          creds,
+          3 as any, // SignatureType.POLY_GNOSIS_SAFE / Proxy Wallet
+          CONFIG.PROXY_WALLET
         );
       } catch (err) {
         console.warn(`[PolyCLOB] No se pudo autenticar cliente privado. Usando modo público.`);
       }
     }
+  }
+
+  public async getCollateralBalance(): Promise<number> {
+    if (!this.clobClient) return 0;
+    try {
+      const res: any = await this.clobClient.getBalanceAllowance({ asset_type: 'COLLATERAL' as any });
+      if (res && res.balance) {
+        return parseFloat(res.balance) / 1e6;
+      }
+    } catch (err: any) {
+      console.warn(`[PolyCLOB] Error consultando collateral balance: ${err.message}`);
+    }
+    return 0;
   }
 
   public async fetchActive1HMarkets(): Promise<Map<string, Polymarket1HMarket>> {
