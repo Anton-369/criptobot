@@ -61,14 +61,17 @@ export class PolymarketClobConnector {
 
   public async fetchActive1HMarkets(): Promise<Map<string, Polymarket1HMarket>> {
     try {
-      // Query Polymarket Gamma API specifically for tag_slug=crypto
-      const url = `https://gamma-api.polymarket.com/events?tag_slug=crypto&closed=false&limit=200`;
+      // Query Polymarket Gamma API for open events ordered by startDate descending to capture live 5m/15m/1h Up or Down markets
+      const url = `https://gamma-api.polymarket.com/events?closed=false&order=startDate&ascending=false&limit=300`;
       const resp = await fetch(url);
 
       if (resp.ok) {
         const events: any = await resp.json();
 
         if (Array.isArray(events)) {
+          const nowMs = Date.now();
+          const oneDayMs = 24 * 60 * 60 * 1000;
+
           for (const ev of events) {
             const title = (ev.title || '').toUpperCase();
             const slug = (ev.slug || '').toLowerCase();
@@ -86,22 +89,29 @@ export class PolymarketClobConnector {
               if (isMatch && ev.markets && ev.markets.length > 0) {
                 for (const m of ev.markets) {
                   const q = (m.question || ev.title || '').toUpperCase();
-                  const clobTokenIds = typeof m.clobTokenIds === 'string' ? JSON.parse(m.clobTokenIds) : m.clobTokenIds;
+                  const endDateMs = m.endDateIso ? new Date(m.endDateIso).getTime() : (ev.endDate ? new Date(ev.endDate).getTime() : 0);
+                  
+                  // Filter out long-term markets (must end within 24h or have UP OR DOWN / 1H in question)
+                  const isShortTerm = (q.includes('UP OR DOWN') || q.includes('1H') || q.includes('15M') || q.includes('5M')) || (endDateMs > 0 && (endDateMs - nowMs) <= oneDayMs && (endDateMs - nowMs) > 0);
 
-                  if (Array.isArray(clobTokenIds) && clobTokenIds.length >= 2) {
-                    const marketObj: Polymarket1HMarket = {
-                      coin: coin,
-                      question: m.question || ev.title,
-                      conditionId: m.conditionId,
-                      upTokenId: clobTokenIds[0],
-                      downTokenId: clobTokenIds[1],
-                      slug: ev.slug || '',
-                      endDateISO: m.endDateIso || ev.endDate || ''
-                    };
+                  if (isShortTerm) {
+                    const clobTokenIds = typeof m.clobTokenIds === 'string' ? JSON.parse(m.clobTokenIds) : m.clobTokenIds;
 
-                    // Prefer Up or Down or 1H / 15m active market
-                    if (q.includes('UP OR DOWN') || q.includes('1H') || !this.activeMarkets.has(coin)) {
-                      this.activeMarkets.set(coin, marketObj);
+                    if (Array.isArray(clobTokenIds) && clobTokenIds.length >= 2) {
+                      const marketObj: Polymarket1HMarket = {
+                        coin: coin,
+                        question: m.question || ev.title,
+                        conditionId: m.conditionId,
+                        upTokenId: clobTokenIds[0],
+                        downTokenId: clobTokenIds[1],
+                        slug: ev.slug || '',
+                        endDateISO: m.endDateIso || ev.endDate || ''
+                      };
+
+                      // Prefer active short-term Up or Down markets
+                      if (!this.activeMarkets.has(coin) || q.includes('UP OR DOWN') || q.includes('15M') || q.includes('1H')) {
+                        this.activeMarkets.set(coin, marketObj);
+                      }
                     }
                   }
                 }
