@@ -11,6 +11,7 @@ export interface BinanceTickerState {
   lowPrice1H: number;
   deltaAbs: number;          // Current - Open
   deltaPct: number;          // % change from 1H open
+  delta24HPct: number;       // % 24H macro change from Binance
   trend: 'UP' | 'DOWN' | 'NEUTRAL';
   lastTickTimestamp: number;
   latencyMs: number;
@@ -35,6 +36,7 @@ export class BinanceWebsocketEngine extends EventEmitter {
         lowPrice1H: 0,
         deltaAbs: 0,
         deltaPct: 0,
+        delta24HPct: 0,
         trend: 'NEUTRAL',
         lastTickTimestamp: 0,
         latencyMs: 0
@@ -103,6 +105,7 @@ export class BinanceWebsocketEngine extends EventEmitter {
 
         state.deltaAbs = currentPrice - state.openPrice1H;
         state.deltaPct = ((currentPrice - state.openPrice1H) / state.openPrice1H) * 100;
+        state.delta24HPct = parseFloat(d.P) || 0;
         state.highPrice1H = parseFloat(d.h);
         state.lowPrice1H = parseFloat(d.l);
         state.lastTickTimestamp = eventTime;

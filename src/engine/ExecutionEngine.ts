@@ -70,8 +70,14 @@ export class ExecutionEngine extends EventEmitter {
               title: p.title
             }));
 
-          // Merge live wallet positions with local Criptobot positions
-          const shadowPos = this.positions.filter(p => p.id.startsWith('SHADOW_') || p.id.startsWith('LIVE_'));
+          // Merge live wallet positions with active local Criptobot SHADOW positions (< 60 mins old)
+          const ONE_HOUR_MS = 60 * 60 * 1000;
+          const shadowPos = this.positions.filter(p => {
+            if (p.id.startsWith('SHADOW_')) {
+              return (Date.now() - p.entryTimestamp) < ONE_HOUR_MS;
+            }
+            return p.id.startsWith('LIVE_');
+          });
           this.positions = [...shadowPos, ...livePos];
         }
       }
