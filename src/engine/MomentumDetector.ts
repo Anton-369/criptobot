@@ -96,6 +96,37 @@ export class MomentumDetector extends EventEmitter {
             timestamp: Date.now()
           });
         }
+
+        // 3. INSURANCE HEDGE CHECK: If opposite side drops to dirt-cheap insurance zone ($0.12 - $0.22)
+        if (odds.downBestAsk >= 0.12 && odds.downBestAsk <= 0.22) {
+          const strat = coin === 'XRP' ? 'XRP_SNIPER' : (coin === 'SOL' ? 'SOL_ASYMMETRIC_HEDGE' : 'DOGE_LATE_HUNTER');
+          this.emitOpportunity({
+            coin: coin,
+            strategy: strat,
+            targetSide: 'DOWN',
+            targetTokenId: market.downTokenId,
+            targetPrice: odds.downBestAsk,
+            bulletSizeUSDC: CONFIG.SOL_INSURANCE_BULLET_USDC || 0.66,
+            spotDeltaPct: ticker.deltaPct,
+            cycleMinute: currentMinute,
+            reason: `🛡️ PÓLIZA SEGURO: ${coin} DOWN regalado a $${odds.downBestAsk.toFixed(3)} (Garantiza arbitraje sin riesgo)`,
+            timestamp: Date.now()
+          });
+        } else if (odds.upBestAsk >= 0.12 && odds.upBestAsk <= 0.22) {
+          const strat = coin === 'XRP' ? 'XRP_SNIPER' : (coin === 'SOL' ? 'SOL_ASYMMETRIC_HEDGE' : 'DOGE_LATE_HUNTER');
+          this.emitOpportunity({
+            coin: coin,
+            strategy: strat,
+            targetSide: 'UP',
+            targetTokenId: market.upTokenId,
+            targetPrice: odds.upBestAsk,
+            bulletSizeUSDC: CONFIG.SOL_INSURANCE_BULLET_USDC || 0.66,
+            spotDeltaPct: ticker.deltaPct,
+            cycleMinute: currentMinute,
+            reason: `🛡️ PÓLIZA SEGURO: ${coin} UP regalado a $${odds.upBestAsk.toFixed(3)} (Garantiza arbitraje sin riesgo)`,
+            timestamp: Date.now()
+          });
+        }
       }
     } catch (err: any) {
       // Handle soft errors
