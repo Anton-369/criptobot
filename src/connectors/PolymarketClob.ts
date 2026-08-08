@@ -89,12 +89,18 @@ export class PolymarketClobConnector {
               if (isMatch && ev.markets && ev.markets.length > 0) {
                 for (const m of ev.markets) {
                   const q = (m.question || ev.title || '').toUpperCase();
+                  const s = slug.toLowerCase();
+
+                  // STRICT 1-HOUR MARKET FILTER: Exclude 5-minute and 15-minute micro markets
+                  const isMicroMarket = s.includes('-5m-') || s.includes('-15m-') || q.includes('5M-') || q.includes('15M-') || q.includes('5-MINUTE') || q.includes('15-MINUTE');
+                  if (isMicroMarket) continue;
+
                   const endDateMs = m.endDateIso ? new Date(m.endDateIso).getTime() : (ev.endDate ? new Date(ev.endDate).getTime() : 0);
                   
-                  // Filter out long-term markets (must end within 24h or have UP OR DOWN / 1H in question)
-                  const isShortTerm = (q.includes('UP OR DOWN') || q.includes('1H') || q.includes('15M') || q.includes('5M')) || (endDateMs > 0 && (endDateMs - nowMs) <= oneDayMs && (endDateMs - nowMs) > 0);
+                  // Must be a 1-Hour Up or Down market or end within 48 hours
+                  const is1HMarket = (q.includes('UP OR DOWN') || q.includes('1H') || q.includes('HOURLY')) && (endDateMs > 0 ? (endDateMs - nowMs) <= (48 * 60 * 60 * 1000) : true);
 
-                  if (isShortTerm) {
+                  if (is1HMarket) {
                     const clobTokenIds = typeof m.clobTokenIds === 'string' ? JSON.parse(m.clobTokenIds) : m.clobTokenIds;
 
                     if (Array.isArray(clobTokenIds) && clobTokenIds.length >= 2) {
@@ -108,8 +114,8 @@ export class PolymarketClobConnector {
                         endDateISO: m.endDateIso || ev.endDate || ''
                       };
 
-                      // Prefer active short-term Up or Down markets
-                      if (!this.activeMarkets.has(coin) || q.includes('UP OR DOWN') || q.includes('15M') || q.includes('1H')) {
+                      // Set active 1-Hour market
+                      if (!this.activeMarkets.has(coin) || q.includes('UP OR DOWN')) {
                         this.activeMarkets.set(coin, marketObj);
                       }
                     }
