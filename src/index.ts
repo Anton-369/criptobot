@@ -44,7 +44,16 @@ async function main() {
 
   detector.start(2000);
 
-  // 5. Start Real-time Web Control Dashboard
+  // 5. Periodic 60-second refresh to auto-bind new hourly market cycles
+  setInterval(async () => {
+    try {
+      const refreshed = await polyClob.fetchActive1HMarkets();
+    } catch (e: any) {
+      console.error(`[Main] Error refrescando mercados de 1H: ${e.message}`);
+    }
+  }, 60000);
+
+  // 6. Start Real-time Web Control Dashboard
   const dashboard = new DashboardServer(binanceWs, polyClob, execEngine, 8505);
   dashboard.start();
 
