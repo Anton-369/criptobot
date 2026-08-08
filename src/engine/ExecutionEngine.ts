@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { ClobClient } from '@polymarket/clob-client';
-import { Wallet, ethers } from 'ethers';
+import { Wallet } from 'ethers';
 import { CONFIG } from '../config/environment';
 import { OpportunitySignal } from './MomentumDetector';
 import { PolymarketClobConnector } from '../connectors/PolymarketClob';
@@ -9,13 +9,15 @@ export interface PositionRecord {
   id: string;
   coin: string;
   strategy: string;
-  side: 'UP' | 'DOWN';
+  side: 'UP' | 'DOWN' | 'YES' | 'NO';
   tokenId: string;
   entryPrice: number;
   shares: number;
   investedUSDC: number;
+  currentValueUSDC?: number;
   status: 'OPEN' | 'WIN' | 'LOSS' | 'SOLD_TP';
   entryTimestamp: number;
+  title?: string;
   resolvedTimestamp?: number;
   pnlUSDC?: number;
 }
@@ -26,8 +28,8 @@ export class ExecutionEngine extends EventEmitter {
   private positions: PositionRecord[] = [];
   
   // Real-time wallet tracking
-  private totalBalanceUSDC: number = CONFIG.TOTAL_MAX_CAPITAL_USDC;
-  private availableBalanceUSDC: number = CONFIG.TOTAL_MAX_CAPITAL_USDC;
+  private totalBalanceUSDC: number = 0;
+  private availableBalanceUSDC: number = 0;
   private inOrdersUSDC: number = 0;
 
   constructor(polyClob: PolymarketClobConnector) {
@@ -39,36 +41,97 @@ export class ExecutionEngine extends EventEmitter {
   public async initialize(): Promise<void> {
     console.log(`[ExecutionEngine] 🚀 Inicializando motor en MODO: ${this.mode}`);
     await this.refreshWalletBalances();
+    await this.fetchLiveWalletPositions();
+  }
+
+  public async fetchLiveWalletPositions(): Promise<PositionRecord[]> {
+    try {
+      const url = `https://data-api.polymarket.com/positions?user=${CONFIG.PROXY_WALLET}`;
+      const resp = await fetch(url);
+      if (resp.ok) {
+        const rawPositions: any = await resp.json();
+        if (Array.isArray(rawPositions)) {
+          const livePos: PositionRecord[] = rawPositions.map((p: any) => ({
+            id: p.conditionId || p.asset,
+            coin: p.title?.toUpperCase().includes('XRP') ? 'XRP' :
+                  p.title?.toUpperCase().includes('SOL') ? 'SOL' :
+                  p.title?.toUpperCase().includes('DOGE') ? 'DOGE' : 'CLIMA/WASHY',
+            strategy: 'WASBY/LEGACY',
+            side: (p.outcome || 'YES').toUpperCase() as any,
+            tokenId: p.asset,
+            entryPrice: p.avgPrice || 0,
+            shares: p.size || 0,
+            investedUSDC: p.initialValue || 0,
+            currentValueUSDC: p.currentValue || 0,
+            status: 'OPEN',
+            entryTimestamp: Date.now(),
+            title: p.title
+          }));
+
+          // Merge live wallet positions with local Criptobot positions
+          const shadowPos = this.positions.filter(p => p.id.startsWith('SHADOW_') || p.id.startsWith('LIVE_'));
+          this.positions = [...shadowPos, ...livePos];
+        }
+      }
+    } catch (err: any) {
+      console.warn(`[ExecutionEngine] Error consultando posiciones en vivo de la wallet: ${err.message}`);
+    }
+
+    return this.positions;
   }
 
   public async refreshWalletBalances(): Promise<{ total: number; free: number; locked: number }> {
     try {
-      if (this.mode === 'LIVE' && CONFIG.PK) {
-        const client = this.polyClob.getClobClient();
-        if (client) {
-          // Query live balance allowance from Polymarket CLOB API
-          const balResp: any = await client.getBalanceAllowance();
-          if (balResp && typeof balResp.balance !== 'undefined') {
-            const rawBal = parseFloat(balResp.balance) / 1e6; // USDC 6 decimals
-            if (!isNaN(rawBal) && rawBal > 0) {
-              this.totalBalanceUSDC = rawBal;
+      // 1. Check Native USDC and USDC.e balance on Polygon RPC for EOA & Proxy Wallets
+      const usdcNativeContract = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
+      const usdcBridgedContract = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174';
+
+      let totalCashUSDC = 0;
+
+      for (const walletAddr of [CONFIG.PROXY_WALLET, '0xa19b8118Cd5bF919214a6B43858401444Fc1B079']) {
+        for (const contract of [usdcNativeContract, usdcBridgedContract]) {
+          try {
+            const resp = await fetch(CONFIG.POLYGON_RPC_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'eth_call',
+                params: [{
+                  to: contract,
+                  data: `0x70a08231000000000000000000000000${walletAddr.substring(2)}`
+                }, 'latest'],
+                id: 1
+              })
+            });
+
+            if (resp.ok) {
+              const resJson: any = await resp.json();
+              if (resJson.result && resJson.result !== '0x') {
+                const val = parseInt(resJson.result, 16) / 1e6;
+                totalCashUSDC += val;
+              }
             }
+          } catch (e) {
+            // Ignore single contract failures
           }
         }
       }
+
+      this.totalBalanceUSDC = totalCashUSDC;
     } catch (err: any) {
       console.warn(`[ExecutionEngine] No se pudo obtener saldo en vivo: ${err.message}`);
     }
 
     // Calculate in-orders locked capital from active positions
     const openPositions = this.positions.filter(p => p.status === 'OPEN');
-    this.inOrdersUSDC = openPositions.reduce((sum, p) => sum + p.investedUSDC, 0);
-    this.availableBalanceUSDC = Math.max(0, this.totalBalanceUSDC - this.inOrdersUSDC);
+    this.inOrdersUSDC = openPositions.reduce((sum, p) => sum + (p.currentValueUSDC || p.investedUSDC), 0);
+    this.availableBalanceUSDC = Math.max(0, this.totalBalanceUSDC);
 
     const result = {
-      total: this.totalBalanceUSDC,
-      free: this.availableBalanceUSDC,
-      locked: this.inOrdersUSDC
+      total: this.totalBalanceUSDC + this.inOrdersUSDC, // Total Portfolio Value (Cash + Positions)
+      free: this.totalBalanceUSDC,                     // Free Liquid USDC Cash
+      locked: this.inOrdersUSDC                         // In active positions
     };
 
     this.emit('balance_updated', result);
@@ -76,6 +139,9 @@ export class ExecutionEngine extends EventEmitter {
   }
 
   public async executeSignal(sig: OpportunitySignal): Promise<boolean> {
+    // Refresh live wallet state first
+    await this.refreshWalletBalances();
+
     // Check if free balance is sufficient
     if (this.availableBalanceUSDC < sig.bulletSizeUSDC) {
       console.warn(`[ExecutionEngine] ⚠️ Saldo disponible insuficiente ($${this.availableBalanceUSDC.toFixed(2)} USD) para la bala ($${sig.bulletSizeUSDC.toFixed(2)} USD)`);
@@ -187,7 +253,7 @@ export class ExecutionEngine extends EventEmitter {
 
   public getBalances() {
     return {
-      total: this.totalBalanceUSDC,
+      total: this.totalBalanceUSDC + this.inOrdersUSDC,
       free: this.availableBalanceUSDC,
       locked: this.inOrdersUSDC,
       mode: this.mode

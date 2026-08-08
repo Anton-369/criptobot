@@ -136,6 +136,7 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 1rem;
+    }
 
     .coin-name {
       font-size: 1.25rem;
@@ -238,7 +239,7 @@
     td {
       padding: 0.85rem 1rem;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     }
 
@@ -251,6 +252,8 @@
 
     .status-pill.open { background: rgba(0, 229, 255, 0.15); color: var(--accent-cyan); }
     .status-pill.win { background: rgba(0, 230, 118, 0.15); color: var(--accent-green); }
+    .status-pill.yes { background: rgba(0, 230, 118, 0.15); color: var(--accent-green); }
+    .status-pill.no { background: rgba(255, 23, 68, 0.15); color: var(--accent-red); }
 
     .empty-state {
       text-align: center;
@@ -270,15 +273,15 @@
 
     <div class="wallet-metrics">
       <div class="metric-box">
-        <div class="metric-label">Saldo Total Wallet</div>
-        <div id="valTotalBal" class="metric-val green">$13.00 USDC</div>
+        <div class="metric-label">Valor Portafolio</div>
+        <div id="valTotalBal" class="metric-val green">$0.00 USDC</div>
       </div>
       <div class="metric-box">
-        <div class="metric-label">Disponible Operar</div>
-        <div id="valFreeBal" class="metric-val">$13.00 USDC</div>
+        <div class="metric-label">USDC Líquido Disponible</div>
+        <div id="valFreeBal" class="metric-val">$0.00 USDC</div>
       </div>
       <div class="metric-box">
-        <div class="metric-label">En Órdenes / Posición</div>
+        <div class="metric-label">En Posiciones Activas</div>
         <div id="valLockedBal" class="metric-val gold">$0.00 USDC</div>
       </div>
     </div>
@@ -290,25 +293,25 @@
     <!-- Dynamic Tickers inserted via WebSockets -->
   </div>
 
-  <div class="section-title">🎯 POSICIONES REALES EN CARTERA (LIVE / SHADOW RECONCILIACIÓN)</div>
+  <div class="section-title">🎯 POSICIONES REALES EN CARTERA (RECONCILIACIÓN POLYMARKET DATA API)</div>
 
   <div class="table-card">
     <table>
       <thead>
         <tr>
-          <th>ID Posición</th>
+          <th>Mercado / Título</th>
           <th>Moneda</th>
-          <th>Estrategia</th>
           <th>Lado</th>
-          <th>Precio Entrada</th>
+          <th>Precio Prom.</th>
           <th>Acciones</th>
           <th>Invertido</th>
+          <th>Valor Valorizado</th>
           <th>Estado</th>
         </tr>
       </thead>
       <tbody id="positionsTableBody">
         <tr>
-          <td colspan="8" class="empty-state">No hay posiciones activas en este momento. Esperando gatillo de latencia...</td>
+          <td colspan="8" class="empty-state">Cargando posiciones en vivo desde la blockchain...</td>
         </tr>
       </tbody>
     </table>
@@ -339,9 +342,9 @@
     function updateDashboard(data) {
       // 1. Mode & Balances
       badgeMode.innerText = `${data.mode} MODE`;
-      valTotalBal.innerText = `$${data.balances.total.toFixed(2)} USDC`;
+      valTotalBal.innerText = `$${data.balances.total.toFixed(2)} USD`;
       valFreeBal.innerText = `$${data.balances.free.toFixed(2)} USDC`;
-      valLockedBal.innerText = `$${data.balances.locked.toFixed(2)} USDC`;
+      valLockedBal.innerText = `$${data.balances.locked.toFixed(2)} USD`;
 
       // 2. Tickers Grid
       tickersGrid.innerHTML = data.tickers.map(t => {
@@ -379,20 +382,20 @@
       if (data.positions && data.positions.length > 0) {
         positionsTableBody.innerHTML = data.positions.map(p => `
           <tr>
-            <td>${p.id.substring(0, 16)}...</td>
-            <td><strong>${p.coin}</strong></td>
-            <td>${p.strategy}</td>
+            <td><strong>${p.title || p.id}</strong></td>
+            <td>${p.coin}</td>
             <td><span class="status-pill ${p.side.toLowerCase()}">${p.side}</span></td>
             <td>$${p.entryPrice.toFixed(3)}</td>
             <td>${p.shares.toFixed(2)}</td>
             <td>$${p.investedUSDC.toFixed(2)} USD</td>
+            <td>$${(p.currentValueUSDC || p.investedUSDC).toFixed(2)} USD</td>
             <td><span class="status-pill ${p.status.toLowerCase()}">${p.status}</span></td>
           </tr>
         `).join('');
       } else {
         positionsTableBody.innerHTML = `
           <tr>
-            <td colspan="8" class="empty-state">No hay posiciones activas en este momento. Esperando gatillo de latencia...</td>
+            <td colspan="8" class="empty-state">No hay posiciones activas en este momento en la wallet.</td>
           </tr>
         `;
       }

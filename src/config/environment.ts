@@ -5,9 +5,9 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 export const CONFIG = {
   EXECUTION_MODE: (process.env.EXECUTION_MODE || 'SHADOW') as 'SHADOW' | 'LIVE',
-  POLYGON_RPC_URL: process.env.POLYGON_RPC_URL || 'https://polygon-rpc.com',
+  POLYGON_RPC_URL: process.env.POLYGON_RPC_URL || 'https://polygon-bor-rpc.publicnode.com',
   PK: process.env.PK || '',
-  PROXY_WALLET: process.env.PROXY_WALLET || '0x62BEa41a4F5ec0e65CD8B17e57c6efC11fC80844',
+  PROXY_WALLET: process.env.PROXY_WALLET || '0xe57Ef37c17df560084fF3C1EB7bb3e9fdcCfA300',
   CLOB_API_URL: 'https://clob.polymarket.com',
   CHAIN_ID: 137, // Polygon Mainnet
   
