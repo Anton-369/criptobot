@@ -360,6 +360,7 @@
   <div class="tabs-nav">
     <button class="tab-btn active" onclick="switchTab('tabSimple')">📊 Pestaña 1: Matriz Simple (24H UP/DOWN)</button>
     <button class="tab-btn" onclick="switchTab('tabDeep')">🔬 Pestaña 2: Matriz Profunda (HFT Metrics)</button>
+    <button class="tab-btn" onclick="switchTab('tabHybrid')">🧠 Pestaña 3: Estrategia Híbrida Capa B (5 Coins)</button>
     <button class="tab-btn" onclick="switchTab('tabPositions')">💼 Posiciones Activas & Historial Live</button>
   </div>
 
@@ -419,7 +420,29 @@
     </div>
   </div>
 
-  <!-- Tab 3: Positions & Live History -->
+  <!-- Tab 3: Hybrid Capa B Matrix -->
+  <div id="tabHybrid" class="tab-content">
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Moneda</th>
+            <th>Estrategia Híbrida</th>
+            <th>Capa B (Sesgo Predictivo)</th>
+            <th>Confianza (%)</th>
+            <th>Ley Cuantitativa APLICADA</th>
+            <th>Rango Cuotas Poly</th>
+            <th>Cap Exposición / Hora</th>
+          </tr>
+        </thead>
+        <tbody id="hybridMatrixBody">
+          <!-- Populated by JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab 4: Positions & Live History -->
   <div id="tabPositions" class="tab-content">
     <div class="table-card">
       <table>
@@ -508,6 +531,19 @@
                 <span class="delta-pct ${isUp ? 'up' : 'down'}">${deltaSign}${t.deltaPct.toFixed(2)}%</span>
               </div>
 
+              <!-- CAPA B DIRECTIONAL BIAS BADGE -->
+              <div style="margin-bottom: 0.6rem; padding: 0.4rem 0.6rem; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.15rem;">
+                  <span>CAPA B (SESGO 1H):</span>
+                  <span style="font-weight: 800; color: ${t.directionalBias?.predictedSide === 'UP' ? 'var(--accent-green)' : (t.directionalBias?.predictedSide === 'DOWN' ? 'var(--accent-red)' : 'var(--accent-gold)')};">
+                    ${t.directionalBias?.predictedSide || 'NEUTRAL'} (${(t.directionalBias?.confidencePct || 50).toFixed(1)}%)
+                  </span>
+                </div>
+                <div style="font-size: 0.62rem; color: #a0aec0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${t.directionalBias?.reason || 'Sin patrón activo'}">
+                  ${t.directionalBias?.reason || 'Sin patrón de alta probabilidad'}
+                </div>
+              </div>
+
               <div class="poly-odds-grid">
                 <div class="odds-item">
                   <div class="odds-label">Polymarket UP</div>
@@ -579,7 +615,38 @@
         `;
       }
 
-      // 5. Positions Table
+      // 5. Hybrid Capa B Matrix Tab
+      const hybridMatrixBody = document.getElementById('hybridMatrixBody');
+      if (hybridMatrixBody && data.tickers) {
+        const stratMap = {
+          XRP: { name: 'XRP_HYBRID_SNIPER', range: '$0.25 - $0.45' },
+          SOL: { name: 'SOL_HYBRID_VOLATILITY', range: '$0.25 - $0.45 (+ Seguro $0.08-$0.25)' },
+          DOGE: { name: 'DOGE_HYBRID_SWARM', range: '$0.25 - $0.45' },
+          BNB: { name: 'BNB_HYBRID_ETH_CLUSTER', range: '$0.20 - $0.45 (Lag)' },
+          HYPE: { name: 'HYPE_HYBRID_DEX_ARBITRAGE', range: '$0.20 - $0.45 (DEX Ineficiencia)' }
+        };
+
+        const tradableTickers = data.tickers.filter(t => t.role !== 'BEACON');
+        hybridMatrixBody.innerHTML = tradableTickers.map(t => {
+          const strat = stratMap[t.coin] || { name: 'HFT_GENERIC', range: '$0.25 - $0.45' };
+          const bias = t.directionalBias || { predictedSide: 'NEUTRAL', confidencePct: 50.0, reason: 'N/A' };
+          const sideClass = bias.predictedSide === 'UP' ? 'tag-up' : (bias.predictedSide === 'DOWN' ? 'tag-down' : 'status-pill');
+
+          return `
+            <tr>
+              <td><strong>${t.coin}</strong></td>
+              <td><span style="font-family: 'JetBrains Mono'; font-weight:700; color: var(--accent-cyan);">${strat.name}</span></td>
+              <td><span class="${sideClass}">${bias.predictedSide}</span></td>
+              <td><strong>${bias.confidencePct.toFixed(1)}%</strong></td>
+              <td style="font-size: 0.75rem; color: #a0aec0;">${bias.reason}</td>
+              <td style="font-family: 'JetBrains Mono'; color: var(--accent-gold);">${strat.range}</td>
+              <td style="font-family: 'JetBrains Mono'; color: var(--accent-green); font-weight:800;">$5.00 USD (2 balas max)</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // 6. Positions Table
       if (data.positions && data.positions.length > 0) {
         positionsTableBody.innerHTML = data.positions.map(p => `
           <tr>
