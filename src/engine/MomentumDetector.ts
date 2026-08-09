@@ -44,16 +44,18 @@ export class MomentumDetector extends EventEmitter {
       const currentMinute = now.getMinutes(); // 0 to 59
 
       // -------------------------------------------------------------
-      // TRES VENTANAS DE TIEMPO DEL CICLO DE 1 HORA (BASADO EN DB Y ARXIV)
+      // CUATRO VENTANAS DE TIEMPO DEL CICLO DE 1 HORA
       // -------------------------------------------------------------
+      // Ventana 0 (Minuto 01 a 10): Bala de Apertura (Early Aperture Alpha, Odds <= $0.45)
       // Ventana 1 (Minuto 12 a 25): Entrada Principal (Binance Spot Impulse + Odds $0.25-$0.45)
-      // Ventana 2 (Minuto 33 a 43): Póliza Cobertura Asimétrica (Gamma Over-discount Odds $0.15-$0.30)
+      // Ventana 2 (Minuto 33 a 43): Póliza Cobertura Asimétrica (Odds $0.15-$0.30)
       // Ventana 3 (Minuto 44 a 60): ZONA DE CANDADO (Cero entradas, Hold-to-Oracle)
+      const isApertureWindow = currentMinute >= 1 && currentMinute <= 10;
       const isMainBulletWindow = currentMinute >= 12 && currentMinute <= 25;
       const isInsuranceWindow = currentMinute >= 33 && currentMinute <= 43;
 
-      if (!isMainBulletWindow && !isInsuranceWindow) {
-        // Estrictamente fuera de las dos ventanas activas (incluye el candado Min 44-60)
+      if (!isApertureWindow && !isMainBulletWindow && !isInsuranceWindow) {
+        // Estrictamente fuera de las ventanas activas (incluye el candado Min 44-60)
         return;
       }
 
@@ -68,6 +70,42 @@ export class MomentumDetector extends EventEmitter {
 
         // Fetch live orderbook odds from Polymarket
         const odds: BestOdds = await this.polyClob.getBestOdds(market.upTokenId, market.downTokenId);
+
+        // -------------------------------------------------------------
+        // VENTANA 0 (MINUTO 01 A 10): BALA DE APERTURA (EARLY APERTURE ALPHA)
+        // Captura cuotas desalineadas ($0.25-$0.45) aprovechando volatilidad inicial
+        // -------------------------------------------------------------
+        if (isApertureWindow) {
+          if (odds.upBestAsk >= 0.25 && odds.upBestAsk <= 0.45) {
+            const strat = coin === 'XRP' ? 'XRP_SNIPER' : (coin === 'SOL' ? 'SOL_ASYMMETRIC_HEDGE' : 'DOGE_LATE_HUNTER');
+            this.emitOpportunity({
+              coin: coin,
+              strategy: strat,
+              targetSide: 'UP',
+              targetTokenId: market.upTokenId,
+              targetPrice: odds.upBestAsk,
+              bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
+              spotDeltaPct: ticker.deltaPct,
+              cycleMinute: currentMinute,
+              reason: `${coin} Apertura Early Alpha UP a $${odds.upBestAsk.toFixed(3)} (Ventana 0 - Min ${currentMinute})`,
+              timestamp: Date.now()
+            });
+          } else if (odds.downBestAsk >= 0.25 && odds.downBestAsk <= 0.45) {
+            const strat = coin === 'XRP' ? 'XRP_SNIPER' : (coin === 'SOL' ? 'SOL_ASYMMETRIC_HEDGE' : 'DOGE_LATE_HUNTER');
+            this.emitOpportunity({
+              coin: coin,
+              strategy: strat,
+              targetSide: 'DOWN',
+              targetTokenId: market.downTokenId,
+              targetPrice: odds.downBestAsk,
+              bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
+              spotDeltaPct: ticker.deltaPct,
+              cycleMinute: currentMinute,
+              reason: `${coin} Apertura Early Alpha DOWN a $${odds.downBestAsk.toFixed(3)} (Ventana 0 - Min ${currentMinute})`,
+              timestamp: Date.now()
+            });
+          }
+        }
 
         // -------------------------------------------------------------
         // VENTANA 1 (MINUTO 12 A 25): BALA PRINCIPAL DIRECCIONAL
