@@ -168,10 +168,11 @@ export class MomentumDetector extends EventEmitter {
         }
 
         // -------------------------------------------------------------
-        // VENTANA 2 (MINUTO 33 A 43): PÓLIZA DE SEGURO SOBRE-DESCUENTADA ($0.15 - $0.30)
+        // VENTANA 2 (MINUTO 33 A 43): PÓLIZA DE SEGURO SOBRE-DESCUENTADA ($0.08 - $0.25)
+        // Arbitraje libre de riesgo (Risk-Free Lock) cuando la posición principal domina
         // -------------------------------------------------------------
         if (isInsuranceWindow) {
-          if (odds.downBestAsk >= 0.15 && odds.downBestAsk <= 0.30) {
+          if (odds.downBestAsk >= 0.08 && odds.downBestAsk <= 0.25) {
             const strat = coin === 'XRP' ? 'XRP_SNIPER' : (coin === 'SOL' ? 'SOL_ASYMMETRIC_HEDGE' : 'DOGE_LATE_HUNTER');
             this.emitOpportunity({
               coin: coin,
@@ -185,7 +186,7 @@ export class MomentumDetector extends EventEmitter {
               reason: `🛡️ PÓLIZA SEGURO: ${coin} DOWN sobre-descuentado a $${odds.downBestAsk.toFixed(3)} (Ventana 2 - Min ${currentMinute})`,
               timestamp: Date.now()
             });
-          } else if (odds.upBestAsk >= 0.15 && odds.upBestAsk <= 0.30) {
+          } else if (odds.upBestAsk >= 0.08 && odds.upBestAsk <= 0.25) {
             const strat = coin === 'XRP' ? 'XRP_SNIPER' : (coin === 'SOL' ? 'SOL_ASYMMETRIC_HEDGE' : 'DOGE_LATE_HUNTER');
             this.emitOpportunity({
               coin: coin,

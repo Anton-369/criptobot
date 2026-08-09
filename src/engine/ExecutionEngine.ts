@@ -211,9 +211,13 @@ export class ExecutionEngine extends EventEmitter {
           return false;
         }
       } else {
-        // Max 2 Main Directional Bullets ($2.00 each) per coin per 1H cycle
-        const mainBulletsCount = currentCyclePositions.filter(p => p.investedUSDC > 1.0).length;
-        if (mainBulletsCount >= 2) {
+        // Max 2 Main Directional Bullets ($2.50 each = $5.00 total) per coin per 1H cycle
+        const totalMainInvested = currentCyclePositions
+          .filter(p => p.investedUSDC > 1.0)
+          .reduce((sum, p) => sum + p.investedUSDC, 0);
+
+        if (totalMainInvested + sig.bulletSizeUSDC > 5.01) {
+          console.warn(`[ExecutionEngine] ⛔ Límite alcanzado: Exposición máxima en ${sig.coin} superaría $5.00 USD ($${totalMainInvested.toFixed(2)} ya invertidos).`);
           return false;
         }
       }
