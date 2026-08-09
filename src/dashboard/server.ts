@@ -57,7 +57,7 @@ export class DashboardServer {
     this.app.get('/api/status', async (req, res) => {
       const balances = this.execEngine.getBalances();
       const positions = this.execEngine.getPositions();
-      const tickers = this.binanceWs.getAllTickerStates();
+      const tickers = await this.getTickersWithTelemetry();
 
       res.json({
         success: true,
@@ -70,6 +70,39 @@ export class DashboardServer {
         deepHistory: this.matrixCollector ? this.matrixCollector.getDeepHistory() : []
       });
     });
+  }
+
+  private async getTickersWithTelemetry() {
+    const btcTicker = this.binanceWs.getTickerState('BTCUSDT');
+    const ethTicker = this.binanceWs.getTickerState('ETHUSDT');
+    const btcDir: 'UP' | 'DOWN' = (btcTicker?.deltaPct || 0) >= 0 ? 'UP' : 'DOWN';
+    const ethDir: 'UP' | 'DOWN' = (ethTicker?.deltaPct || 0) >= 0 ? 'UP' : 'DOWN';
+
+    return Promise.all(
+      this.binanceWs.getAllTickerStates().map(async (t) => {
+        const m = this.polyClob.getActiveMarket(t.coin);
+        let polyOdds = { upBestAsk: 1.0, downBestAsk: 1.0 };
+        const pairConfig = CONFIG.PAIRS.find(p => p.coin === t.coin);
+
+        if (m) {
+          polyOdds = await this.polyClob.getBestOdds(m.upTokenId, m.downTokenId);
+        }
+
+        let bias = { coin: t.coin, predictedSide: 'NEUTRAL', confidencePct: 50.0, reason: 'Sin patrón activo' };
+        if (this.detector) {
+          bias = this.detector.getMatrixHistory().getDirectionalBias(t.coin, btcDir, ethDir);
+        }
+
+        return {
+          ...t,
+          role: pairConfig ? pairConfig.role : 'TRADABLE',
+          polyMarketQuestion: m ? m.question : 'No activo',
+          upBestAsk: polyOdds.upBestAsk,
+          downBestAsk: polyOdds.downBestAsk,
+          directionalBias: bias
+        };
+      })
+    );
   }
 
   private setupWebSockets(): void {
@@ -87,7 +120,7 @@ export class DashboardServer {
 
     const balances = this.execEngine.getBalances();
     const positions = this.execEngine.getPositions();
-    const tickers = this.binanceWs.getAllTickerStates();
+    const tickers = await this.getTickersWithTelemetry();
 
     ws.send(JSON.stringify({
       type: 'SNAPSHOT',
@@ -106,33 +139,7 @@ export class DashboardServer {
 
     const balances = this.execEngine.getBalances();
     const positions = this.execEngine.getPositions();
-    
-    // Combine tickers with Polymarket odds and role
-    const tickersWithOdds = await Promise.all(
-      this.binanceWs.getAllTickerStates().map(async (t) => {
-        const m = this.polyClob.getActiveMarket(t.coin);
-        let polyOdds = { upBestAsk: 1.0, downBestAsk: 1.0 };
-        const pairConfig = CONFIG.PAIRS.find(p => p.coin === t.coin);
-
-        if (m) {
-          polyOdds = await this.polyClob.getBestOdds(m.upTokenId, m.downTokenId);
-        }
-
-        let bias = { predictedSide: 'NEUTRAL', confidencePct: 50.0, reason: 'N/A' };
-        if (this.detector) {
-          bias = this.detector.getMatrixHistory().getDirectionalBias(t.coin);
-        }
-
-        return {
-          ...t,
-          role: pairConfig ? pairConfig.role : 'TRADABLE',
-          polyMarketQuestion: m ? m.question : 'No activo',
-          upBestAsk: polyOdds.upBestAsk,
-          downBestAsk: polyOdds.downBestAsk,
-          directionalBias: bias
-        };
-      })
-    );
+    const tickersWithOdds = await this.getTickersWithTelemetry();
 
     const payload = JSON.stringify({
       type: 'TELEMETRY',
