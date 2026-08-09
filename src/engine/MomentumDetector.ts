@@ -61,6 +61,13 @@ export class MomentumDetector extends EventEmitter {
 
       for (const pair of CONFIG.PAIRS) {
         const coin = pair.coin;
+
+        // ESTRICTO: Solo disparar dinero real en los 3 activos operables comprobados (XRP, SOL, DOGE).
+        // BNB y HYPE permanecen en STANDBY acumulando datos en el Dashboard y las Matrices.
+        // BTC y ETH actúan como Faros Macro (no se compran).
+        const isTradableActive = coin === 'XRP' || coin === 'SOL' || coin === 'DOGE';
+        if (!isTradableActive) continue;
+
         const ticker = this.binanceWs.getTickerState(pair.symbol);
         const market = this.polyClob.getActiveMarket(coin);
 
