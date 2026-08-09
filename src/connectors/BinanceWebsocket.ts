@@ -46,6 +46,30 @@ export class BinanceWebsocketEngine extends EventEmitter {
 
   public async fetch1HOpenPrices(): Promise<void> {
     for (const pair of CONFIG.PAIRS) {
+      if (pair.coin === 'HYPE') {
+        try {
+          const nowMs = Date.now();
+          const resp = await fetch('https://api.hyperliquid.xyz/info', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'candleSnapshot',
+              req: { coin: 'HYPE', interval: '1h', startTime: nowMs - 3600000, endTime: nowMs }
+            })
+          });
+          if (resp.ok) {
+            const candles: any = await resp.json();
+            if (Array.isArray(candles) && candles.length > 0) {
+              const openPrice1H = parseFloat(candles[0].o);
+              this.setOpenPrice1H('hypeusdt', openPrice1H);
+              console.log(`[BinanceWS/HL] 📊 Precio Apertura 1H obtenido para HYPE: $${openPrice1H.toFixed(4)}`);
+            }
+          }
+        } catch (e: any) {
+          console.warn(`[BinanceWS/HL] No se pudo obtener 1H open para HYPE: ${e.message}`);
+        }
+        continue;
+      }
       try {
         const resp = await fetch(`https://api.binance.com/api/v3/klines?symbol=${pair.symbol.toUpperCase()}&interval=1h&limit=1`);
         if (resp.ok) {
@@ -67,11 +91,41 @@ export class BinanceWebsocketEngine extends EventEmitter {
     this.isRunning = true;
     this.fetch1HOpenPrices();
     this.connect();
+    this.startHypePoller();
+  }
+
+  private startHypePoller(): void {
+    setInterval(async () => {
+      if (!this.isRunning) return;
+      try {
+        const resp = await fetch('https://api.hyperliquid.xyz/info', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'allMids' })
+        });
+        if (resp.ok) {
+          const mids: any = await resp.json();
+          if (mids && mids.HYPE) {
+            const currentPrice = parseFloat(mids.HYPE);
+            const state = this.tickerStates.get('HYPEUSDT');
+            if (state) {
+              state.currentPrice = currentPrice;
+              if (state.openPrice1H === 0) state.openPrice1H = currentPrice;
+              state.deltaAbs = currentPrice - state.openPrice1H;
+              state.deltaPct = ((currentPrice - state.openPrice1H) / state.openPrice1H) * 100;
+              state.lastTickTimestamp = Date.now();
+              state.trend = state.deltaPct > 0.05 ? 'UP' : (state.deltaPct < -0.05 ? 'DOWN' : 'NEUTRAL');
+              this.emit('ticker', state);
+            }
+          }
+        }
+      } catch (e) {}
+    }, 1000);
   }
 
   private connect(): void {
-    // Subscribe to combined stream: xrpusdt@ticker / solusdt@ticker / dogeusdt@ticker
-    const streams = CONFIG.PAIRS.map(p => `${p.symbol}@ticker`).join('/');
+    const binancePairs = CONFIG.PAIRS.filter(p => p.coin !== 'HYPE');
+    const streams = binancePairs.map(p => `${p.symbol}@ticker`).join('/');
     const url = `wss://stream.binance.com:9443/stream?streams=${streams}`;
 
     console.log(`[BinanceWS] Conectando a stream ultra-rápido: ${url}`);

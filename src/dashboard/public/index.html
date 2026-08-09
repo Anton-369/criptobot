@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Criptobot v2.0 - Ultra-Fast HFT Control Center</title>
+  <title>Criptobot v2.0 - Command & Control Center</title>
 
   <!-- Google Fonts & Modern Styling -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,6 +19,7 @@
       --accent-red: #ff1744;
       --accent-cyan: #00e5ff;
       --accent-gold: #ffd600;
+      --accent-purple: #ab47bc;
       --text-main: #f0f4f8;
       --text-muted: #8b9bb4;
     }
@@ -72,58 +73,60 @@
       font-weight: 800;
       letter-spacing: 1px;
       text-transform: uppercase;
-      background: rgba(0, 229, 255, 0.15);
-      color: var(--accent-cyan);
-      border: 1px solid rgba(0, 229, 255, 0.3);
+      background: rgba(0, 230, 118, 0.15);
+      color: var(--accent-green);
+      border: 1px solid rgba(0, 230, 118, 0.3);
     }
 
     .wallet-metrics {
       display: flex;
-      gap: 1.5rem;
+      gap: 1rem;
     }
 
     .metric-box {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
       border-radius: 12px;
-      padding: 0.75rem 1.25rem;
+      padding: 0.65rem 1.1rem;
       backdrop-filter: blur(12px);
       text-align: right;
     }
 
     .metric-label {
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-bottom: 0.25rem;
+      margin-bottom: 0.2rem;
     }
 
     .metric-val {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 1.25rem;
+      font-size: 1.15rem;
       font-weight: 800;
       color: var(--text-main);
     }
 
     .metric-val.green { color: var(--accent-green); }
     .metric-val.gold { color: var(--accent-gold); }
+    .metric-val.purple { color: var(--accent-purple); }
 
-    /* Grid Layout */
+    /* Grid Layout for 7 Tickers */
     .grid-container {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1.5rem;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.2rem;
       margin-bottom: 1.5rem;
     }
 
     .card {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
-      border-radius: 16px;
-      padding: 1.25rem;
+      border-radius: 14px;
+      padding: 1.1rem;
       backdrop-filter: blur(12px);
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      position: relative;
       transition: transform 0.2s ease, border-color 0.2s ease;
     }
 
@@ -135,18 +138,33 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1rem;
+      margin-bottom: 0.75rem;
     }
 
     .coin-name {
-      font-size: 1.25rem;
+      font-size: 1.15rem;
       font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
     }
+
+    .role-tag {
+      font-size: 0.65rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .role-tag.beacon { background: rgba(171, 71, 188, 0.2); color: var(--accent-purple); border: 1px solid rgba(171, 71, 188, 0.4); }
+    .role-tag.tradable { background: rgba(0, 229, 255, 0.15); color: var(--accent-cyan); border: 1px solid rgba(0, 229, 255, 0.3); }
 
     .trend-indicator {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.8rem;
-      padding: 0.2rem 0.6rem;
+      font-size: 0.75rem;
+      padding: 0.15rem 0.5rem;
       border-radius: 6px;
       font-weight: 700;
     }
@@ -158,18 +176,18 @@
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      margin-bottom: 1rem;
+      margin-bottom: 0.75rem;
     }
 
     .spot-price {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 1.75rem;
+      font-size: 1.45rem;
       font-weight: 800;
     }
 
     .delta-pct {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 1.1rem;
+      font-size: 1rem;
       font-weight: 700;
     }
 
@@ -179,10 +197,10 @@
     .poly-odds-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 0.75rem;
+      gap: 0.5rem;
       background: rgba(0, 0, 0, 0.25);
-      border-radius: 10px;
-      padding: 0.75rem;
+      border-radius: 8px;
+      padding: 0.6rem;
       border: 1px solid var(--border-color);
     }
 
@@ -191,35 +209,67 @@
     }
 
     .odds-label {
-      font-size: 0.7rem;
+      font-size: 0.65rem;
       color: var(--text-muted);
-      margin-bottom: 0.2rem;
+      margin-bottom: 0.15rem;
     }
 
     .odds-val {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 1.1rem;
+      font-size: 0.95rem;
       font-weight: 800;
     }
 
-    /* Section Headers */
-    .section-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
-      color: var(--text-main);
+    /* Tabs Layout */
+    .tabs-nav {
       display: flex;
-      align-items: center;
-      gap: 0.5rem;
+      gap: 1rem;
+      margin-bottom: 1.2rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.5rem;
     }
 
-    /* Positions Table */
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+      color: var(--accent-cyan);
+      background: rgba(0, 229, 255, 0.1);
+      border: 1px solid rgba(0, 229, 255, 0.3);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Table Cards */
     .table-card {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
       border-radius: 16px;
       padding: 1.25rem;
       backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      overflow-x: auto;
     }
 
     table {
@@ -237,11 +287,15 @@
     }
 
     td {
-      padding: 0.85rem 1rem;
+      padding: 0.75rem 1rem;
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.85rem;
       border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     }
+
+    .tag-up { background: rgba(0, 230, 118, 0.15); color: var(--accent-green); padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 700; }
+    .tag-down { background: rgba(255, 23, 68, 0.15); color: var(--accent-red); padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 700; }
+    .tag-divergence { background: rgba(255, 214, 0, 0.2); color: var(--accent-gold); padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 700; border: 1px solid rgba(255, 214, 0, 0.4); }
 
     .status-pill {
       padding: 0.2rem 0.5rem;
@@ -251,15 +305,21 @@
     }
 
     .status-pill.open { background: rgba(0, 229, 255, 0.15); color: var(--accent-cyan); }
-    .status-pill.win { background: rgba(0, 230, 118, 0.15); color: var(--accent-green); }
-    .status-pill.yes { background: rgba(0, 230, 118, 0.15); color: var(--accent-green); }
-    .status-pill.no { background: rgba(255, 23, 68, 0.15); color: var(--accent-red); }
+    .status-pill.matched { background: rgba(0, 230, 118, 0.15); color: var(--accent-green); }
 
     .empty-state {
       text-align: center;
       color: var(--text-muted);
       padding: 2rem;
       font-size: 0.9rem;
+    }
+
+    a.tx-link {
+      color: var(--accent-cyan);
+      text-decoration: none;
+    }
+    a.tx-link:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -268,7 +328,7 @@
   <header>
     <div class="brand">
       <h1>⚡ CRIPTOBOT v2.0</h1>
-      <span id="badgeMode" class="badge-mode">SHADOW MODE</span>
+      <span id="badgeMode" class="badge-mode">LIVE MODE</span>
     </div>
 
     <div class="wallet-metrics">
@@ -277,7 +337,7 @@
         <div id="valTotalBal" class="metric-val green">$0.00 USD</div>
       </div>
       <div class="metric-box">
-        <div class="metric-label">USDC Líquido Libre</div>
+        <div class="metric-label">USDC Libre (Cash)</div>
         <div id="valFreeBal" class="metric-val">$0.00 USDC</div>
       </div>
       <div class="metric-box">
@@ -286,39 +346,102 @@
       </div>
       <div class="metric-box">
         <div class="metric-label">Reserva Gas (Polygon)</div>
-        <div id="valGasBal" class="metric-val" style="color: #00e5ff;">0.00 POL</div>
+        <div id="valGasBal" class="metric-val purple">0.00 POL</div>
       </div>
     </div>
   </header>
 
-  <div class="section-title">📊 MONITOREO DE LATENCIA EN TIEMPO REAL (BINANCE SPOT vs POLYMARKET 1H)</div>
-
+  <!-- Section 1: The 7 Monitored Assets -->
   <div class="grid-container" id="tickersGrid">
-    <!-- Dynamic Tickers inserted via WebSockets -->
+    <!-- Dynamic 7 Tickers (2 Beacons + 5 Tradable) -->
   </div>
 
-  <div class="section-title">🎯 POSICIONES REALES EN CARTERA (RECONCILIACIÓN POLYMARKET DATA API)</div>
+  <!-- Section 2: Command & Control Tabs -->
+  <div class="tabs-nav">
+    <button class="tab-btn active" onclick="switchTab('tabSimple')">📊 Pestaña 1: Matriz Simple (24H UP/DOWN)</button>
+    <button class="tab-btn" onclick="switchTab('tabDeep')">🔬 Pestaña 2: Matriz Profunda (HFT Metrics)</button>
+    <button class="tab-btn" onclick="switchTab('tabPositions')">💼 Posiciones Activas & Historial Live</button>
+  </div>
 
-  <div class="table-card">
-    <table>
-      <thead>
-        <tr>
-          <th>Mercado / Título</th>
-          <th>Moneda</th>
-          <th>Lado</th>
-          <th>Precio Prom.</th>
-          <th>Acciones</th>
-          <th>Invertido</th>
-          <th>Valor Valorizado</th>
-          <th>Estado</th>
-        </tr>
-      </thead>
-      <tbody id="positionsTableBody">
-        <tr>
-          <td colspan="8" class="empty-state">Cargando posiciones en vivo desde la blockchain...</td>
-        </tr>
-      </tbody>
-    </table>
+  <!-- Tab 1: Simple Matrix -->
+  <div id="tabSimple" class="tab-content active">
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Hora (Ciclo)</th>
+            <th>Fecha / ISO</th>
+            <th>BTC (Faro)</th>
+            <th>ETH (Faro)</th>
+            <th>XRP</th>
+            <th>SOL</th>
+            <th>DOGE</th>
+            <th>BNB</th>
+            <th>HYPE</th>
+            <th>Consenso Enjambre</th>
+            <th>Divergencia Macro</th>
+          </tr>
+        </thead>
+        <tbody id="simpleMatrixBody">
+          <tr>
+            <td colspan="11" class="empty-state">Recopilando matriz simple de 7 monedas en vivo desde la VPS...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab 2: Deep Matrix -->
+  <div id="tabDeep" class="tab-content">
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Moneda</th>
+            <th>Ciclo Hora</th>
+            <th>Apertura ($)</th>
+            <th>Cierre / Actual ($)</th>
+            <th>Máximo ($)</th>
+            <th>Mínimo ($)</th>
+            <th>Dip Time (Crash)</th>
+            <th>Peak Time (Pico)</th>
+            <th>Rango Volatilidad</th>
+            <th>Ventana Barata (≤$0.42)</th>
+            <th>Resultado</th>
+          </tr>
+        </thead>
+        <tbody id="deepMatrixBody">
+          <tr>
+            <td colspan="11" class="empty-state">Monitoreando métricas profundas de crash y volumen en vivo...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab 3: Positions & Live History -->
+  <div id="tabPositions" class="tab-content">
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Mercado / Título</th>
+            <th>Moneda</th>
+            <th>Lado</th>
+            <th>Precio Prom.</th>
+            <th>Acciones</th>
+            <th>Invertido</th>
+            <th>Valor Valorizado</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="positionsTableBody">
+          <tr>
+            <td colspan="8" class="empty-state">Cargando posiciones en vivo desde la blockchain...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <script>
@@ -330,8 +453,19 @@
     const valFreeBal = document.getElementById('valFreeBal');
     const valLockedBal = document.getElementById('valLockedBal');
     const valGasBal = document.getElementById('valGasBal');
+
     const tickersGrid = document.getElementById('tickersGrid');
+    const simpleMatrixBody = document.getElementById('simpleMatrixBody');
+    const deepMatrixBody = document.getElementById('deepMatrixBody');
     const positionsTableBody = document.getElementById('positionsTableBody');
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      
+      event.target.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
 
     ws.onmessage = (event) => {
       try {
@@ -347,44 +481,105 @@
     function updateDashboard(data) {
       // 1. Mode & Balances
       badgeMode.innerText = `${data.mode} MODE`;
-      valTotalBal.innerText = `$${data.balances.total.toFixed(2)} USD`;
-      valFreeBal.innerText = `$${data.balances.free.toFixed(2)} USDC`;
-      valLockedBal.innerText = `$${data.balances.locked.toFixed(2)} USD`;
-      valGasBal.innerText = `${(data.balances.nativeGasPOL || 0).toFixed(2)} POL`;
+      valTotalBal.innerText = `$${(data.balances?.total || 0).toFixed(2)} USD`;
+      valFreeBal.innerText = `$${(data.balances?.free || 0).toFixed(2)} USDC`;
+      valLockedBal.innerText = `$${(data.balances?.locked || 0).toFixed(2)} USD`;
+      valGasBal.innerText = `${(data.balances?.nativeGasPOL || 0).toFixed(2)} POL`;
 
-      // 2. Tickers Grid
-      tickersGrid.innerHTML = data.tickers.map(t => {
-        const deltaSign = t.deltaPct >= 0 ? '+' : '';
-        const isUp = t.deltaPct >= 0;
-        const trendClass = t.trend.toLowerCase();
-        
-        return `
-          <div class="card">
-            <div class="card-header">
-              <span class="coin-name">${t.coin} / USDT</span>
-              <span class="trend-indicator ${trendClass}">${t.trend}</span>
-            </div>
-            
-            <div class="price-row">
-              <span class="spot-price">$${t.currentPrice.toFixed(4)}</span>
-              <span class="delta-pct ${isUp ? 'up' : 'down'}">${deltaSign}${t.deltaPct.toFixed(2)}%</span>
-            </div>
+      // 2. 7 Tickers Grid
+      if (data.tickers && data.tickers.length > 0) {
+        tickersGrid.innerHTML = data.tickers.map(t => {
+          const deltaSign = t.deltaPct >= 0 ? '+' : '';
+          const isUp = t.deltaPct >= 0;
+          const trendClass = t.trend.toLowerCase();
+          const isBeacon = t.role === 'BEACON';
+          const roleClass = isBeacon ? 'beacon' : 'tradable';
+          const roleLabel = isBeacon ? 'FARO MACRO' : 'OPERABLE LIVE';
+          
+          return `
+            <div class="card">
+              <div class="card-header">
+                <span class="coin-name">${t.coin} <span class="role-tag ${roleClass}">${roleLabel}</span></span>
+                <span class="trend-indicator ${trendClass}">${t.trend}</span>
+              </div>
+              
+              <div class="price-row">
+                <span class="spot-price">$${t.currentPrice > 100 ? t.currentPrice.toFixed(2) : t.currentPrice.toFixed(4)}</span>
+                <span class="delta-pct ${isUp ? 'up' : 'down'}">${deltaSign}${t.deltaPct.toFixed(2)}%</span>
+              </div>
 
-            <div class="poly-odds-grid">
-              <div class="odds-item">
-                <div class="odds-label">Polymarket UP</div>
-                <div class="odds-val">$${(t.upBestAsk || 1.0).toFixed(3)}</div>
-              </div>
-              <div class="odds-item">
-                <div class="odds-label">Polymarket DOWN</div>
-                <div class="odds-val">$${(t.downBestAsk || 1.0).toFixed(3)}</div>
+              <div class="poly-odds-grid">
+                <div class="odds-item">
+                  <div class="odds-label">Polymarket UP</div>
+                  <div class="odds-val" style="color: var(--accent-green);">$${(t.upBestAsk || 1.0).toFixed(2)}</div>
+                </div>
+                <div class="odds-item">
+                  <div class="odds-label">Polymarket DOWN</div>
+                  <div class="odds-val" style="color: var(--accent-red);">$${(t.downBestAsk || 1.0).toFixed(2)}</div>
+                </div>
               </div>
             </div>
-          </div>
+          `;
+        }).join('');
+      }
+
+      // 3. Simple Matrix (24H)
+      if (data.simpleHistory && data.simpleHistory.length > 0) {
+        simpleMatrixBody.innerHTML = data.simpleHistory.map(s => {
+          const divTag = s.btcAltDivergence 
+            ? `<span class="tag-divergence">⚡ DIVERGENCIA</span>`
+            : `<span style="color: var(--text-muted);">Sincro</span>`;
+
+          return `
+            <tr>
+              <td><strong>Hora ${s.hour}:00</strong></td>
+              <td>${new Date(s.timestampISO).toLocaleTimeString()}</td>
+              <td><span class="${s.btc === 'UP' ? 'tag-up' : 'tag-down'}">${s.btc}</span></td>
+              <td><span class="${s.eth === 'UP' ? 'tag-up' : 'tag-down'}">${s.eth}</span></td>
+              <td><span class="${s.xrp === 'UP' ? 'tag-up' : 'tag-down'}">${s.xrp}</span></td>
+              <td><span class="${s.sol === 'UP' ? 'tag-up' : 'tag-down'}">${s.sol}</span></td>
+              <td><span class="${s.doge === 'UP' ? 'tag-up' : 'tag-down'}">${s.doge}</span></td>
+              <td><span class="${s.bnb === 'UP' ? 'tag-up' : 'tag-down'}">${s.bnb}</span></td>
+              <td><span class="${s.hype === 'UP' ? 'tag-up' : 'tag-down'}">${s.hype}</span></td>
+              <td><span class="${s.swarmConsensus === 'UP' ? 'tag-up' : (s.swarmConsensus === 'DOWN' ? 'tag-down' : 'status-pill')}">${s.swarmConsensus}</span></td>
+              <td>${divTag}</td>
+            </tr>
+          `;
+        }).join('');
+      } else {
+        simpleMatrixBody.innerHTML = `
+          <tr>
+            <td colspan="11" class="empty-state">Esperando al cambio de hora para compilar el primer ciclo de las 7 monedas...</td>
+          </tr>
         `;
-      }).join('');
+      }
 
-      // 3. Positions Table
+      // 4. Deep Matrix
+      if (data.deepHistory && data.deepHistory.length > 0) {
+        deepMatrixBody.innerHTML = data.deepHistory.map(d => `
+          <tr>
+            <td><strong>${d.coin}</strong></td>
+            <td>Hora ${d.hour}:00</td>
+            <td>$${d.openPrice.toFixed(4)}</td>
+            <td>$${d.closePrice.toFixed(4)}</td>
+            <td>$${d.highPrice.toFixed(4)}</td>
+            <td>$${d.lowPrice.toFixed(4)}</td>
+            <td style="color: var(--accent-red); font-weight:700;">${d.dipMinSec} min</td>
+            <td style="color: var(--accent-green); font-weight:700;">${d.peakMinSec} min</td>
+            <td>${d.rangePct.toFixed(2)}%</td>
+            <td><span class="status-pill ${d.cheapWindowActive ? 'matched' : 'open'}">${d.cheapWindowActive ? 'SÍ (Entrada ≤$0.42)' : 'No'}</span></td>
+            <td><span class="${d.direction === 'UP' ? 'tag-up' : 'tag-down'}">${d.direction}</span></td>
+          </tr>
+        `).join('');
+      } else {
+        deepMatrixBody.innerHTML = `
+          <tr>
+            <td colspan="11" class="empty-state">Monitoreando segundos de dip/peak en tiempo real...</td>
+          </tr>
+        `;
+      }
+
+      // 5. Positions Table
       if (data.positions && data.positions.length > 0) {
         positionsTableBody.innerHTML = data.positions.map(p => `
           <tr>

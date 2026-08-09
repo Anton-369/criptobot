@@ -8,6 +8,8 @@ import { PolymarketClobConnector } from '../connectors/PolymarketClob';
 import { ExecutionEngine } from '../engine/ExecutionEngine';
 import { CONFIG } from '../config/environment';
 
+import { MatrixCollector } from '../analytics/MatrixCollector';
+
 export class DashboardServer {
   private app: express.Application;
   private server: http.Server;
@@ -17,17 +19,20 @@ export class DashboardServer {
   private binanceWs: BinanceWebsocketEngine;
   private polyClob: PolymarketClobConnector;
   private execEngine: ExecutionEngine;
+  private matrixCollector?: MatrixCollector;
 
   constructor(
     binanceWs: BinanceWebsocketEngine,
     polyClob: PolymarketClobConnector,
     execEngine: ExecutionEngine,
-    port: number = 8505
+    port: number = 8505,
+    matrixCollector?: MatrixCollector
   ) {
     this.binanceWs = binanceWs;
     this.polyClob = polyClob;
     this.execEngine = execEngine;
     this.port = port;
+    this.matrixCollector = matrixCollector;
 
     this.app = express();
     this.server = http.createServer(this.app);
@@ -54,18 +59,18 @@ export class DashboardServer {
         mode: CONFIG.EXECUTION_MODE,
         balances,
         tickers,
-        positions
+        positions,
+        simpleHistory: this.matrixCollector ? this.matrixCollector.getSimpleHistory() : [],
+        deepHistory: this.matrixCollector ? this.matrixCollector.getDeepHistory() : []
       });
     });
   }
 
   private setupWebSockets(): void {
     this.wss.on('connection', (ws: WebSocket) => {
-      // Send initial snapshot
       this.sendSnapshot(ws);
     });
 
-    // Broadcast live telemetry every 1000ms
     setInterval(() => {
       this.broadcastTelemetry();
     }, 1000);
@@ -84,7 +89,9 @@ export class DashboardServer {
       mode: CONFIG.EXECUTION_MODE,
       balances,
       tickers,
-      positions
+      positions,
+      simpleHistory: this.matrixCollector ? this.matrixCollector.getSimpleHistory() : [],
+      deepHistory: this.matrixCollector ? this.matrixCollector.getDeepHistory() : []
     }));
   }
 
@@ -94,11 +101,12 @@ export class DashboardServer {
     const balances = this.execEngine.getBalances();
     const positions = this.execEngine.getPositions();
     
-    // Combine tickers with Polymarket odds
+    // Combine tickers with Polymarket odds and role
     const tickersWithOdds = await Promise.all(
       this.binanceWs.getAllTickerStates().map(async (t) => {
         const m = this.polyClob.getActiveMarket(t.coin);
         let polyOdds = { upBestAsk: 1.0, downBestAsk: 1.0 };
+        const pairConfig = CONFIG.PAIRS.find(p => p.coin === t.coin);
 
         if (m) {
           polyOdds = await this.polyClob.getBestOdds(m.upTokenId, m.downTokenId);
@@ -106,6 +114,7 @@ export class DashboardServer {
 
         return {
           ...t,
+          role: pairConfig ? pairConfig.role : 'TRADABLE',
           polyMarketQuestion: m ? m.question : 'No activo',
           upBestAsk: polyOdds.upBestAsk,
           downBestAsk: polyOdds.downBestAsk
@@ -119,7 +128,9 @@ export class DashboardServer {
       mode: CONFIG.EXECUTION_MODE,
       balances,
       tickers: tickersWithOdds,
-      positions
+      positions,
+      simpleHistory: this.matrixCollector ? this.matrixCollector.getSimpleHistory() : [],
+      deepHistory: this.matrixCollector ? this.matrixCollector.getDeepHistory() : []
     });
 
     this.wss.clients.forEach((client) => {

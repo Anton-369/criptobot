@@ -1,5 +1,7 @@
 import { ClobClient, Chain, SignatureTypeV2 } from '@polymarket/clob-client-v2';
 import { Wallet } from 'ethers';
+import axios from 'axios';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import { CONFIG } from '../config/environment';
 
 export interface Polymarket1HMarket {
@@ -24,6 +26,13 @@ export class PolymarketClobConnector {
   private activeMarkets: Map<string, Polymarket1HMarket> = new Map(); // key: coin (XRP, SOL, DOGE)
 
   constructor() {
+    if (CONFIG.HTTP_PROXY) {
+      const agent = new HttpsProxyAgent(CONFIG.HTTP_PROXY);
+      axios.defaults.httpsAgent = agent;
+      axios.defaults.httpAgent = agent;
+      console.log(`[PolyCLOB] 🌐 Proxy HTTP configurado correctamente: ${CONFIG.HTTP_PROXY} (Bypassing Geoblock)`);
+    }
+
     if (CONFIG.PK) {
       try {
         const wallet = new Wallet(CONFIG.PK) as any;
@@ -78,12 +87,16 @@ export class PolymarketClobConnector {
             const slug = (ev.slug || '').toLowerCase();
             
             for (const pair of CONFIG.PAIRS) {
-              const coin = pair.coin; // XRP, SOL, DOGE
+              const coin = pair.coin;
               
               const isMatch = (
                 title.includes(coin) ||
+                (coin === 'BTC' && (title.includes('BITCOIN') || slug.includes('bitcoin'))) ||
+                (coin === 'ETH' && (title.includes('ETHEREUM') || slug.includes('ethereum'))) ||
                 (coin === 'DOGE' && (title.includes('DOGECOIN') || slug.includes('doge'))) ||
                 (coin === 'SOL' && (title.includes('SOLANA') || slug.includes('sol'))) ||
+                (coin === 'BNB' && (title.includes('BNB') || slug.includes('bnb'))) ||
+                (coin === 'HYPE' && (title.includes('HYPE') || slug.includes('hype'))) ||
                 slug.includes(coin.toLowerCase())
               );
 
