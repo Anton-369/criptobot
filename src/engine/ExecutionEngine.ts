@@ -27,6 +27,7 @@ export class ExecutionEngine extends EventEmitter {
   private mode: 'SHADOW' | 'LIVE';
   private positions: PositionRecord[] = [];
   private recentLiveExecutions: PositionRecord[] = [];
+  private localCycleFills: { coin: string; side: string; investedUSDC: number; timestamp: number }[] = [];
 
   // Real-time wallet tracking
   private totalBalanceUSDC: number = 0;
@@ -206,31 +207,43 @@ export class ExecutionEngine extends EventEmitter {
       const now = new Date();
       const cycleStartMs = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0, 0).getTime();
 
-      // Filter active open positions for this coin in the current 1H cycle
-      const currentCyclePositions = this.positions.filter(
-        p => p.coin === sig.coin && p.status === 'OPEN' && p.entryTimestamp >= cycleStartMs
+      // Clean local cycle fills older than current 1H cycle
+      this.localCycleFills = this.localCycleFills.filter(f => f.timestamp >= cycleStartMs);
+
+      // Filter active open positions for this coin in current cycle from both wallet and local fills
+      const currentLocalFills = this.localCycleFills.filter(f => f.coin === sig.coin);
+      const currentWalletPositions = this.positions.filter(
+        p => p.coin === sig.coin && p.status === 'OPEN'
       );
 
       const isInsuranceSig = sig.bulletSizeUSDC <= 1.0;
 
       if (isInsuranceSig) {
         // STRICT SAFETY RULE: Insurance bullets MUST have an open main directional position (> $1.0) in the opposite direction
-        const hasOppositeMainBullet = currentCyclePositions.some(p => p.investedUSDC > 1.0 && p.side !== sig.targetSide);
+        const hasOppositeMainBullet = currentLocalFills.some(f => f.investedUSDC > 1.0 && f.side !== sig.targetSide) ||
+          currentWalletPositions.some(p => p.investedUSDC > 1.0 && p.side !== sig.targetSide);
         if (!hasOppositeMainBullet) {
           console.warn(`[ExecutionEngine] ⛔ Seguro rechazado: No existe bala principal opuesta en ${sig.coin} para asegurar.`);
           return false;
         }
 
         // Max 1 Insurance Bullet per coin per 1H cycle
-        const hasInsurance = currentCyclePositions.some(p => p.investedUSDC <= 1.0);
+        const hasInsurance = currentLocalFills.some(f => f.investedUSDC <= 1.0) ||
+          currentWalletPositions.some(p => p.investedUSDC <= 1.0);
         if (hasInsurance) {
           return false;
         }
       } else {
-        // Max 2 Main Directional Bullets ($2.50 each = $5.00 total) per coin per 1H cycle
-        const totalMainInvested = currentCyclePositions
+        // Calculate max exposure from both local fills and API wallet state
+        const localMainInvested = currentLocalFills
+          .filter(f => f.investedUSDC > 1.0)
+          .reduce((sum, f) => sum + f.investedUSDC, 0);
+
+        const walletMainInvested = currentWalletPositions
           .filter(p => p.investedUSDC > 1.0)
           .reduce((sum, p) => sum + p.investedUSDC, 0);
+
+        const totalMainInvested = Math.max(localMainInvested, walletMainInvested);
 
         if (totalMainInvested + sig.bulletSizeUSDC > 5.01) {
           console.warn(`[ExecutionEngine] ⛔ Límite alcanzado: Exposición máxima en ${sig.coin} superaría $5.00 USD ($${totalMainInvested.toFixed(2)} ya invertidos).`);
@@ -238,9 +251,16 @@ export class ExecutionEngine extends EventEmitter {
         }
       }
 
-      // Cooldown: Minimum 3 minutes gap between any bullet entries on the same coin
-      const hasRecentEntry = currentCyclePositions.some(p => (Date.now() - p.entryTimestamp) < 180000);
-      if (hasRecentEntry) {
+      // Cooldown: Minimum 3 minutes (180,000ms) gap between any bullet entries on the same coin
+      const lastFillTimestamp = Math.max(
+        0,
+        ...currentLocalFills.map(f => f.timestamp),
+        ...currentWalletPositions.map(p => p.entryTimestamp)
+      );
+
+      if (lastFillTimestamp > 0 && (Date.now() - lastFillTimestamp) < 180000) {
+        const remainingSec = Math.ceil((180000 - (Date.now() - lastFillTimestamp)) / 1000);
+        console.warn(`[ExecutionEngine] ⏳ Cooldown activo para ${sig.coin}: Faltan ${remainingSec}s para el próximo disparo.`);
         return false;
       }
 
@@ -272,6 +292,12 @@ export class ExecutionEngine extends EventEmitter {
     };
 
     this.positions.unshift(pos);
+    this.localCycleFills.push({
+      coin: sig.coin,
+      side: sig.targetSide,
+      investedUSDC: sig.bulletSizeUSDC,
+      timestamp: Date.now()
+    });
     this.refreshWalletBalances();
 
     console.log(`\n👻 [SHADOW EXECUTION] Orden Límite FOK Simulada Favorable`);
@@ -318,6 +344,12 @@ export class ExecutionEngine extends EventEmitter {
 
         this.positions.unshift(pos);
         this.recentLiveExecutions.push(pos);
+        this.localCycleFills.push({
+          coin: sig.coin,
+          side: sig.targetSide,
+          investedUSDC: sig.bulletSizeUSDC,
+          timestamp: Date.now()
+        });
         await this.refreshWalletBalances();
 
         console.log(`✅ [LIVE FILL] Orden FOK confirmada con éxito. ID: ${pos.id}`);
