@@ -59,7 +59,9 @@ export class ExecutionEngine extends EventEmitter {
               id: p.conditionId || p.asset,
               coin: p.title?.toUpperCase().includes('XRP') ? 'XRP' :
                 p.title?.toUpperCase().includes('SOL') ? 'SOL' :
-                  p.title?.toUpperCase().includes('DOGE') ? 'DOGE' : 'CLIMA/WASHY',
+                  p.title?.toUpperCase().includes('DOGE') ? 'DOGE' :
+                    p.title?.toUpperCase().includes('BNB') ? 'BNB' :
+                      p.title?.toUpperCase().includes('HYPE') ? 'HYPE' : 'CLIMA/WASHY',
               strategy: 'WASHY/LEGACY',
               side: (p.outcome || 'YES').toUpperCase() as any,
               tokenId: p.asset,

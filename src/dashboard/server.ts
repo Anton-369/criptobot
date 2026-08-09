@@ -10,6 +10,9 @@ import { CONFIG } from '../config/environment';
 
 import { MatrixCollector } from '../analytics/MatrixCollector';
 
+import { MomentumDetector } from '../engine/MomentumDetector';
+import { DirectionalBias } from '../engine/CycleMatrixHistory';
+
 export class DashboardServer {
   private app: express.Application;
   private server: http.Server;
@@ -20,19 +23,22 @@ export class DashboardServer {
   private polyClob: PolymarketClobConnector;
   private execEngine: ExecutionEngine;
   private matrixCollector?: MatrixCollector;
+  private detector?: MomentumDetector;
 
   constructor(
     binanceWs: BinanceWebsocketEngine,
     polyClob: PolymarketClobConnector,
     execEngine: ExecutionEngine,
     port: number = 8505,
-    matrixCollector?: MatrixCollector
+    matrixCollector?: MatrixCollector,
+    detector?: MomentumDetector
   ) {
     this.binanceWs = binanceWs;
     this.polyClob = polyClob;
     this.execEngine = execEngine;
     this.port = port;
     this.matrixCollector = matrixCollector;
+    this.detector = detector;
 
     this.app = express();
     this.server = http.createServer(this.app);
@@ -112,12 +118,18 @@ export class DashboardServer {
           polyOdds = await this.polyClob.getBestOdds(m.upTokenId, m.downTokenId);
         }
 
+        let bias = { predictedSide: 'NEUTRAL', confidencePct: 50.0, reason: 'N/A' };
+        if (this.detector) {
+          bias = this.detector.getMatrixHistory().getDirectionalBias(t.coin);
+        }
+
         return {
           ...t,
           role: pairConfig ? pairConfig.role : 'TRADABLE',
           polyMarketQuestion: m ? m.question : 'No activo',
           upBestAsk: polyOdds.upBestAsk,
-          downBestAsk: polyOdds.downBestAsk
+          downBestAsk: polyOdds.downBestAsk,
+          directionalBias: bias
         };
       })
     );

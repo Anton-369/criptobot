@@ -78,8 +78,8 @@ async function main() {
     }
   }, 10000);
 
-  // 6. Start Real-time Web Control Dashboard with Matrix Collector
-  const dashboard = new DashboardServer(binanceWs, polyClob, execEngine, 8506, matrixCollector);
+  // 6. Start Real-time Web Control Dashboard with Matrix Collector & Momentum Detector
+  const dashboard = new DashboardServer(binanceWs, polyClob, execEngine, 8506, matrixCollector, detector);
   dashboard.start();
 
   console.log("\n🚀 Criptobot v2.0 funcionando en segundo plano. Esperando gatillos de latencia...");
