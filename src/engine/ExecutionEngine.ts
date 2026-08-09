@@ -26,6 +26,7 @@ export class ExecutionEngine extends EventEmitter {
   private polyClob: PolymarketClobConnector;
   private mode: 'SHADOW' | 'LIVE';
   private positions: PositionRecord[] = [];
+  private recentLiveExecutions: PositionRecord[] = [];
 
   // Real-time wallet tracking
   private totalBalanceUSDC: number = 0;
@@ -71,10 +72,23 @@ export class ExecutionEngine extends EventEmitter {
               title: p.title
             }));
 
-          // Keep active local SHADOW positions (< 60 mins old) and replace LIVE entries with official Polymarket API data
+          // Preserve recent local LIVE executions (< 5 mins) to prevent Polymarket Data API indexing lag from wiping local state
+          const FIVE_MIN_MS = 5 * 60 * 1000;
+          this.recentLiveExecutions = this.recentLiveExecutions.filter(p => (Date.now() - p.entryTimestamp) < FIVE_MIN_MS);
+
           const ONE_HOUR_MS = 60 * 60 * 1000;
           const shadowPos = this.positions.filter(p => p.id.startsWith('SHADOW_') && (Date.now() - p.entryTimestamp) < ONE_HOUR_MS);
-          this.positions = [...livePos, ...shadowPos];
+          
+          // Deduplicate live positions by tokenId/asset
+          const combined = [...this.recentLiveExecutions, ...livePos, ...shadowPos];
+          const uniqueMap = new Map<string, PositionRecord>();
+          for (const pos of combined) {
+            const key = `${pos.coin}_${pos.side}_${pos.tokenId}`;
+            if (!uniqueMap.has(key) || (uniqueMap.get(key)!.investedUSDC < pos.investedUSDC)) {
+              uniqueMap.set(key, pos);
+            }
+          }
+          this.positions = Array.from(uniqueMap.values());
         }
       }
     } catch (err: any) {
@@ -301,6 +315,7 @@ export class ExecutionEngine extends EventEmitter {
         };
 
         this.positions.unshift(pos);
+        this.recentLiveExecutions.push(pos);
         await this.refreshWalletBalances();
 
         console.log(`✅ [LIVE FILL] Orden FOK confirmada con éxito. ID: ${pos.id}`);
