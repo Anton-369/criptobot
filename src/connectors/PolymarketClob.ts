@@ -166,10 +166,12 @@ export class PolymarketClobConnector {
       if (respUp.ok) {
         const dataUp: any = await respUp.json();
         if (dataUp && Array.isArray(dataUp.asks) && dataUp.asks.length > 0) {
-          odds.upBestAsk = parseFloat(dataUp.asks[dataUp.asks.length - 1].price);
+          const askPrices = dataUp.asks.map((a: any) => parseFloat(a.price)).filter((p: number) => !isNaN(p) && p > 0);
+          if (askPrices.length > 0) odds.upBestAsk = Math.min(...askPrices);
         }
         if (dataUp && Array.isArray(dataUp.bids) && dataUp.bids.length > 0) {
-          odds.upBestBid = parseFloat(dataUp.bids[dataUp.bids.length - 1].price);
+          const bidPrices = dataUp.bids.map((b: any) => parseFloat(b.price)).filter((p: number) => !isNaN(p) && p > 0);
+          if (bidPrices.length > 0) odds.upBestBid = Math.max(...bidPrices);
         }
       }
 
@@ -180,10 +182,12 @@ export class PolymarketClobConnector {
       if (respDown.ok) {
         const dataDown: any = await respDown.json();
         if (dataDown && Array.isArray(dataDown.asks) && dataDown.asks.length > 0) {
-          odds.downBestAsk = parseFloat(dataDown.asks[dataDown.asks.length - 1].price);
+          const askPrices = dataDown.asks.map((a: any) => parseFloat(a.price)).filter((p: number) => !isNaN(p) && p > 0);
+          if (askPrices.length > 0) odds.downBestAsk = Math.min(...askPrices);
         }
         if (dataDown && Array.isArray(dataDown.bids) && dataDown.bids.length > 0) {
-          odds.downBestBid = parseFloat(dataDown.bids[dataDown.bids.length - 1].price);
+          const bidPrices = dataDown.bids.map((b: any) => parseFloat(b.price)).filter((p: number) => !isNaN(p) && p > 0);
+          if (bidPrices.length > 0) odds.downBestBid = Math.max(...bidPrices);
         }
       }
 

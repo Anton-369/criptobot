@@ -55,15 +55,16 @@ async function main() {
   let lastHour = new Date().getHours();
   setInterval(async () => {
     try {
-      await polyClob.fetchActive1HMarkets();
-      await binanceWs.fetch1HOpenPrices();
-
       const currentHour = new Date().getHours();
       if (currentHour !== lastHour) {
         console.log(`[Main] ⏰ Cambio de ciclo de hora detectado (${lastHour}:00 -> ${currentHour}:00). Finalizando registros de matrices...`);
+        detector.recordHourOutcomes();
         matrixCollector.finalizeHourCycle(binanceWs.getAllTickerStates());
         lastHour = currentHour;
       }
+
+      await polyClob.fetchActive1HMarkets();
+      await binanceWs.fetch1HOpenPrices();
     } catch (e: any) {
       console.error(`[Main] Error refrescando mercados de 1H: ${e.message}`);
     }

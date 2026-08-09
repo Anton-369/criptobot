@@ -375,7 +375,7 @@ export class MomentumDetector extends EventEmitter {
     }
   }
 
-  private recordHourOutcomes(): void {
+  public recordHourOutcomes(): void {
     const activeCoins = ['BTC', 'ETH', 'XRP', 'SOL', 'DOGE', 'BNB', 'HYPE'];
     for (const coin of activeCoins) {
       const pair = CONFIG.PAIRS.find(p => p.coin === coin);
