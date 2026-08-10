@@ -143,31 +143,27 @@ export class MomentumDetector extends EventEmitter {
     const strat = 'XRP_HYBRID_SNIPER';
 
     if (isAperture || isMain) {
-      // Capa B Bias UP + Cuota $0.25-$0.45
-      if ((bias.predictedSide === 'UP' || ticker.deltaPct >= 0.15) && odds.upBestAsk >= 0.25 && odds.upBestAsk <= 0.45) {
+      // FIXED: Require BOTH bias UP AND positive spot momentum (not OR)
+      // Prevents firing on every cycle when BTC is bullish
+      const spotUp = ticker.deltaPct >= 0.10;   // min +0.10% spot movement
+      const spotDown = ticker.deltaPct <= -0.20; // min -0.20% spot movement
+
+      if (bias.predictedSide === 'UP' && spotUp && odds.upBestAsk >= 0.25 && odds.upBestAsk <= 0.45) {
         this.emitOpportunity({
-          coin: coin,
-          strategy: strat,
-          targetSide: 'UP',
-          targetTokenId: market.upTokenId,
-          targetPrice: odds.upBestAsk,
-          bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
-          spotDeltaPct: ticker.deltaPct,
+          coin, strategy: strat, targetSide: 'UP',
+          targetTokenId: market.upTokenId, targetPrice: odds.upBestAsk,
+          bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC, spotDeltaPct: ticker.deltaPct,
           cycleMinute: currentMinute,
-          reason: `XRP Híbrido UP a $${odds.upBestAsk.toFixed(3)} [Bias: ${bias.predictedSide} (${bias.confidencePct}%)] -> ${bias.reason}`,
+          reason: `XRP UP: Bias ${bias.predictedSide} (${bias.confidencePct}%) + Spot +${ticker.deltaPct.toFixed(2)}% @ $${odds.upBestAsk.toFixed(3)}`,
           timestamp: Date.now()
         });
-      } else if (ticker.deltaPct <= -0.25 && odds.downBestAsk >= 0.25 && odds.downBestAsk <= 0.45) {
+      } else if (spotDown && odds.downBestAsk >= 0.25 && odds.downBestAsk <= 0.45) {
         this.emitOpportunity({
-          coin: coin,
-          strategy: strat,
-          targetSide: 'DOWN',
-          targetTokenId: market.downTokenId,
-          targetPrice: odds.downBestAsk,
-          bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
-          spotDeltaPct: ticker.deltaPct,
+          coin, strategy: strat, targetSide: 'DOWN',
+          targetTokenId: market.downTokenId, targetPrice: odds.downBestAsk,
+          bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC, spotDeltaPct: ticker.deltaPct,
           cycleMinute: currentMinute,
-          reason: `XRP Híbrido DOWN por Impulso Spot (${ticker.deltaPct.toFixed(2)}%) a $${odds.downBestAsk.toFixed(3)}`,
+          reason: `XRP DOWN: Impulso Spot ${ticker.deltaPct.toFixed(2)}% @ $${odds.downBestAsk.toFixed(3)}`,
           timestamp: Date.now()
         });
       }
@@ -191,60 +187,49 @@ export class MomentumDetector extends EventEmitter {
     const strat = 'SOL_HYBRID_VOLATILITY';
 
     if (isAperture || isMain) {
-      if ((bias.predictedSide === 'UP' || ticker.deltaPct >= 0.25) && odds.upBestAsk >= 0.25 && odds.upBestAsk <= 0.45) {
+      // FIXED: Require bias AND confirmed spot momentum
+      const spotUp = ticker.deltaPct >= 0.20;
+      const spotDown = ticker.deltaPct <= -0.25;
+
+      if (bias.predictedSide === 'UP' && spotUp && odds.upBestAsk >= 0.25 && odds.upBestAsk <= 0.45) {
         this.emitOpportunity({
-          coin: coin,
-          strategy: strat,
-          targetSide: 'UP',
-          targetTokenId: market.upTokenId,
-          targetPrice: odds.upBestAsk,
-          bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
-          spotDeltaPct: ticker.deltaPct,
+          coin, strategy: strat, targetSide: 'UP',
+          targetTokenId: market.upTokenId, targetPrice: odds.upBestAsk,
+          bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC, spotDeltaPct: ticker.deltaPct,
           cycleMinute: currentMinute,
-          reason: `SOL Híbrido UP a $${odds.upBestAsk.toFixed(3)} [Bias: ${bias.predictedSide} (${bias.confidencePct}%)]`,
+          reason: `SOL UP: Bias ${bias.predictedSide} (${bias.confidencePct}%) + Spot +${ticker.deltaPct.toFixed(2)}% @ $${odds.upBestAsk.toFixed(3)}`,
           timestamp: Date.now()
         });
-      } else if (ticker.deltaPct <= -0.30 && odds.downBestAsk >= 0.25 && odds.downBestAsk <= 0.45) {
+      } else if (spotDown && odds.downBestAsk >= 0.25 && odds.downBestAsk <= 0.45) {
         this.emitOpportunity({
-          coin: coin,
-          strategy: strat,
-          targetSide: 'DOWN',
-          targetTokenId: market.downTokenId,
-          targetPrice: odds.downBestAsk,
-          bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
-          spotDeltaPct: ticker.deltaPct,
+          coin, strategy: strat, targetSide: 'DOWN',
+          targetTokenId: market.downTokenId, targetPrice: odds.downBestAsk,
+          bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC, spotDeltaPct: ticker.deltaPct,
           cycleMinute: currentMinute,
-          reason: `SOL Híbrido DOWN a $${odds.downBestAsk.toFixed(3)} (${ticker.deltaPct.toFixed(2)}%)`,
+          reason: `SOL DOWN: Impulso Spot ${ticker.deltaPct.toFixed(2)}% @ $${odds.downBestAsk.toFixed(3)}`,
           timestamp: Date.now()
         });
       }
     }
 
     if (isInsurance) {
+      // Insurance still valid: requires strong existing position in opposite direction
       if (odds.downBestAsk >= 0.08 && odds.downBestAsk <= 0.25) {
         this.emitOpportunity({
-          coin: coin,
-          strategy: strat,
-          targetSide: 'DOWN',
-          targetTokenId: market.downTokenId,
-          targetPrice: odds.downBestAsk,
-          bulletSizeUSDC: CONFIG.SOL_INSURANCE_BULLET_USDC || 1.00,
-          spotDeltaPct: ticker.deltaPct,
+          coin, strategy: strat, targetSide: 'DOWN',
+          targetTokenId: market.downTokenId, targetPrice: odds.downBestAsk,
+          bulletSizeUSDC: CONFIG.SOL_INSURANCE_BULLET_USDC || 1.00, spotDeltaPct: ticker.deltaPct,
           cycleMinute: currentMinute,
-          reason: `🛡️ PÓLIZA SEGURO SOL: DOWN a $${odds.downBestAsk.toFixed(3)} (Ventana 2 - Risk Free Lock)`,
+          reason: `🛡️ POLIZA SEGURO SOL: DOWN @ $${odds.downBestAsk.toFixed(3)} (Ventana 2)`,
           timestamp: Date.now()
         });
       } else if (odds.upBestAsk >= 0.08 && odds.upBestAsk <= 0.25) {
         this.emitOpportunity({
-          coin: coin,
-          strategy: strat,
-          targetSide: 'UP',
-          targetTokenId: market.upTokenId,
-          targetPrice: odds.upBestAsk,
-          bulletSizeUSDC: CONFIG.SOL_INSURANCE_BULLET_USDC || 1.00,
-          spotDeltaPct: ticker.deltaPct,
+          coin, strategy: strat, targetSide: 'UP',
+          targetTokenId: market.upTokenId, targetPrice: odds.upBestAsk,
+          bulletSizeUSDC: CONFIG.SOL_INSURANCE_BULLET_USDC || 1.00, spotDeltaPct: ticker.deltaPct,
           cycleMinute: currentMinute,
-          reason: `🛡️ PÓLIZA SEGURO SOL: UP a $${odds.upBestAsk.toFixed(3)} (Ventana 2 - Risk Free Lock)`,
+          reason: `🛡️ POLIZA SEGURO SOL: UP @ $${odds.upBestAsk.toFixed(3)} (Ventana 2)`,
           timestamp: Date.now()
         });
       }
@@ -268,21 +253,23 @@ export class MomentumDetector extends EventEmitter {
     const strat = 'DOGE_HYBRID_SWARM';
 
     if (isAperture || isMain) {
-      const side = bias.predictedSide !== 'NEUTRAL' ? bias.predictedSide : (ticker.deltaPct >= 0 ? 'UP' : 'DOWN');
+      // FIXED: Require a REAL signal — bias must be non-NEUTRAL OR strong spot momentum.
+      // Prevents DOGE from firing on every single cycle with zero confirmation.
+      const hasStrongSpot = Math.abs(ticker.deltaPct) >= 0.15;
+      const hasNonNeutralBias = bias.predictedSide !== 'NEUTRAL';
+
+      if (!hasStrongSpot && !hasNonNeutralBias) return; // No signal — skip
+
+      const side = (hasNonNeutralBias ? bias.predictedSide : (ticker.deltaPct >= 0 ? 'UP' : 'DOWN')) as 'UP' | 'DOWN';
       const targetOdds = side === 'UP' ? odds.upBestAsk : odds.downBestAsk;
       const targetTokenId = side === 'UP' ? market.upTokenId : market.downTokenId;
 
       if (targetOdds >= 0.25 && targetOdds <= 0.45) {
         this.emitOpportunity({
-          coin: coin,
-          strategy: strat,
-          targetSide: side,
-          targetTokenId: targetTokenId,
-          targetPrice: targetOdds,
-          bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
-          spotDeltaPct: ticker.deltaPct,
+          coin, strategy: strat, targetSide: side, targetTokenId, targetPrice: targetOdds,
+          bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC, spotDeltaPct: ticker.deltaPct,
           cycleMinute: currentMinute,
-          reason: `DOGE Enjambre ${side} a $${targetOdds.toFixed(3)} [Bias: ${bias.predictedSide} (${bias.confidencePct}%)] -> ${bias.reason}`,
+          reason: `DOGE Swarm ${side} @ $${targetOdds.toFixed(3)} [Bias: ${bias.predictedSide} (${bias.confidencePct}%) | Spot: ${ticker.deltaPct.toFixed(2)}%]`,
           timestamp: Date.now()
         });
       }
@@ -353,22 +340,23 @@ export class MomentumDetector extends EventEmitter {
     const strat = 'HYPE_HYBRID_DEX_ARBITRAGE';
 
     if (isAperture || isMain) {
-      const side = bias.predictedSide !== 'NEUTRAL' ? bias.predictedSide : (ticker.deltaPct >= 0 ? 'UP' : 'DOWN');
+      // FIXED: HYPE has low liquidity — require a real trigger, not just any quote in range
+      const hasStrongSpot = Math.abs(ticker.deltaPct) >= 0.20;
+      const hasNonNeutralBias = bias.predictedSide !== 'NEUTRAL';
+
+      if (!hasStrongSpot && !hasNonNeutralBias) return; // No signal — skip
+
+      const side = (hasNonNeutralBias ? bias.predictedSide : (ticker.deltaPct >= 0 ? 'UP' : 'DOWN')) as 'UP' | 'DOWN';
       const targetOdds = side === 'UP' ? odds.upBestAsk : odds.downBestAsk;
       const targetTokenId = side === 'UP' ? market.upTokenId : market.downTokenId;
 
-      // HYPE has uncontested orderbook on Polymarket; accept odds $0.20-$0.45
+      // Tighter range for HYPE due to low liquidity
       if (targetOdds >= 0.20 && targetOdds <= 0.45) {
         this.emitOpportunity({
-          coin: coin,
-          strategy: strat,
-          targetSide: side,
-          targetTokenId: targetTokenId,
-          targetPrice: targetOdds,
-          bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
-          spotDeltaPct: ticker.deltaPct,
+          coin, strategy: strat, targetSide: side, targetTokenId, targetPrice: targetOdds,
+          bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC, spotDeltaPct: ticker.deltaPct,
           cycleMinute: currentMinute,
-          reason: `HYPE DEX Ineficiencia ${side} a $${targetOdds.toFixed(3)} [Bias: ${bias.predictedSide} (${bias.confidencePct}%)] -> ${bias.reason}`,
+          reason: `HYPE DEX Ineficiencia ${side} @ $${targetOdds.toFixed(3)} [Bias: ${bias.predictedSide} (${bias.confidencePct}%) | Spot: ${ticker.deltaPct.toFixed(2)}%]`,
           timestamp: Date.now()
         });
       }

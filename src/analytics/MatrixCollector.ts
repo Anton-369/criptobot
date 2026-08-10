@@ -219,9 +219,9 @@ export class MatrixCollector {
 
     this.simpleHistory.unshift(simpleRecord);
 
-    // Keep max 200 records
-    if (this.simpleHistory.length > 200) this.simpleHistory.pop();
-    if (this.deepHistory.length > 500) this.deepHistory.pop();
+    // Keep max 500 simple records (~3 days of 7-coin hourly data) and 1500 deep records
+    if (this.simpleHistory.length > 500) this.simpleHistory.pop();
+    if (this.deepHistory.length > 1500) this.deepHistory.pop();
 
     this.saveHistory();
     this.currentHourTickStats.clear();

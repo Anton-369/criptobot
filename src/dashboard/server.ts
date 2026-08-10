@@ -93,7 +93,9 @@ export class DashboardServer {
       if (!response.ok) return this.lastCoinPerformanceCache;
       const data: any = await response.json();
 
-      const aug9Trades = data.filter((t: any) => t.type === 'TRADE' && (t.timestamp || 0) >= 1786248000);
+      // Dynamic 7-day rolling window — no hardcoded dates
+      const sevenDaysAgo = Math.floor(Date.now() / 1000) - (7 * 24 * 3600);
+      const aug9Trades = data.filter((t: any) => t.type === 'TRADE' && (t.timestamp || 0) >= sevenDaysAgo);
       const slugGroupMap: { [slug: string]: any[] } = {};
 
       for (const t of aug9Trades) {

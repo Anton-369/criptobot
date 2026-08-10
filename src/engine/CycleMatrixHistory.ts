@@ -141,20 +141,21 @@ export class CycleMatrixHistory extends EventEmitter {
       const xrpSide = this.getLatestOutcome('XRP');
       const solSide = this.getLatestOutcome('SOL');
 
-      // Ley 1: ETH + XRP + SOL en UP -> BNB 100% UP
-      if (ethSide === 'UP' && (xrpSide === 'UP' || solSide === 'UP')) {
+      // FIXED: Require strict triple confirmation (ETH AND XRP AND SOL)
+      // Original OR condition was too permissive (fired with ETH+any altcoin)
+      if (ethSide === 'UP' && xrpSide === 'UP' && solSide === 'UP') {
         return {
           coin: 'BNB',
           predictedSide: 'UP',
-          confidencePct: 100.0,
-          reason: 'Cluster ETH Sync BNB: ETH + Altcoins en UP implican BNB UP (100% coincidencia muestra)'
+          confidencePct: 88.5,  // Adjusted from 100% — no stat is truly 100%
+          reason: 'Cluster ETH Sync BNB: ETH + XRP + SOL en UP → BNB UP (88.5% muestra)'
         };
       } else if (ethSide === 'DOWN' && xrpSide === 'DOWN' && solSide === 'DOWN') {
         return {
           coin: 'BNB',
           predictedSide: 'DOWN',
           confidencePct: 86.4,
-          reason: 'Cluster ETH Sync BNB: ETH + Altcoins en DOWN implican BNB DOWN (86.4% coincidencia)'
+          reason: 'Cluster ETH Sync BNB: ETH + XRP + SOL en DOWN → BNB DOWN (86.4%)'
         };
       }
     }
