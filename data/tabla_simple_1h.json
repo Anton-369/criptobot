@@ -105,6 +105,19 @@
   },
   {
     "hour": 12,
+    "timestampISO": "2026-08-10T11:00:00.000Z",
+    "btc": "UP",
+    "eth": "UP",
+    "xrp": "UP",
+    "sol": "UP",
+    "doge": "UP",
+    "bnb": "UP",
+    "hype": "UP",
+    "swarmConsensus": "UP",
+    "btcAltDivergence": false
+  },
+  {
+    "hour": 12,
     "timestampISO": "2026-08-10T10:00:14.993Z",
     "btc": "DOWN",
     "eth": "DOWN",
@@ -114,6 +127,19 @@
     "bnb": "DOWN",
     "hype": "DOWN",
     "swarmConsensus": "DOWN",
+    "btcAltDivergence": false
+  },
+  {
+    "hour": 11,
+    "timestampISO": "2026-08-10T10:00:00.000Z",
+    "btc": "DOWN",
+    "eth": "UP",
+    "xrp": "DOWN",
+    "sol": "UP",
+    "doge": "DOWN",
+    "bnb": "DOWN",
+    "hype": "UP",
+    "swarmConsensus": "MIXED",
     "btcAltDivergence": false
   },
   {
@@ -131,6 +157,19 @@
   },
   {
     "hour": 10,
+    "timestampISO": "2026-08-10T09:00:00.000Z",
+    "btc": "DOWN",
+    "eth": "DOWN",
+    "xrp": "DOWN",
+    "sol": "DOWN",
+    "doge": "DOWN",
+    "bnb": "DOWN",
+    "hype": "DOWN",
+    "swarmConsensus": "DOWN",
+    "btcAltDivergence": false
+  },
+  {
+    "hour": 10,
     "timestampISO": "2026-08-10T08:00:13.743Z",
     "btc": "DOWN",
     "eth": "DOWN",
@@ -140,6 +179,19 @@
     "bnb": "UP",
     "hype": "UP",
     "swarmConsensus": "MIXED",
+    "btcAltDivergence": false
+  },
+  {
+    "hour": 9,
+    "timestampISO": "2026-08-10T08:00:00.000Z",
+    "btc": "DOWN",
+    "eth": "DOWN",
+    "xrp": "DOWN",
+    "sol": "DOWN",
+    "doge": "DOWN",
+    "bnb": "DOWN",
+    "hype": "DOWN",
+    "swarmConsensus": "DOWN",
     "btcAltDivergence": false
   },
   {
@@ -157,7 +209,33 @@
   },
   {
     "hour": 8,
+    "timestampISO": "2026-08-10T07:00:00.000Z",
+    "btc": "DOWN",
+    "eth": "UP",
+    "xrp": "UP",
+    "sol": "UP",
+    "doge": "UP",
+    "bnb": "DOWN",
+    "hype": "UP",
+    "swarmConsensus": "UP",
+    "btcAltDivergence": true
+  },
+  {
+    "hour": 8,
     "timestampISO": "2026-08-10T06:00:12.464Z",
+    "btc": "UP",
+    "eth": "UP",
+    "xrp": "UP",
+    "sol": "UP",
+    "doge": "UP",
+    "bnb": "UP",
+    "hype": "UP",
+    "swarmConsensus": "UP",
+    "btcAltDivergence": false
+  },
+  {
+    "hour": 7,
+    "timestampISO": "2026-08-10T06:00:00.000Z",
     "btc": "UP",
     "eth": "UP",
     "xrp": "UP",
@@ -179,6 +257,19 @@
     "bnb": "DOWN",
     "hype": "DOWN",
     "swarmConsensus": "MIXED",
+    "btcAltDivergence": false
+  },
+  {
+    "hour": 6,
+    "timestampISO": "2026-08-10T05:00:00.000Z",
+    "btc": "DOWN",
+    "eth": "DOWN",
+    "xrp": "DOWN",
+    "sol": "DOWN",
+    "doge": "DOWN",
+    "bnb": "DOWN",
+    "hype": "DOWN",
+    "swarmConsensus": "DOWN",
     "btcAltDivergence": false
   },
   {
@@ -210,6 +301,19 @@
   },
   {
     "hour": 5,
+    "timestampISO": "2026-08-10T04:00:00.000Z",
+    "btc": "UP",
+    "eth": "DOWN",
+    "xrp": "UP",
+    "sol": "UP",
+    "doge": "DOWN",
+    "bnb": "DOWN",
+    "hype": "UP",
+    "swarmConsensus": "MIXED",
+    "btcAltDivergence": false
+  },
+  {
+    "hour": 5,
     "timestampISO": "2026-08-10T03:00:11.181Z",
     "btc": "DOWN",
     "eth": "DOWN",
@@ -234,6 +338,19 @@
     "swarmConsensus": "DOWN",
     "btcAltDivergence": false,
     "source": "csv_manual"
+  },
+  {
+    "hour": 4,
+    "timestampISO": "2026-08-10T03:00:00.000Z",
+    "btc": "DOWN",
+    "eth": "DOWN",
+    "xrp": "DOWN",
+    "sol": "DOWN",
+    "doge": "DOWN",
+    "bnb": "DOWN",
+    "hype": "DOWN",
+    "swarmConsensus": "DOWN",
+    "btcAltDivergence": false
   },
   {
     "hour": 4,
@@ -264,6 +381,19 @@
   },
   {
     "hour": 3,
+    "timestampISO": "2026-08-10T02:00:00.000Z",
+    "btc": "UP",
+    "eth": "UP",
+    "xrp": "UP",
+    "sol": "UP",
+    "doge": "UP",
+    "bnb": "UP",
+    "hype": "UP",
+    "swarmConsensus": "UP",
+    "btcAltDivergence": false
+  },
+  {
+    "hour": 3,
     "timestampISO": "2026-08-10T01:00:49.676Z",
     "btc": "UP",
     "eth": "UP",
@@ -288,6 +418,19 @@
     "swarmConsensus": "UP",
     "btcAltDivergence": false,
     "source": "csv_manual"
+  },
+  {
+    "hour": 2,
+    "timestampISO": "2026-08-10T01:00:00.000Z",
+    "btc": "UP",
+    "eth": "UP",
+    "xrp": "UP",
+    "sol": "UP",
+    "doge": "UP",
+    "bnb": "UP",
+    "hype": "UP",
+    "swarmConsensus": "UP",
+    "btcAltDivergence": false
   },
   {
     "hour": 2,
@@ -318,6 +461,19 @@
   },
   {
     "hour": 1,
+    "timestampISO": "2026-08-10T00:00:00.000Z",
+    "btc": "DOWN",
+    "eth": "UP",
+    "xrp": "DOWN",
+    "sol": "UP",
+    "doge": "DOWN",
+    "bnb": "DOWN",
+    "hype": "DOWN",
+    "swarmConsensus": "DOWN",
+    "btcAltDivergence": false
+  },
+  {
+    "hour": 1,
     "timestampISO": "2026-08-09T23:00:28.668Z",
     "btc": "DOWN",
     "eth": "DOWN",
@@ -342,6 +498,19 @@
     "swarmConsensus": "DOWN",
     "btcAltDivergence": false,
     "source": "csv_manual"
+  },
+  {
+    "hour": 24,
+    "timestampISO": "2026-08-09T23:00:00.000Z",
+    "btc": "DOWN",
+    "eth": "DOWN",
+    "xrp": "DOWN",
+    "sol": "DOWN",
+    "doge": "DOWN",
+    "bnb": "DOWN",
+    "hype": "DOWN",
+    "swarmConsensus": "DOWN",
+    "btcAltDivergence": false
   },
   {
     "hour": 0,
@@ -369,6 +538,19 @@
     "swarmConsensus": "UP",
     "btcAltDivergence": false,
     "source": "csv_manual"
+  },
+  {
+    "hour": 23,
+    "timestampISO": "2026-08-09T22:00:00.000Z",
+    "btc": "DOWN",
+    "eth": "DOWN",
+    "xrp": "DOWN",
+    "sol": "DOWN",
+    "doge": "DOWN",
+    "bnb": "DOWN",
+    "hype": "DOWN",
+    "swarmConsensus": "DOWN",
+    "btcAltDivergence": false
   },
   {
     "hour": 23,
@@ -2284,5 +2466,57 @@
     "hype": "DOWN",
     "swarmConsensus": "MIXED",
     "btcAltDivergence": false
+  },
+  {
+    "hour": 24,
+    "timestampISO": "2026-08-06T23:00:00.000Z",
+    "btc": "DOWN",
+    "eth": "UP",
+    "xrp": "DOWN",
+    "sol": "DOWN",
+    "doge": "DOWN",
+    "bnb": "UP",
+    "hype": "UP",
+    "swarmConsensus": "MIXED",
+    "btcAltDivergence": false
+  },
+  {
+    "hour": 23,
+    "timestampISO": "2026-08-06T22:00:00.000Z",
+    "btc": "DOWN",
+    "eth": "UP",
+    "xrp": "DOWN",
+    "sol": "DOWN",
+    "doge": "UP",
+    "bnb": "UP",
+    "hype": "UP",
+    "swarmConsensus": "MIXED",
+    "btcAltDivergence": false
+  },
+  {
+    "hour": 22,
+    "timestampISO": "2026-08-06T21:00:00.000Z",
+    "btc": "UP",
+    "eth": "UP",
+    "xrp": "UP",
+    "sol": "UP",
+    "doge": "UP",
+    "bnb": "UP",
+    "hype": "UP",
+    "swarmConsensus": "UP",
+    "btcAltDivergence": false
+  },
+  {
+    "hour": 21,
+    "timestampISO": "2026-08-06T20:00:00.000Z",
+    "btc": "DOWN",
+    "eth": "UP",
+    "xrp": "UP",
+    "sol": "DOWN",
+    "doge": "UP",
+    "bnb": "UP",
+    "hype": "UP",
+    "swarmConsensus": "UP",
+    "btcAltDivergence": true
   }
 ]
