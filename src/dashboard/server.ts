@@ -52,7 +52,14 @@ export class DashboardServer {
     const publicDir = fs.existsSync(path.join(__dirname, 'public'))
       ? path.join(__dirname, 'public')
       : path.resolve(__dirname, '../../src/dashboard/public');
-    this.app.use(express.static(publicDir));
+    // Serve static files with no-cache headers
+    this.app.use(express.static(publicDir, {
+      setHeaders: (res) => {
+        res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+      }
+    }));
 
     this.app.get('/api/status', async (req, res) => {
       const balances = this.execEngine.getBalances();

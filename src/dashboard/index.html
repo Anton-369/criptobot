@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Criptobot v2.1-build-172957 v2.0 - Command & Control Center</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Criptobot v2.1 — Live Dashboard</title>
 
   <!-- Google Fonts & Modern Styling -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -327,8 +330,12 @@
 
   <header>
     <div class="brand">
-      <h1>⚡ CRIPTOBOT v2.0</h1>
+      <h1>⚡ CRIPTOBOT v2.1</h1>
       <span id="badgeMode" class="badge-mode">LIVE MODE</span>
+      <span id="badgeUpdate" style="font-size:0.6rem;color:var(--text-muted);margin-left:8px;"></span>
+      <span style="flex:1;"></span>
+      <span style="font-size:0.6rem;color:var(--text-muted);">📋 <span id="rowCount">—</span> reg</span>
+      <button onclick="location.reload(true)" style="margin-left:8px;padding:2px 8px;background:var(--accent-cyan);color:#000;border:none;border-radius:3px;cursor:pointer;font-size:0.65rem;">🔄</button>
     </div>
 
     <div class="wallet-metrics">
@@ -560,6 +567,11 @@
       valFreeBal.innerText = `$${(data.balances?.free || 0).toFixed(2)} USDC`;
       valLockedBal.innerText = `$${(data.balances?.locked || 0).toFixed(2)} USD`;
       valGasBal.innerText = `${(data.balances?.nativeGasPOL || 0).toFixed(2)} POL`;
+
+      // Update timestamp
+      const now = new Date();
+      document.getElementById('badgeUpdate').innerText = '🟢 ' + now.toLocaleTimeString('es-CL', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      document.getElementById('rowCount').innerText = (data.simpleHistory?.length || 0);
 
       // 2. 7 Tickers Grid
       if (data.tickers && data.tickers.length > 0) {
