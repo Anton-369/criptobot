@@ -37,8 +37,6 @@ export class ExecutionEngine extends EventEmitter {
   private availableBalanceUSDC: number = 0;
   private inOrdersUSDC: number = 0;
   private isExecutingSignal: boolean = false;
-  private isSafeMode: boolean = false;
-  private static readonly MAX_DAILY_INVESTED: number = 10.00; // USD
 
   constructor(polyClob: PolymarketClobConnector) {
     super();
@@ -250,25 +248,6 @@ export class ExecutionEngine extends EventEmitter {
         return false;
       }
 
-      // Kill switch: daily investment cap
-      this.stateManager.resetDailyIfNeeded();
-      const dailyInvested = this.stateManager.getDailyInvested();
-      // Reset safe mode if daily counter was reset (new UTC day)
-      if (this.isSafeMode && dailyInvested === 0) {
-        console.log('[ExecutionEngine] 🔓 SAFE_MODE desactivado — nuevo día UTC.');
-        this.isSafeMode = false;
-      }
-      const afterThisBullet = dailyInvested + (this.mode === 'LIVE' ? sig.bulletSizeUSDC : 0);
-      if (afterThisBullet > ExecutionEngine.MAX_DAILY_INVESTED) {
-        console.warn(`[ExecutionEngine] 🛑 KILL SWITCH: Límite diario alcanzado ($${dailyInvested.toFixed(2)} + $${sig.bulletSizeUSDC.toFixed(2)} > $${ExecutionEngine.MAX_DAILY_INVESTED.toFixed(2)}). Entrando en SAFE_MODE.`);
-        this.isSafeMode = true;
-      }
-
-      if (this.isSafeMode && this.mode === 'LIVE') {
-        console.warn(`[ExecutionEngine] 🔒 SAFE_MODE activo: operando en SHADOW hasta el próximo reset diario.`);
-        return this.executeShadowFill(sig);
-      }
-
       // Cycle start anchored to UTC :00 to match Polymarket cycle boundaries
       const nowUtc = new Date();
       const cycleStartMs = Date.UTC(
@@ -432,7 +411,6 @@ export class ExecutionEngine extends EventEmitter {
           investedUSDC: sig.bulletSizeUSDC,
           timestamp: Date.now()
         });
-        this.stateManager.addDailyInvested(sig.bulletSizeUSDC);
         await this.refreshWalletBalances();
 
         console.log(`✅ [LIVE FILL] Orden FOK confirmada con éxito. ID: ${pos.id}`);
