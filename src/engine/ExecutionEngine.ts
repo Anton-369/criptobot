@@ -253,6 +253,11 @@ export class ExecutionEngine extends EventEmitter {
       // Kill switch: daily investment cap
       this.stateManager.resetDailyIfNeeded();
       const dailyInvested = this.stateManager.getDailyInvested();
+      // Reset safe mode if daily counter was reset (new UTC day)
+      if (this.isSafeMode && dailyInvested === 0) {
+        console.log('[ExecutionEngine] 🔓 SAFE_MODE desactivado — nuevo día UTC.');
+        this.isSafeMode = false;
+      }
       const afterThisBullet = dailyInvested + (this.mode === 'LIVE' ? sig.bulletSizeUSDC : 0);
       if (afterThisBullet > ExecutionEngine.MAX_DAILY_INVESTED) {
         console.warn(`[ExecutionEngine] 🛑 KILL SWITCH: Límite diario alcanzado ($${dailyInvested.toFixed(2)} + $${sig.bulletSizeUSDC.toFixed(2)} > $${ExecutionEngine.MAX_DAILY_INVESTED.toFixed(2)}). Entrando en SAFE_MODE.`);
