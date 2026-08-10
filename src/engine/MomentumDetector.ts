@@ -28,17 +28,24 @@ export class MomentumDetector extends EventEmitter {
   private lastRecordedHour: number = -1;
   private latestOdds: Map<string, BestOdds> = new Map();
   private oracle: CoinPrediction[] = [];
+  private emittedThisWindow: Set<string> = new Set();
 
   public setOracle(predictions: CoinPrediction[]): void {
     this.oracle = predictions;
   }
 
-  /** Check if oracle agrees with a proposed trade direction */
+  /** Check if oracle agrees with a proposed trade direction.
+   *  Only blocks when oracle has HIGH confidence (≥70%) in the OPPOSITE direction.
+   *  Weak oracle signals pass through — spot confirmation takes priority. */
   private oracleApproves(coin: string, side: 'UP' | 'DOWN'): boolean {
-    if (this.oracle.length === 0) return true; // no oracle yet = allow all
+    if (this.oracle.length === 0) return true;
     const p = this.oracle.find(o => o.coin === coin);
     if (!p) return true;
-    return p.predictedSide === side;
+    // Only block if oracle has strong conviction (≥70%) for the OPPOSITE side
+    if (p.predictedSide !== side && p.confidencePct >= 70) {
+      return false;
+    }
+    return true;
   }
 
   constructor(
@@ -66,6 +73,7 @@ export class MomentumDetector extends EventEmitter {
   private async evaluate(): Promise<void> {
     if (this.isEvaluating) return;
     this.isEvaluating = true;
+    this.emittedThisWindow.clear(); // Reset dedup per evaluation cycle
 
     try {
       const now = new Date();
@@ -160,10 +168,14 @@ export class MomentumDetector extends EventEmitter {
     const strat = 'XRP_HYBRID_SNIPER';
 
     if (isAperture || isMain) {
-      // FIXED: Require BOTH bias UP AND positive spot momentum (not OR)
-      // Prevents firing on every cycle when BTC is bullish
-      const spotUp = ticker.deltaPct >= 0.10;   // min +0.10% spot movement
-      const spotDown = ticker.deltaPct <= -0.20; // min -0.20% spot movement
+      // Require BOTH bias AND spot for BOTH directions (symmetric)
+      // Aperture window: lower thresholds (early entry)
+      // Main window: standard thresholds
+      const isApertureWindow = isAperture && !isMain;
+      const spotUpThreshold = isApertureWindow ? 0.05 : 0.10;
+      const spotDownThreshold = isApertureWindow ? -0.10 : -0.20;
+      const spotUp = ticker.deltaPct >= spotUpThreshold;
+      const spotDown = ticker.deltaPct <= spotDownThreshold;
 
       if (bias.predictedSide === 'UP' && spotUp && odds.upBestAsk >= 0.25 && odds.upBestAsk <= 0.45) {
         this.emitOpportunity({
@@ -171,16 +183,16 @@ export class MomentumDetector extends EventEmitter {
           targetTokenId: market.upTokenId, targetPrice: odds.upBestAsk,
           bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC, spotDeltaPct: ticker.deltaPct,
           cycleMinute: currentMinute,
-          reason: `XRP UP: Bias ${bias.predictedSide} (${bias.confidencePct}%) + Spot +${ticker.deltaPct.toFixed(2)}% @ $${odds.upBestAsk.toFixed(3)}`,
+          reason: `XRP UP ${isApertureWindow?'(Apertura)':'(Main)'}: Bias ${bias.predictedSide} + Spot +${ticker.deltaPct.toFixed(2)}% @ $${odds.upBestAsk.toFixed(3)}`,
           timestamp: Date.now()
         });
-      } else if (spotDown && odds.downBestAsk >= 0.25 && odds.downBestAsk <= 0.45) {
+      } else if (bias.predictedSide === 'DOWN' && spotDown && odds.downBestAsk >= 0.25 && odds.downBestAsk <= 0.45) {
         this.emitOpportunity({
           coin, strategy: strat, targetSide: 'DOWN',
           targetTokenId: market.downTokenId, targetPrice: odds.downBestAsk,
           bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC, spotDeltaPct: ticker.deltaPct,
           cycleMinute: currentMinute,
-          reason: `XRP DOWN: Impulso Spot ${ticker.deltaPct.toFixed(2)}% @ $${odds.downBestAsk.toFixed(3)}`,
+          reason: `XRP DOWN ${isApertureWindow?'(Apertura)':'(Main)'}: Bias ${bias.predictedSide} + Spot ${ticker.deltaPct.toFixed(2)}% @ $${odds.downBestAsk.toFixed(3)}`,
           timestamp: Date.now()
         });
       }
@@ -204,9 +216,12 @@ export class MomentumDetector extends EventEmitter {
     const strat = 'SOL_HYBRID_VOLATILITY';
 
     if (isAperture || isMain) {
-      // FIXED: Require bias AND confirmed spot momentum
-      const spotUp = ticker.deltaPct >= 0.20;
-      const spotDown = ticker.deltaPct <= -0.25;
+      // Symmetric: require bias AND spot for BOTH directions
+      const isApertureWindow = isAperture && !isMain;
+      const spotUpThreshold = isApertureWindow ? 0.10 : 0.20;
+      const spotDownThreshold = isApertureWindow ? -0.15 : -0.25;
+      const spotUp = ticker.deltaPct >= spotUpThreshold;
+      const spotDown = ticker.deltaPct <= spotDownThreshold;
 
       if (bias.predictedSide === 'UP' && spotUp && odds.upBestAsk >= 0.25 && odds.upBestAsk <= 0.45) {
         this.emitOpportunity({
@@ -217,7 +232,7 @@ export class MomentumDetector extends EventEmitter {
           reason: `SOL UP: Bias ${bias.predictedSide} (${bias.confidencePct}%) + Spot +${ticker.deltaPct.toFixed(2)}% @ $${odds.upBestAsk.toFixed(3)}`,
           timestamp: Date.now()
         });
-      } else if (spotDown && odds.downBestAsk >= 0.25 && odds.downBestAsk <= 0.45) {
+      } else if (bias.predictedSide === 'DOWN' && spotDown && odds.downBestAsk >= 0.25 && odds.downBestAsk <= 0.45) {
         this.emitOpportunity({
           coin, strategy: strat, targetSide: 'DOWN',
           targetTokenId: market.downTokenId, targetPrice: odds.downBestAsk,
@@ -310,7 +325,14 @@ export class MomentumDetector extends EventEmitter {
     const strat = 'BNB_HYBRID_ETH_CLUSTER';
 
     if (isAperture || isMain) {
-      if (bias.predictedSide === 'UP' && odds.upBestAsk >= 0.20 && odds.upBestAsk <= 0.45) {
+      // Require bias AND spot confirmation (was missing spot before)
+      const isApertureWindow = isAperture && !isMain;
+      const spotUpThreshold = isApertureWindow ? 0.05 : 0.10;
+      const spotDownThreshold = isApertureWindow ? -0.10 : -0.15;
+      const spotUp = ticker.deltaPct >= spotUpThreshold;
+      const spotDown = ticker.deltaPct <= spotDownThreshold;
+
+      if (bias.predictedSide === 'UP' && spotUp && odds.upBestAsk >= 0.20 && odds.upBestAsk <= 0.45) {
         this.emitOpportunity({
           coin: coin,
           strategy: strat,
@@ -323,7 +345,7 @@ export class MomentumDetector extends EventEmitter {
           reason: `BNB Cluster ETH Sync UP a $${odds.upBestAsk.toFixed(3)} [Confianza: ${bias.confidencePct}%] -> ${bias.reason}`,
           timestamp: Date.now()
         });
-      } else if (bias.predictedSide === 'DOWN' && odds.downBestAsk >= 0.20 && odds.downBestAsk <= 0.45) {
+      } else if (bias.predictedSide === 'DOWN' && spotDown && odds.downBestAsk >= 0.20 && odds.downBestAsk <= 0.45) {
         this.emitOpportunity({
           coin: coin,
           strategy: strat,
@@ -398,6 +420,9 @@ export class MomentumDetector extends EventEmitter {
   }
 
   private emitOpportunity(sig: OpportunitySignal): void {
+    // Dedup: only 1 signal per coin per evaluation cycle
+    if (this.emittedThisWindow.has(sig.coin)) return;
+    this.emittedThisWindow.add(sig.coin);
     // Oracle gate: only fire if oracle agrees (or no oracle yet)
     if (!this.oracleApproves(sig.coin, sig.targetSide)) {
       return;

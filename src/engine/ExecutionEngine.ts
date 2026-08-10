@@ -76,7 +76,6 @@ export class ExecutionEngine extends EventEmitter {
     try {
       const url = `https://data-api.polymarket.com/positions?user=${CONFIG.PROXY_WALLET}&sizeThreshold=0`;
       const resp = await fetch(url, {
-        signal: AbortSignal.timeout(8000),
         headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' }
       });
       if (resp.ok) {
@@ -144,7 +143,6 @@ export class ExecutionEngine extends EventEmitter {
 
       // 2. Check Native POL/MATIC gas balance on Polygon RPC for EOA Wallet
       const respGas = await fetch(CONFIG.POLYGON_RPC_URL, {
-        signal: AbortSignal.timeout(5000),
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -290,6 +288,19 @@ export class ExecutionEngine extends EventEmitter {
         if (hasInsurance) {
           return false;
         }
+
+        // Also check total exposure (insurance + main) doesn't exceed per-coin cap
+        const localInsInvested = currentLocalFills
+          .filter(f => f.investedUSDC <= 1.0)
+          .reduce((sum, f) => sum + f.investedUSDC, 0);
+        const localMainInvestedIns = currentLocalFills
+          .filter(f => f.investedUSDC > 1.0)
+          .reduce((sum, f) => sum + f.investedUSDC, 0);
+        const coinCap = CONFIG.TOTAL_MAX_CAPITAL_USDC / 5; // $5.00 per coin
+        if (localMainInvestedIns + localInsInvested + sig.bulletSizeUSDC > coinCap) {
+          console.warn(`[ExecutionEngine] ⛔ Seguro excedería límite de $${coinCap.toFixed(2)} en ${sig.coin}.`);
+          return false;
+        }
       } else {
         // Calculate max exposure from both local fills and API wallet state
         const localMainInvested = currentLocalFills
@@ -301,9 +312,10 @@ export class ExecutionEngine extends EventEmitter {
           .reduce((sum, p) => sum + p.investedUSDC, 0);
 
         const totalMainInvested = Math.max(localMainInvested, walletMainInvested);
+        const coinCap = CONFIG.TOTAL_MAX_CAPITAL_USDC / 5; // $5.00 per coin
 
-        if (totalMainInvested + sig.bulletSizeUSDC > 5.01) {
-          console.warn(`[ExecutionEngine] ⛔ Límite alcanzado: Exposición máxima en ${sig.coin} superaría $5.00 USD ($${totalMainInvested.toFixed(2)} ya invertidos).`);
+        if (totalMainInvested + sig.bulletSizeUSDC > coinCap) {
+          console.warn(`[ExecutionEngine] ⛔ Límite alcanzado: Exposición máxima en ${sig.coin} superaría $${coinCap.toFixed(2)} USD ($${totalMainInvested.toFixed(2)} ya invertidos).`);
           return false;
         }
       }
