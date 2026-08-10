@@ -1,3 +1,4 @@
+import "./logger"; // Timestamps on all console output
 import { BinanceWebsocketEngine } from './connectors/BinanceWebsocket';
 import { PolymarketClobConnector } from './connectors/PolymarketClob';
 import { MomentumDetector, OpportunitySignal } from './engine/MomentumDetector';

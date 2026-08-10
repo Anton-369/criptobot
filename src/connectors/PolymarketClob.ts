@@ -77,7 +77,7 @@ export class PolymarketClobConnector {
     try {
       // Query Polymarket Gamma API specifically for tag_slug=1h ordered by endDate ascending
       const url = `https://gamma-api.polymarket.com/events?tag_slug=1h&closed=false&order=endDate&ascending=true&limit=100`;
-      const resp = await fetch(url);
+      const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
 
       if (resp.ok) {
         const events: any = await resp.json();
@@ -165,7 +165,7 @@ export class PolymarketClobConnector {
     try {
       // Query orderbook for UP token
       const urlUp = `${CONFIG.CLOB_API_URL}/book?token_id=${upTokenId}`;
-      const respUp = await fetch(urlUp);
+      const respUp = await fetch(urlUp, { signal: AbortSignal.timeout(3000) });
 
       if (respUp.ok) {
         const dataUp: any = await respUp.json();
@@ -185,7 +185,7 @@ export class PolymarketClobConnector {
 
       // Query orderbook for DOWN token
       const urlDown = `${CONFIG.CLOB_API_URL}/book?token_id=${downTokenId}`;
-      const respDown = await fetch(urlDown);
+      const respDown = await fetch(urlDown, { signal: AbortSignal.timeout(3000) });
 
       if (respDown.ok) {
         const dataDown: any = await respDown.json();

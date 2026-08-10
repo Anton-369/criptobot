@@ -76,6 +76,7 @@ export class ExecutionEngine extends EventEmitter {
     try {
       const url = `https://data-api.polymarket.com/positions?user=${CONFIG.PROXY_WALLET}&sizeThreshold=0`;
       const resp = await fetch(url, {
+        signal: AbortSignal.timeout(8000),
         headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' }
       });
       if (resp.ok) {
@@ -143,6 +144,7 @@ export class ExecutionEngine extends EventEmitter {
 
       // 2. Check Native POL/MATIC gas balance on Polygon RPC for EOA Wallet
       const respGas = await fetch(CONFIG.POLYGON_RPC_URL, {
+        signal: AbortSignal.timeout(5000),
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
