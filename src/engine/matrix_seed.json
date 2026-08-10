@@ -701,7 +701,7 @@
     "sol": "UP",
     "doge": "UP",
     "hype": "UP",
-    "bnb": "DOWN"
+    "bnb": "UP"
   },
   {
     "date": "2026-08-09",
@@ -948,12 +948,12 @@
   {
     "date": "2026-08-10",
     "hour": 11,
-    "btc": "DOWN",
-    "eth": "UP",
-    "xrp": "DOWN",
-    "sol": "UP",
-    "doge": "DOWN",
-    "hype": "UP",
+    "btc": "UP",
+    "eth": "DOWN",
+    "xrp": "UP",
+    "sol": "DOWN",
+    "doge": "UP",
+    "hype": "DOWN",
     "bnb": "UP"
   },
   {
