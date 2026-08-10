@@ -4,6 +4,8 @@ import { Wallet } from 'ethers';
 import { CONFIG } from '../config/environment';
 import { OpportunitySignal } from './MomentumDetector';
 import { PolymarketClobConnector } from '../connectors/PolymarketClob';
+import { StateManager, PersistedFill } from './StateManager';
+import * as path from 'path';
 
 export interface PositionRecord {
   id: string;
@@ -28,21 +30,46 @@ export class ExecutionEngine extends EventEmitter {
   private positions: PositionRecord[] = [];
   private recentLiveExecutions: PositionRecord[] = [];
   private localCycleFills: { coin: string; side: string; investedUSDC: number; timestamp: number }[] = [];
+  private stateManager: StateManager;
 
   // Real-time wallet tracking
   private totalBalanceUSDC: number = 0;
   private availableBalanceUSDC: number = 0;
   private inOrdersUSDC: number = 0;
   private isExecutingSignal: boolean = false;
+  private isSafeMode: boolean = false;
+  private static readonly MAX_DAILY_INVESTED: number = 10.00; // USD
 
   constructor(polyClob: PolymarketClobConnector) {
     super();
     this.polyClob = polyClob;
     this.mode = CONFIG.EXECUTION_MODE;
+    this.stateManager = new StateManager(path.resolve(__dirname, '../../data'));
   }
 
   public async initialize(): Promise<void> {
     console.log(`[ExecutionEngine] 🚀 Inicializando motor en MODO: ${this.mode}`);
+
+    // Load persisted state from previous runs (survives restarts)
+    const persistedFills = this.stateManager.getCycleFills();
+    const nowMs = Date.now();
+    const cycleStartMs = Date.UTC(
+      new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate(),
+      new Date().getUTCHours(), 0, 0, 0
+    );
+    let restoredCount = 0;
+    for (const pf of persistedFills) {
+      if (pf.timestamp >= cycleStartMs) {
+        this.localCycleFills.push({
+          coin: pf.coin, side: pf.side, investedUSDC: pf.investedUSDC, timestamp: pf.timestamp
+        });
+        restoredCount++;
+      }
+    }
+    if (restoredCount > 0) {
+      console.log(`[ExecutionEngine] 🔄 Restaurados ${restoredCount} fills del ciclo actual desde estado persistido`);
+    }
+
     await this.refreshWalletBalances();
     await this.fetchLiveWalletPositions();
   }
@@ -56,6 +83,12 @@ export class ExecutionEngine extends EventEmitter {
       if (resp.ok) {
         const rawPositions: any = await resp.json();
         if (Array.isArray(rawPositions)) {
+          // Build lookup of existing positions to preserve original entryTimestamp
+          const existingTimestamps = new Map<string, number>();
+          for (const ep of this.positions) {
+            existingTimestamps.set(ep.tokenId, ep.entryTimestamp);
+          }
+
           const livePos: PositionRecord[] = rawPositions
             .filter((p: any) => (parseFloat(p.size) || 0) > 0)
             .map((p: any) => ({
@@ -73,7 +106,8 @@ export class ExecutionEngine extends EventEmitter {
               investedUSDC: parseFloat(p.initialValue) || 0,
               currentValueUSDC: parseFloat(p.currentValue) || 0,
               status: 'OPEN',
-              entryTimestamp: Date.now(),
+              // Preserve original timestamp if position already known; use Date.now() only for new positions
+              entryTimestamp: existingTimestamps.get(p.asset) || Date.now(),
               title: p.title
             }));
 
@@ -216,6 +250,20 @@ export class ExecutionEngine extends EventEmitter {
         return false;
       }
 
+      // Kill switch: daily investment cap
+      this.stateManager.resetDailyIfNeeded();
+      const dailyInvested = this.stateManager.getDailyInvested();
+      const afterThisBullet = dailyInvested + (this.mode === 'LIVE' ? sig.bulletSizeUSDC : 0);
+      if (afterThisBullet > ExecutionEngine.MAX_DAILY_INVESTED) {
+        console.warn(`[ExecutionEngine] 🛑 KILL SWITCH: Límite diario alcanzado ($${dailyInvested.toFixed(2)} + $${sig.bulletSizeUSDC.toFixed(2)} > $${ExecutionEngine.MAX_DAILY_INVESTED.toFixed(2)}). Entrando en SAFE_MODE.`);
+        this.isSafeMode = true;
+      }
+
+      if (this.isSafeMode && this.mode === 'LIVE') {
+        console.warn(`[ExecutionEngine] 🔒 SAFE_MODE activo: operando en SHADOW hasta el próximo reset diario.`);
+        return this.executeShadowFill(sig);
+      }
+
       // Cycle start anchored to UTC :00 to match Polymarket cycle boundaries
       const nowUtc = new Date();
       const cycleStartMs = Date.UTC(
@@ -225,6 +273,7 @@ export class ExecutionEngine extends EventEmitter {
 
       // Clean local cycle fills older than current 1H cycle
       this.localCycleFills = this.localCycleFills.filter(f => f.timestamp >= cycleStartMs);
+      this.stateManager.cleanCycleFills(cycleStartMs);
 
       // Filter active open positions for this coin in current cycle from both wallet and local fills
       const currentLocalFills = this.localCycleFills.filter(f => f.coin === sig.coin);
@@ -314,6 +363,12 @@ export class ExecutionEngine extends EventEmitter {
       investedUSDC: sig.bulletSizeUSDC,
       timestamp: Date.now()
     });
+    this.stateManager.addFill({
+      coin: sig.coin,
+      side: sig.targetSide,
+      investedUSDC: sig.bulletSizeUSDC,
+      timestamp: Date.now()
+    });
     this.refreshWalletBalances();
 
     console.log(`\n👻 [SHADOW EXECUTION] Orden Límite FOK Simulada Favorable`);
@@ -366,6 +421,13 @@ export class ExecutionEngine extends EventEmitter {
           investedUSDC: sig.bulletSizeUSDC,
           timestamp: Date.now()
         });
+        this.stateManager.addFill({
+          coin: sig.coin,
+          side: sig.targetSide,
+          investedUSDC: sig.bulletSizeUSDC,
+          timestamp: Date.now()
+        });
+        this.stateManager.addDailyInvested(sig.bulletSizeUSDC);
         await this.refreshWalletBalances();
 
         console.log(`✅ [LIVE FILL] Orden FOK confirmada con éxito. ID: ${pos.id}`);
