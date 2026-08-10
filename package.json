@@ -4,7 +4,7 @@
   "description": "Ultra-Fast Latency Sniper Bot for Polymarket 1H Cycles (XRP, SOL, DOGE)",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp -r src/dashboard/public dist/dashboard/",
     "start": "ts-node src/index.ts",
     "test:ws": "ts-node src/test_binance_stream.ts"
   },

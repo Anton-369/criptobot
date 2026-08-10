@@ -358,14 +358,49 @@
 
   <!-- Section 2: Command & Control Tabs -->
   <div class="tabs-nav">
-    <button class="tab-btn active" onclick="switchTab('tabSimple')">📊 Pestaña 1: Matriz Simple (24H UP/DOWN)</button>
+    <button class="tab-btn active" onclick="switchTab('tabRanking')">🏆 Ranking de Efectividad por Moneda</button>
+    <button class="tab-btn" onclick="switchTab('tabSimple')">📊 Pestaña 1: Matriz Simple (24H UP/DOWN)</button>
     <button class="tab-btn" onclick="switchTab('tabDeep')">🔬 Pestaña 2: Matriz Profunda (HFT Metrics)</button>
     <button class="tab-btn" onclick="switchTab('tabHybrid')">🧠 Pestaña 3: Estrategia Híbrida Capa B (5 Coins)</button>
     <button class="tab-btn" onclick="switchTab('tabPositions')">💼 Posiciones Activas & Historial Live</button>
   </div>
 
+  <!-- Tab 0: Ranking Matrix -->
+  <div id="tabRanking" class="tab-content active">
+    <div class="table-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3 style="font-size: 1.1rem; color: var(--accent-cyan); font-weight: 800; display: flex; align-items: center; gap: 0.5rem;">
+          🏆 RANKING DE EFECTIVIDAD Y RENDIMIENTO POR MONEDA (ACIERTO & PNL)
+        </h3>
+        <span style="font-size: 0.75rem; color: var(--text-muted);">Sincronización en tiempo real desde la Blockchain</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Posición</th>
+            <th>Moneda</th>
+            <th>Eventos Operados</th>
+            <th>Ganadas (🟢)</th>
+            <th>Perdidas (🔴)</th>
+            <th>En Juego (⏳)</th>
+            <th>Win Rate (%)</th>
+            <th>Invertido ($)</th>
+            <th>Retorno Est. ($)</th>
+            <th>PnL Neto ($)</th>
+            <th>ROI (%)</th>
+          </tr>
+        </thead>
+        <tbody id="rankingMatrixBody">
+          <tr>
+            <td colspan="11" class="empty-state">Compilando ranking de efectividad en vivo desde la VPS...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- Tab 1: Simple Matrix -->
-  <div id="tabSimple" class="tab-content active">
+  <div id="tabSimple" class="tab-content">
     <div class="table-card">
       <table>
         <thead>
@@ -557,6 +592,47 @@
             </div>
           `;
         }).join('');
+      }
+
+      // 2.5 Ranking Matrix (Coin Effectiveness)
+      const rankingMatrixBody = document.getElementById('rankingMatrixBody');
+      if (rankingMatrixBody && data.coinPerformance && data.coinPerformance.length > 0) {
+        const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+        rankingMatrixBody.innerHTML = data.coinPerformance.map((c, idx) => {
+          const rankIcon = medals[idx] || `${idx + 1}️⃣`;
+          const wrColor = c.winRatePct >= 60 ? 'var(--accent-green)' : (c.winRatePct >= 40 ? 'var(--accent-gold)' : 'var(--accent-red)');
+          const pnlColor = c.netPnL >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+          const pnlSign = c.netPnL >= 0 ? '+' : '';
+
+          return `
+            <tr>
+              <td><span style="font-size: 1.2rem;">${rankIcon}</span></td>
+              <td><strong>${c.coin}</strong></td>
+              <td>${c.events}</td>
+              <td style="color: var(--accent-green); font-weight: 800;">${c.wins}</td>
+              <td style="color: var(--accent-red); font-weight: 800;">${c.losses}</td>
+              <td style="color: var(--accent-gold); font-weight: 800;">${c.active}</td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span style="font-weight: 800; color: ${wrColor};">${c.winRatePct.toFixed(1)}%</span>
+                  <div style="width: 55px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                    <div style="width: ${Math.min(100, Math.max(0, c.winRatePct))}%; height: 100%; background: ${wrColor};"></div>
+                  </div>
+                </div>
+              </td>
+              <td>$${c.invested.toFixed(2)} USD</td>
+              <td>$${c.payout.toFixed(2)} USD</td>
+              <td style="font-weight: 800; color: ${pnlColor};">${pnlSign}$${c.netPnL.toFixed(2)} USD</td>
+              <td><span class="${c.roiPct >= 0 ? 'tag-up' : 'tag-down'}">${pnlSign}${c.roiPct.toFixed(1)}% ROI</span></td>
+            </tr>
+          `;
+        }).join('');
+      } else if (rankingMatrixBody) {
+        rankingMatrixBody.innerHTML = `
+          <tr>
+            <td colspan="11" class="empty-state">Sincronizando operaciones de hoy para cada moneda...</td>
+          </tr>
+        `;
       }
 
       // 3. Simple Matrix (24H)
