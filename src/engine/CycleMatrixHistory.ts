@@ -1,4 +1,6 @@
 import { EventEmitter } from 'events';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export interface CycleRecord {
   coin: string;
@@ -27,6 +29,28 @@ export class CycleMatrixHistory extends EventEmitter {
     for (const p of pairs) {
       this.history.set(p, []);
     }
+
+    try {
+      const seedPath = path.join(__dirname, 'matrix_seed.json');
+      if (fs.existsSync(seedPath)) {
+        const seedData = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
+        for (const entry of seedData) {
+          const { date, hour, btc, eth, xrp, sol, doge, hype, bnb } = entry;
+          const hourNum = parseInt(hour, 10);
+          const hourMs = new Date(`${date}T${String(hourNum - 1).padStart(2, '0')}:00:00.000Z`).getTime();
+          if (btc) this.recordHourlyOutcome('BTC', btc, hourMs);
+          if (eth) this.recordHourlyOutcome('ETH', eth, hourMs);
+          if (xrp) this.recordHourlyOutcome('XRP', xrp, hourMs);
+          if (sol) this.recordHourlyOutcome('SOL', sol, hourMs);
+          if (doge) this.recordHourlyOutcome('DOGE', doge, hourMs);
+          if (hype) this.recordHourlyOutcome('HYPE', hype, hourMs);
+          if (bnb) this.recordHourlyOutcome('BNB', bnb, hourMs);
+        }
+        console.log(`[CycleMatrixHistory] 🚀 Cargados ${seedData.length} registros históricos desde matrix_seed.json`);
+      }
+    } catch (e) {
+      console.warn('[CycleMatrixHistory] ⚠️ No se pudo cargar matrix_seed.json:', e);
+    }
   }
 
   /**
@@ -50,14 +74,13 @@ export class CycleMatrixHistory extends EventEmitter {
       });
     }
 
-    // Sort by timestamp and keep last 48 hours
+    // Sort by timestamp and keep last 100 hours
     records.sort((a, b) => a.hourTimestamp - b.hourTimestamp);
-    if (records.length > 48) {
+    if (records.length > 100) {
       records.shift();
     }
 
     this.history.set(coinUpper, records);
-    console.log(`[CycleMatrixHistory] 📊 Ciclo grabado: ${coinUpper} [${new Date(hourStart).toISOString().slice(11, 16)}] -> ${outcome}`);
   }
 
   /**
