@@ -154,9 +154,8 @@ export class MatrixCollector {
 
   public finalizeHourCycle(allTickers: BinanceTickerState[]): void {
     const now = new Date();
-    // IMPORTANT: Store UTC hour to be timezone-agnostic.
-    // ET/Chile (UTC-4) display: utcHour - 4. Dashboard converts on display.
-    const currentHour = now.getUTCHours(); // 0 to 23 UTC
+    // ET/Chile = UTC-4 — store ET hour to match seed/historical data
+    const currentHour = ((now.getUTCHours() - 4) + 24) % 24;
     const isoString = now.toISOString();
 
     const coinDirections: Record<string, 'UP' | 'DOWN'> = {};
