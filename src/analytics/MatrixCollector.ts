@@ -75,7 +75,7 @@ export class MatrixCollector {
           let swarmConsensus: 'UP' | 'DOWN' | 'MIXED' = 'MIXED';
           if (upCount >= 4) swarmConsensus = 'UP';
           if (downCount >= 4) swarmConsensus = 'DOWN';
-          const btcDir = s.btc;
+          const btcDir = s.btc || 'UP';
           const btcAltDivergence = btcDir !== swarmConsensus && swarmConsensus !== 'MIXED';
 
           const hourNum = parseInt(s.hour, 10);
@@ -200,19 +200,25 @@ export class MatrixCollector {
     if (upCount >= 4) swarmConsensus = 'UP';
     if (downCount >= 4) swarmConsensus = 'DOWN';
 
-    const btcDir = coinDirections['BTC'] || 'UP';
+    // Guard: all 7 coins must be present — skip record if any missing
+    const requiredCoins = ['BTC', 'ETH', 'XRP', 'SOL', 'DOGE', 'BNB', 'HYPE'];
+    if (requiredCoins.some(c => !coinDirections[c])) {
+      return; // incomplete data — do not fabricate
+    }
+
+    const btcDir = coinDirections['BTC']!;
     const btcAltDivergence = btcDir !== swarmConsensus && swarmConsensus !== 'MIXED';
 
     const simpleRecord: SimpleMatrixRecord = {
       hour: currentHour,
       timestampISO: isoString,
-      btc: coinDirections['BTC'] || 'UP',
-      eth: coinDirections['ETH'] || 'UP',
-      xrp: coinDirections['XRP'] || 'UP',
-      sol: coinDirections['SOL'] || 'UP',
-      doge: coinDirections['DOGE'] || 'UP',
-      bnb: coinDirections['BNB'] || 'UP',
-      hype: coinDirections['HYPE'] || 'UP',
+      btc: btcDir,
+      eth: coinDirections['ETH']!,
+      xrp: coinDirections['XRP']!,
+      sol: coinDirections['SOL']!,
+      doge: coinDirections['DOGE']!,
+      bnb: coinDirections['BNB']!,
+      hype: coinDirections['HYPE']!,
       swarmConsensus,
       btcAltDivergence
     };
