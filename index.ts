@@ -58,6 +58,7 @@ async function main() {
   detector.start(2000);
 
   // 5. Periodic 60-second refresh to auto-bind new hourly market cycles & 1H open prices
+  // IMPORTANT: Use UTC hours to match Polymarket cycle boundaries (cycles reset at :00 UTC)
   let lastHour = new Date().getUTCHours();
   setInterval(async () => {
     try {
@@ -88,7 +89,7 @@ async function main() {
     }
   }, 60000);
 
-  // 5b. Periodic 10-second wallet reconciliation loop
+  // 5b. Periodic 10-second wallet reconciliation loop (Syncs manual web trades & live USDC cash)
   setInterval(async () => {
     try {
       await execEngine.refreshWalletBalances();
@@ -97,7 +98,7 @@ async function main() {
     }
   }, 10000);
 
-  // 6. Start Real-time Web Control Dashboard
+  // 6. Start Real-time Web Control Dashboard with Matrix Collector & Momentum Detector
   const dashboard = new DashboardServer(binanceWs, polyClob, execEngine, 8506, matrixCollector, detector);
   dashboard.start();
 

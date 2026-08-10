@@ -4,6 +4,8 @@ import { PolymarketClobConnector, Polymarket1HMarket, BestOdds } from '../connec
 import { CycleMatrixHistory, DirectionalBias } from './CycleMatrixHistory';
 import { CONFIG } from '../config/environment';
 
+import { PatternEngine, CoinPrediction } from './PatternEngine';
+
 export interface OpportunitySignal {
   coin: string;
   strategy: string;
@@ -25,6 +27,19 @@ export class MomentumDetector extends EventEmitter {
   private evalInterval: NodeJS.Timeout | null = null;
   private lastRecordedHour: number = -1;
   private latestOdds: Map<string, BestOdds> = new Map();
+  private oracle: CoinPrediction[] = [];
+
+  public setOracle(predictions: CoinPrediction[]): void {
+    this.oracle = predictions;
+  }
+
+  /** Check if oracle agrees with a proposed trade direction */
+  private oracleApproves(coin: string, side: 'UP' | 'DOWN'): boolean {
+    if (this.oracle.length === 0) return true; // no oracle yet = allow all
+    const p = this.oracle.find(o => o.coin === coin);
+    if (!p) return true;
+    return p.predictedSide === side;
+  }
 
   constructor(
     binanceWs: BinanceWebsocketEngine,
@@ -85,7 +100,7 @@ export class MomentumDetector extends EventEmitter {
       // Evaluate each tradable pair (XRP, SOL, DOGE, BNB, HYPE)
       const activeCoins = ['XRP', 'SOL', 'DOGE', 'BNB', 'HYPE'];
       for (const coin of activeCoins) {
-        const pair = CONFIG.PAIRS.find(p => p.coin === coin);
+        const pair = CONFIG.PAIRS.find((p: any) => p.coin === coin);
         if (!pair) continue;
 
         const ticker = this.binanceWs.getTickerState(pair.symbol);
@@ -368,11 +383,14 @@ export class MomentumDetector extends EventEmitter {
   public recordHourOutcomes(): void {
     const activeCoins = ['BTC', 'ETH', 'XRP', 'SOL', 'DOGE', 'BNB', 'HYPE'];
     for (const coin of activeCoins) {
-      const pair = CONFIG.PAIRS.find(p => p.coin === coin);
+      const pair = CONFIG.PAIRS.find((p: any) => p.coin === coin);
       if (pair) {
         const ticker = this.binanceWs.getTickerState(pair.symbol);
         if (ticker && ticker.currentPrice > 0) {
-          const outcome = ticker.deltaPct >= 0 ? 'UP' : 'DOWN';
+          // Use previousOpenPrice1H to determine the COMPLETED cycle's outcome
+          // Falls back to current deltaPct if previousOpenPrice1H not yet available
+          const refPrice = ticker.previousOpenPrice1H > 0 ? ticker.previousOpenPrice1H : ticker.openPrice1H;
+          const outcome = ticker.currentPrice >= refPrice ? 'UP' : 'DOWN';
           this.matrixHistory.recordHourlyOutcome(coin, outcome);
         }
       }
@@ -380,6 +398,10 @@ export class MomentumDetector extends EventEmitter {
   }
 
   private emitOpportunity(sig: OpportunitySignal): void {
+    // Oracle gate: only fire if oracle agrees (or no oracle yet)
+    if (!this.oracleApproves(sig.coin, sig.targetSide)) {
+      return;
+    }
     // Check orderbook depth before emitting signal
     const odds = this.latestOdds.get(sig.coin);
     if (odds) {
