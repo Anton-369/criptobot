@@ -510,8 +510,49 @@
   </div>
 
   <script>
-    const wsUrl = `ws://${window.location.host}`;
-    const ws = new WebSocket(wsUrl);
+    let ws = null;
+    let wsReconnectTimer = null;
+    
+    function connectWS() {
+      if (ws) { try { ws.close(); } catch(e) {} }
+      const wsUrl = `ws://${window.location.host}`;
+      ws = new WebSocket(wsUrl);
+      
+      ws.onopen = () => {
+        console.log('[WS] Connected');
+        document.getElementById('badgeUpdate').innerText = '🟢 WS conectado';
+        if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.success !== false) {
+            updateDashboard(data);
+          }
+        } catch (err) {
+          console.error("Error procesando telemetría WS:", err);
+        }
+      };
+      
+      ws.onclose = () => {
+        console.log('[WS] Disconnected, reconnecting in 3s...');
+        document.getElementById('badgeUpdate').innerText = '🔴 WS desconectado - reconectando...';
+        if (!wsReconnectTimer) wsReconnectTimer = setTimeout(connectWS, 3000);
+      };
+      
+      ws.onerror = () => {
+        ws.close();
+      };
+    }
+    
+    // Also fetch via HTTP on load as fallback (guarantees fresh data)
+    fetch('/api/status').then(r => r.json()).then(data => {
+      console.log('[HTTP] Fresh data loaded:', data.simpleHistory?.length, 'records');
+      updateDashboard(data);
+    }).catch(() => {});
+    
+    connectWS();
 
     // Convert UTC hour (0-23) to ET/Chile hour label (UTC-4)
     function utcToET(utcHour, isoTimestamp) {
