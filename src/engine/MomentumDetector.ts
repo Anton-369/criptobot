@@ -53,10 +53,10 @@ export class MomentumDetector extends EventEmitter {
 
     try {
       const now = new Date();
-      const currentMinute = now.getMinutes(); // 0 to 59
-      const currentHour = now.getHours();
+      const currentMinute = now.getUTCMinutes(); // 0 to 59 — UTC aligned with Polymarket cycles
+      const currentHour = now.getUTCHours();     // UTC — Polymarket cycles reset at :00 UTC
 
-      // Automatically record completed hour outcomes at minute 0 (on new hour transition)
+      // Automatically record completed hour outcomes at minute 0 (on new UTC hour transition)
       if (currentMinute === 0 && this.lastRecordedHour !== currentHour) {
         this.recordHourOutcomes();
         this.lastRecordedHour = currentHour;

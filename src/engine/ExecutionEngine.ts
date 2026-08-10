@@ -173,7 +173,8 @@ export class ExecutionEngine extends EventEmitter {
     // Calculate in-orders locked capital from active positions
     const openPositions = this.positions.filter(p => p.status === 'OPEN');
     this.inOrdersUSDC = openPositions.reduce((sum, p) => sum + (p.currentValueUSDC || p.investedUSDC), 0);
-    this.availableBalanceUSDC = Math.max(0, this.totalBalanceUSDC);
+    // Available = liquid CLOB cash minus what's locked in open positions
+    this.availableBalanceUSDC = Math.max(0, this.totalBalanceUSDC - this.inOrdersUSDC);
 
     const result = {
       total: this.totalBalanceUSDC + this.inOrdersUSDC, // Total Portfolio Value (Cash + Positions)
@@ -204,8 +205,12 @@ export class ExecutionEngine extends EventEmitter {
         return false;
       }
 
-      const now = new Date();
-      const cycleStartMs = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0, 0).getTime();
+      // Cycle start anchored to UTC :00 to match Polymarket cycle boundaries
+      const nowUtc = new Date();
+      const cycleStartMs = Date.UTC(
+        nowUtc.getUTCFullYear(), nowUtc.getUTCMonth(), nowUtc.getUTCDate(),
+        nowUtc.getUTCHours(), 0, 0, 0
+      );
 
       // Clean local cycle fills older than current 1H cycle
       this.localCycleFills = this.localCycleFills.filter(f => f.timestamp >= cycleStartMs);

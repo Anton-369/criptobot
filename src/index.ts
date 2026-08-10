@@ -52,12 +52,13 @@ async function main() {
   detector.start(2000);
 
   // 5. Periodic 60-second refresh to auto-bind new hourly market cycles & 1H open prices
-  let lastHour = new Date().getHours();
+  // IMPORTANT: Use UTC hours to match Polymarket cycle boundaries (cycles reset at :00 UTC)
+  let lastHour = new Date().getUTCHours();
   setInterval(async () => {
     try {
-      const currentHour = new Date().getHours();
+      const currentHour = new Date().getUTCHours();
       if (currentHour !== lastHour) {
-        console.log(`[Main] ⏰ Cambio de ciclo de hora detectado (${lastHour}:00 -> ${currentHour}:00). Finalizando registros de matrices...`);
+        console.log(`[Main] ⏰ Cambio de ciclo UTC detectado (${lastHour}:00 UTC -> ${currentHour}:00 UTC). Finalizando registros...`);
         detector.recordHourOutcomes();
         matrixCollector.finalizeHourCycle(binanceWs.getAllTickerStates());
         lastHour = currentHour;

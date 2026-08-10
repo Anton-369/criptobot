@@ -77,6 +77,10 @@ export class DashboardServer {
   private lastCoinPerformanceCache: any[] = [];
   private lastCoinPerformanceFetchTime: number = 0;
 
+  // Cache for Polymarket odds to avoid 7 req/s hammering the CLOB orderbook
+  private oddsCache: Map<string, { upBestAsk: number; downBestAsk: number; fetchedAt: number }> = new Map();
+  private ODDS_CACHE_TTL_MS = 5000; // Refresh odds every 5 seconds max
+
   private async getCoinPerformanceStats(): Promise<any[]> {
     const now = Date.now();
     if (this.lastCoinPerformanceCache.length > 0 && (now - this.lastCoinPerformanceFetchTime < 15000)) {
@@ -125,7 +129,16 @@ export class DashboardServer {
         const side = mTrades[0].outcome || 'Up';
 
         try {
-          const gRes = await fetch(`https://gamma-api.polymarket.com/events?slug=${slug}`);
+          // 3-second timeout to prevent Gamma API hang from crashing the process
+          const fetchWithTimeout = (url: string, timeoutMs: number) =>
+            Promise.race([
+              fetch(url),
+              new Promise<Response>((_, reject) =>
+                setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms`)), timeoutMs)
+              )
+            ]) as Promise<Response>;
+
+          const gRes = await fetchWithTimeout(`https://gamma-api.polymarket.com/events?slug=${slug}`, 3000);
           if (gRes.ok) {
             const gData: any = await gRes.json();
             if (gData && gData[0] && gData[0].markets && gData[0].markets[0]) {
@@ -180,15 +193,29 @@ export class DashboardServer {
     const ethTicker = this.binanceWs.getTickerState('ETHUSDT');
     const btcDir: 'UP' | 'DOWN' = (btcTicker?.deltaPct || 0) >= 0 ? 'UP' : 'DOWN';
     const ethDir: 'UP' | 'DOWN' = (ethTicker?.deltaPct || 0) >= 0 ? 'UP' : 'DOWN';
+    const now = Date.now();
 
     return Promise.all(
       this.binanceWs.getAllTickerStates().map(async (t) => {
         const m = this.polyClob.getActiveMarket(t.coin);
-        let polyOdds = { upBestAsk: 1.0, downBestAsk: 1.0 };
         const pairConfig = CONFIG.PAIRS.find(p => p.coin === t.coin);
 
+        // Use cached odds if fresh (< 5s old), otherwise fetch and cache
+        let polyOdds = { upBestAsk: 1.0, downBestAsk: 1.0 };
         if (m) {
-          polyOdds = await this.polyClob.getBestOdds(m.upTokenId, m.downTokenId);
+          const cacheKey = `${m.upTokenId}_${m.downTokenId}`;
+          const cached = this.oddsCache.get(cacheKey);
+          if (cached && (now - cached.fetchedAt) < this.ODDS_CACHE_TTL_MS) {
+            polyOdds = { upBestAsk: cached.upBestAsk, downBestAsk: cached.downBestAsk };
+          } else {
+            try {
+              polyOdds = await this.polyClob.getBestOdds(m.upTokenId, m.downTokenId);
+              this.oddsCache.set(cacheKey, { ...polyOdds, fetchedAt: now });
+            } catch (e) {
+              // Keep last cached value on error
+              if (cached) polyOdds = { upBestAsk: cached.upBestAsk, downBestAsk: cached.downBestAsk };
+            }
+          }
         }
 
         let bias = { coin: t.coin, predictedSide: 'NEUTRAL', confidencePct: 50.0, reason: 'Sin patrón activo' };
