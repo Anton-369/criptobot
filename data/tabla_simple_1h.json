@@ -1,5 +1,18 @@
 [
   {
+    "hour": 18,
+    "timestampISO": "2026-08-10T18:00:09.607Z",
+    "btc": "UP",
+    "eth": "UP",
+    "xrp": "UP",
+    "sol": "UP",
+    "doge": "UP",
+    "bnb": "UP",
+    "hype": "UP",
+    "swarmConsensus": "UP",
+    "btcAltDivergence": false
+  },
+  {
     "hour": 17,
     "timestampISO": "2026-08-10T17:00:53.045Z",
     "btc": "DOWN",

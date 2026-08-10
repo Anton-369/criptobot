@@ -168,6 +168,15 @@ export class ExecutionEngine extends EventEmitter {
 
       (this as any).nativeGasPOL = maticGas;
       this.totalBalanceUSDC = polyClobCash > 0 ? polyClobCash : rpcCashUSDC;
+
+      // Fallback: if CLOB balance query returns 0 (v5 POLY_PROXY limitation),
+      // estimate from Data API positions total value
+      if (this.totalBalanceUSDC <= 0 && this.positions.length > 0) {
+        const posTotal = this.positions.reduce((sum, p) => sum + (p.currentValueUSDC || p.investedUSDC), 0);
+        if (posTotal > 0) {
+          this.totalBalanceUSDC = posTotal;
+        }
+      }
     } catch (err: any) {
       console.warn(`[ExecutionEngine] No se pudo obtener saldo en vivo: ${err.message}`);
     }

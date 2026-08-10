@@ -1,4 +1,4 @@
-import { ClobClient, Chain, SignatureType } from '@polymarket/clob-client';
+import { ClobClient, Chain } from '@polymarket/clob-client';
 import { Wallet } from 'ethers';
 import axios from 'axios';
 import { HttpsProxyAgent } from 'https-proxy-agent';
@@ -50,10 +50,10 @@ export class PolymarketClobConnector {
           Chain.POLYGON,
           wallet,
           creds,
-          SignatureType.POLY_PROXY,
+          3 as any, // POLY_1271 — el correcto para esta cuenta (verificado en Washybot)
           CONFIG.PROXY_WALLET
         );
-        console.log(`[PolyCLOB] Cliente TypeScript oficial v5 inicializado con Proxy Wallet (POLY_PROXY).`);
+        console.log("[PolyCLOB] Cliente TypeScript oficial v5 inicializado con Proxy Wallet (POLY_1271).");
       } catch (err) {
         console.warn(`[PolyCLOB] No se pudo autenticar cliente privado. Usando modo público.`);
       }
