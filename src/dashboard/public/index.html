@@ -506,6 +506,23 @@
     const wsUrl = `ws://${window.location.host}`;
     const ws = new WebSocket(wsUrl);
 
+    // Convert UTC hour (0-23) to ET/Chile hour label (UTC-4)
+    function utcToET(utcHour, isoTimestamp) {
+      // Use the full timestamp if available for accurate conversion
+      if (isoTimestamp) {
+        const d = new Date(isoTimestamp);
+        // ET = UTC - 4 (EDT summer / same as Chile winter)
+        const etHour = ((d.getUTCHours() - 4) + 24) % 24;
+        const etDate = new Date(d.getTime() - 4 * 3600 * 1000);
+        const day = etDate.toLocaleDateString('es-CL', { day:'2-digit', month:'2-digit', timeZone:'UTC' });
+        const pad = h => String(h).padStart(2,'0');
+        return `${pad(etHour)}:00 ET · ${day}`;
+      }
+      // Fallback: just offset the raw hour number
+      const et = ((utcHour - 4) + 24) % 24;
+      return `${String(et).padStart(2,'0')}:00 ET`;
+    }
+
     const badgeMode = document.getElementById('badgeMode');
     const valTotalBal = document.getElementById('valTotalBal');
     const valFreeBal = document.getElementById('valFreeBal');
@@ -644,8 +661,8 @@
 
           return `
             <tr>
-              <td><strong>Hora ${s.hour}:00</strong></td>
-              <td>${new Date(s.timestampISO).toLocaleTimeString()}</td>
+              <td><strong>${utcToET(s.hour, s.timestampISO)}</strong></td>
+              <td>${new Date(s.timestampISO).toLocaleDateString('es-CL', {day:'2-digit', month:'2-digit'})}</td>
               <td><span class="${s.btc === 'UP' ? 'tag-up' : 'tag-down'}">${s.btc}</span></td>
               <td><span class="${s.eth === 'UP' ? 'tag-up' : 'tag-down'}">${s.eth}</span></td>
               <td><span class="${s.xrp === 'UP' ? 'tag-up' : 'tag-down'}">${s.xrp}</span></td>
@@ -671,7 +688,7 @@
         deepMatrixBody.innerHTML = data.deepHistory.map(d => `
           <tr>
             <td><strong>${d.coin}</strong></td>
-            <td>Hora ${d.hour}:00</td>
+            <td>${utcToET(d.hour, d.timestampISO)}</td>
             <td>$${d.openPrice.toFixed(4)}</td>
             <td>$${d.closePrice.toFixed(4)}</td>
             <td>$${d.highPrice.toFixed(4)}</td>
