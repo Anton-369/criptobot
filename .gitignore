@@ -5,3 +5,5 @@ dist/
 *.log
 data/*.db
 archive/criptobot.db.corrupt
+data/live_history.json
+data/tabla_simple_1h.json

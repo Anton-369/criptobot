@@ -404,16 +404,20 @@ export class MomentumDetector extends EventEmitter {
 
   public recordHourOutcomes(): void {
     const activeCoins = ['BTC', 'ETH', 'XRP', 'SOL', 'DOGE', 'BNB', 'HYPE'];
+    // The COMPLETED cycle's UTC hour (current hour minus 1, since we just crossed the boundary)
+    const now = new Date();
+    const completedHour = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours() - 1, 0, 0, 0));
+    const completedHourMs = completedHour.getTime();
+    
     for (const coin of activeCoins) {
       const pair = CONFIG.PAIRS.find((p: any) => p.coin === coin);
       if (pair) {
         const ticker = this.binanceWs.getTickerState(pair.symbol);
         if (ticker && ticker.currentPrice > 0) {
           // Use previousOpenPrice1H to determine the COMPLETED cycle's outcome
-          // Falls back to current deltaPct if previousOpenPrice1H not yet available
           const refPrice = ticker.previousOpenPrice1H > 0 ? ticker.previousOpenPrice1H : ticker.openPrice1H;
           const outcome = ticker.currentPrice >= refPrice ? 'UP' : 'DOWN';
-          this.matrixHistory.recordHourlyOutcome(coin, outcome);
+          this.matrixHistory.recordHourlyOutcome(coin, outcome, completedHourMs);
         }
       }
     }

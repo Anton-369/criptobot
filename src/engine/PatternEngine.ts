@@ -34,6 +34,12 @@ export class PatternEngine {
     this.loadHistory(dataDir);
   }
 
+  /** Reload history from disk to pick up newly recorded cycles */
+  public reload(dataDir: string): void {
+    this.transitions = [];
+    this.loadHistory(dataDir);
+  }
+
   /** Load seed + live history and build transition records */
   private loadHistory(dataDir: string): void {
     // 1. Load seed (matrix_seed.json) — chronological snapshots

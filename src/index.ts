@@ -1,4 +1,5 @@
-import "./logger"; // Timestamps on all console output
+import './logger'; // Timestamps on all console output
+import './logger'; // Timestamps on all console output
 import { BinanceWebsocketEngine } from './connectors/BinanceWebsocket';
 import { PolymarketClobConnector } from './connectors/PolymarketClob';
 import { MomentumDetector, OpportunitySignal } from './engine/MomentumDetector';
@@ -68,7 +69,8 @@ async function main() {
         detector.recordHourOutcomes();
         matrixCollector.finalizeHourCycle(binanceWs.getAllTickerStates());
 
-        // Oracle: predict next cycle directions from completed cycle state
+        // Reload pattern engine with fresh data, then predict
+        patternEngine.reload(path.resolve(__dirname, '../data'));
         const tickerStates = binanceWs.getAllTickerStates();
         const currentState = new Map<string, 'UP' | 'DOWN'>();
         for (const ts of tickerStates) {
