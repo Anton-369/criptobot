@@ -61,12 +61,56 @@ export class MatrixCollector {
         this.simpleHistory = JSON.parse(fs.readFileSync(simplePath, 'utf8'));
       }
 
+      const seedPath = path.resolve(__dirname, '../engine/matrix_seed.json');
+      if (fs.existsSync(seedPath)) {
+        const seedData = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
+        const seededRecords: SimpleMatrixRecord[] = seedData.map((s: any) => {
+          const tradables = ['xrp', 'sol', 'doge', 'bnb', 'hype'];
+          let upCount = 0;
+          let downCount = 0;
+          tradables.forEach(c => {
+            if (s[c] === 'UP') upCount++;
+            else if (s[c] === 'DOWN') downCount++;
+          });
+          let swarmConsensus: 'UP' | 'DOWN' | 'MIXED' = 'MIXED';
+          if (upCount >= 4) swarmConsensus = 'UP';
+          if (downCount >= 4) swarmConsensus = 'DOWN';
+          const btcDir = s.btc || 'UP';
+          const btcAltDivergence = btcDir !== swarmConsensus && swarmConsensus !== 'MIXED';
+
+          const hourNum = parseInt(s.hour, 10);
+          const isoString = new Date(`${s.date}T${String(hourNum - 1).padStart(2, '0')}:00:00.000Z`).toISOString();
+          return {
+            hour: hourNum,
+            timestampISO: isoString,
+            btc: s.btc || 'UP',
+            eth: s.eth || 'UP',
+            xrp: s.xrp || 'UP',
+            sol: s.sol || 'UP',
+            doge: s.doge || 'UP',
+            bnb: s.bnb || 'UP',
+            hype: s.hype || 'UP',
+            swarmConsensus,
+            btcAltDivergence
+          };
+        });
+
+        const existingTimestamps = new Set(this.simpleHistory.map(r => r.timestampISO));
+        for (const sr of seededRecords) {
+          if (!existingTimestamps.has(sr.timestampISO)) {
+            this.simpleHistory.push(sr);
+          }
+        }
+        this.simpleHistory.sort((a, b) => new Date(b.timestampISO).getTime() - new Date(a.timestampISO).getTime());
+        this.saveHistory();
+      }
+
       const deepPath = path.join(this.storageDir, 'tabla_profunda_1h.json');
       if (fs.existsSync(deepPath)) {
         this.deepHistory = JSON.parse(fs.readFileSync(deepPath, 'utf8'));
       }
     } catch (e) {
-      console.warn('[MatrixCollector] ⚠️ No se pudo cargar historial preexistente.');
+      console.warn('[MatrixCollector] ⚠️ No se pudo cargar historial preexistente:', e);
     }
   }
 
