@@ -56,11 +56,7 @@ export class MatrixCollector {
 
   private loadHistory(): void {
     try {
-      const simplePath = path.join(this.storageDir, 'tabla_simple_1h.json');
-      if (fs.existsSync(simplePath)) {
-        this.simpleHistory = JSON.parse(fs.readFileSync(simplePath, 'utf8'));
-      }
-
+      // 1. Load seed FIRST — this is the base layer
       const seedPath = path.resolve(__dirname, '../engine/matrix_seed.json');
       if (fs.existsSync(seedPath)) {
         const seedData = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
@@ -94,16 +90,29 @@ export class MatrixCollector {
             btcAltDivergence
           };
         });
+        this.simpleHistory = seededRecords;
+      }
 
-        const existingTimestamps = new Set(this.simpleHistory.map(r => r.timestampISO));
-        for (const sr of seededRecords) {
-          if (!existingTimestamps.has(sr.timestampISO)) {
-            this.simpleHistory.push(sr);
+      // 2. Load persistence file (live data from previous runs)
+      // Only add records with timestamps NOT already in simpleHistory (dedup by date+hour)
+      const simplePath = path.join(this.storageDir, 'tabla_simple_1h.json');
+      if (fs.existsSync(simplePath)) {
+        const liveData: SimpleMatrixRecord[] = JSON.parse(fs.readFileSync(simplePath, 'utf8'));
+        const existingKeys = new Set(
+          this.simpleHistory.map(r => `${new Date(r.timestampISO).toISOString().slice(0,13)}`)
+        );
+        for (const lr of liveData) {
+          const key = new Date(lr.timestampISO).toISOString().slice(0,13); // date+hour key
+          if (!existingKeys.has(key)) {
+            this.simpleHistory.push(lr);
+            existingKeys.add(key);
           }
         }
-        this.simpleHistory.sort((a, b) => new Date(b.timestampISO).getTime() - new Date(a.timestampISO).getTime());
-        this.saveHistory();
       }
+
+      // 3. Sort newest first
+      this.simpleHistory.sort((a, b) => new Date(b.timestampISO).getTime() - new Date(a.timestampISO).getTime());
+      this.saveHistory();
 
       const deepPath = path.join(this.storageDir, 'tabla_profunda_1h.json');
       if (fs.existsSync(deepPath)) {
@@ -223,7 +232,17 @@ export class MatrixCollector {
       btcAltDivergence
     };
 
-    this.simpleHistory.unshift(simpleRecord);
+    // Dedup: replace existing record for this UTC hour instead of adding duplicate
+    const existingIdx = this.simpleHistory.findIndex(r => {
+      const rDate = new Date(r.timestampISO);
+      return rDate.getUTCHours() === currentHour &&
+             rDate.toISOString().slice(0,10) === now.toISOString().slice(0,10);
+    });
+    if (existingIdx >= 0) {
+      this.simpleHistory[existingIdx] = simpleRecord; // update with live data
+    } else {
+      this.simpleHistory.unshift(simpleRecord);
+    }
 
     // Keep max 500 simple records (~3 days of 7-coin hourly data) and 1500 deep records
     if (this.simpleHistory.length > 500) this.simpleHistory.pop();
