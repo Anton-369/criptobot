@@ -24,6 +24,7 @@ export class MomentumDetector extends EventEmitter {
   private isEvaluating: boolean = false;
   private evalInterval: NodeJS.Timeout | null = null;
   private lastRecordedHour: number = -1;
+  private latestOdds: Map<string, BestOdds> = new Map();
 
   constructor(
     binanceWs: BinanceWebsocketEngine,
@@ -96,6 +97,7 @@ export class MomentumDetector extends EventEmitter {
 
         // Fetch live Polymarket orderbook odds
         const odds: BestOdds = await this.polyClob.getBestOdds(market.upTokenId, market.downTokenId);
+        this.latestOdds.set(coin, odds);
         
         // Capa B: Get historical directional bias
         const bias: DirectionalBias = this.matrixHistory.getDirectionalBias(coin, btcDir, ethDir);
@@ -378,6 +380,15 @@ export class MomentumDetector extends EventEmitter {
   }
 
   private emitOpportunity(sig: OpportunitySignal): void {
+    // Check orderbook depth before emitting signal
+    const odds = this.latestOdds.get(sig.coin);
+    if (odds) {
+      const requiredShares = sig.bulletSizeUSDC / sig.targetPrice;
+      const availableDepth = sig.targetSide === 'UP' ? odds.upAskDepth : odds.downAskDepth;
+      if (availableDepth < requiredShares) {
+        return; // Not enough depth — skip signal without spamming
+      }
+    }
     this.emit('opportunity', sig);
   }
 

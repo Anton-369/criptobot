@@ -1,4 +1,4 @@
-import { ClobClient, Chain, SignatureTypeV2 } from '@polymarket/clob-client-v2';
+import { ClobClient, Chain, SignatureType } from '@polymarket/clob-client';
 import { Wallet } from 'ethers';
 import axios from 'axios';
 import { HttpsProxyAgent } from 'https-proxy-agent';
@@ -19,15 +19,19 @@ export interface BestOdds {
   downBestAsk: number;  // Lowest price to BUY DOWN
   upBestBid: number;    // Highest price to SELL UP
   downBestBid: number;  // Highest price to SELL DOWN
+  upAskDepth: number;   // Total size at best ask (shares)
+  downAskDepth: number; // Total size at best ask (shares)
 }
 
 export class PolymarketClobConnector {
   private clobClient: ClobClient | null = null;
   private activeMarkets: Map<string, Polymarket1HMarket> = new Map(); // key: coin (XRP, SOL, DOGE)
+  private proxyAgent: HttpsProxyAgent | null = null;
 
   constructor() {
     if (CONFIG.HTTP_PROXY) {
       const agent = new HttpsProxyAgent(CONFIG.HTTP_PROXY);
+      this.proxyAgent = agent;
       axios.defaults.httpsAgent = agent;
       axios.defaults.httpAgent = agent;
       console.log(`[PolyCLOB] 🌐 Proxy HTTP configurado correctamente: ${CONFIG.HTTP_PROXY} (Bypassing Geoblock)`);
@@ -41,15 +45,15 @@ export class PolymarketClobConnector {
           secret: process.env.CLOB_SECRET || '',
           passphrase: process.env.CLOB_PASSPHRASE || ''
         };
-        this.clobClient = new ClobClient({
-          host: CONFIG.CLOB_API_URL,
-          chain: Chain.POLYGON,
-          signer: wallet,
+        this.clobClient = new ClobClient(
+          CONFIG.CLOB_API_URL,
+          Chain.POLYGON,
+          wallet,
           creds,
-          signatureType: SignatureTypeV2.POLY_1271,
-          funderAddress: CONFIG.PROXY_WALLET
-        });
-        console.log(`[PolyCLOB] Cliente TypeScript V2 inicializado correctamente con Proxy Wallet (POLY_1271).`);
+          SignatureType.POLY_PROXY,
+          CONFIG.PROXY_WALLET
+        );
+        console.log(`[PolyCLOB] Cliente TypeScript oficial v5 inicializado con Proxy Wallet (POLY_PROXY).`);
       } catch (err) {
         console.warn(`[PolyCLOB] No se pudo autenticar cliente privado. Usando modo público.`);
       }
@@ -156,7 +160,7 @@ export class PolymarketClobConnector {
   }
 
   public async getBestOdds(upTokenId: string, downTokenId: string): Promise<BestOdds> {
-    const odds: BestOdds = { upBestAsk: 1.0, downBestAsk: 1.0, upBestBid: 0.0, downBestBid: 0.0 };
+    const odds: BestOdds = { upBestAsk: 1.0, downBestAsk: 1.0, upBestBid: 0.0, downBestBid: 0.0, upAskDepth: 0, downAskDepth: 0 };
 
     try {
       // Query orderbook for UP token
@@ -168,6 +172,10 @@ export class PolymarketClobConnector {
         if (dataUp && Array.isArray(dataUp.asks) && dataUp.asks.length > 0) {
           const askPrices = dataUp.asks.map((a: any) => parseFloat(a.price)).filter((p: number) => !isNaN(p) && p > 0);
           if (askPrices.length > 0) odds.upBestAsk = Math.min(...askPrices);
+          // Sum size at best ask level for depth check
+          odds.upAskDepth = dataUp.asks
+            .filter((a: any) => Math.abs(parseFloat(a.price) - odds.upBestAsk) < 0.0001)
+            .reduce((sum: number, a: any) => sum + (parseFloat(a.size) || 0), 0);
         }
         if (dataUp && Array.isArray(dataUp.bids) && dataUp.bids.length > 0) {
           const bidPrices = dataUp.bids.map((b: any) => parseFloat(b.price)).filter((p: number) => !isNaN(p) && p > 0);
@@ -184,6 +192,10 @@ export class PolymarketClobConnector {
         if (dataDown && Array.isArray(dataDown.asks) && dataDown.asks.length > 0) {
           const askPrices = dataDown.asks.map((a: any) => parseFloat(a.price)).filter((p: number) => !isNaN(p) && p > 0);
           if (askPrices.length > 0) odds.downBestAsk = Math.min(...askPrices);
+          // Sum size at best ask level for depth check
+          odds.downAskDepth = dataDown.asks
+            .filter((a: any) => Math.abs(parseFloat(a.price) - odds.downBestAsk) < 0.0001)
+            .reduce((sum: number, a: any) => sum + (parseFloat(a.size) || 0), 0);
         }
         if (dataDown && Array.isArray(dataDown.bids) && dataDown.bids.length > 0) {
           const bidPrices = dataDown.bids.map((b: any) => parseFloat(b.price)).filter((p: number) => !isNaN(p) && p > 0);

@@ -89,7 +89,9 @@ export class DashboardServer {
 
     try {
       const wallet = CONFIG.PROXY_WALLET || '0xe57Ef37c17df560084fF3C1EB7bb3e9fdcCfA300';
-      const response = await fetch(`https://data-api.polymarket.com/activity?user=${wallet}&limit=150`);
+      const response = await fetch(`https://data-api.polymarket.com/activity?user=${wallet}&limit=150`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' }
+      });
       if (!response.ok) return this.lastCoinPerformanceCache;
       const data: any = await response.json();
 

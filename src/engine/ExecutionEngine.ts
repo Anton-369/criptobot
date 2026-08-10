@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { ClobClient, OrderType, Side } from '@polymarket/clob-client-v2';
+import { ClobClient, OrderType, Side } from '@polymarket/clob-client';
 import { Wallet } from 'ethers';
 import { CONFIG } from '../config/environment';
 import { OpportunitySignal } from './MomentumDetector';
@@ -50,7 +50,9 @@ export class ExecutionEngine extends EventEmitter {
   public async fetchLiveWalletPositions(): Promise<PositionRecord[]> {
     try {
       const url = `https://data-api.polymarket.com/positions?user=${CONFIG.PROXY_WALLET}&sizeThreshold=0`;
-      const resp = await fetch(url);
+      const resp = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' }
+      });
       if (resp.ok) {
         const rawPositions: any = await resp.json();
         if (Array.isArray(rawPositions)) {
