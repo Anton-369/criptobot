@@ -214,8 +214,14 @@ export class ExecutionEngine extends EventEmitter {
     }
 
     // Calculate in-orders locked capital from active positions
+    // Only count positions with actual value (>0). Resolved/dead positions (value=0) = freed capital.
     const openPositions = this.positions.filter(p => p.status === 'OPEN');
-    this.inOrdersUSDC = openPositions.reduce((sum, p) => sum + (p.currentValueUSDC || p.investedUSDC), 0);
+    this.inOrdersUSDC = openPositions.reduce((sum, p) => {
+      if (p.currentValueUSDC !== undefined && p.currentValueUSDC !== null) {
+        return sum + p.currentValueUSDC; // use actual value (may be 0 = resolved)
+      }
+      return sum + p.investedUSDC; // fallback for positions not yet fetched from API
+    }, 0);
     // Available = liquid CLOB cash minus what's locked in open positions
     this.availableBalanceUSDC = Math.max(0, this.totalBalanceUSDC - this.inOrdersUSDC);
 
