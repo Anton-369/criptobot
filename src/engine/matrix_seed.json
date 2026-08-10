@@ -266,41 +266,41 @@
   {
     "date": "2026-08-07",
     "hour": 21,
-    "btc": null,
-    "eth": null,
+    "btc": "UP",
+    "eth": "UP",
     "xrp": "UP",
     "sol": "UP",
-    "doge": "UP",
-    "hype": "UP",
-    "bnb": "UP"
-  },
-  {
-    "date": "2026-08-07",
-    "hour": 22,
-    "btc": null,
-    "eth": null,
-    "xrp": "DOWN",
-    "sol": "UP",
-    "doge": "UP",
-    "hype": "UP",
-    "bnb": "UP"
-  },
-  {
-    "date": "2026-08-07",
-    "hour": 23,
-    "btc": null,
-    "eth": null,
-    "xrp": "UP",
-    "sol": "DOWN",
     "doge": "UP",
     "hype": "DOWN",
     "bnb": "DOWN"
   },
   {
     "date": "2026-08-07",
+    "hour": 22,
+    "btc": "DOWN",
+    "eth": "UP",
+    "xrp": "UP",
+    "sol": "UP",
+    "doge": "UP",
+    "hype": "UP",
+    "bnb": "DOWN"
+  },
+  {
+    "date": "2026-08-07",
+    "hour": 23,
+    "btc": "UP",
+    "eth": "DOWN",
+    "xrp": "UP",
+    "sol": "DOWN",
+    "doge": "DOWN",
+    "hype": "DOWN",
+    "bnb": "UP"
+  },
+  {
+    "date": "2026-08-07",
     "hour": 24,
-    "btc": null,
-    "eth": null,
+    "btc": "UP",
+    "eth": "UP",
     "xrp": "UP",
     "sol": "UP",
     "doge": "UP",
@@ -310,73 +310,73 @@
   {
     "date": "2026-08-08",
     "hour": 1,
-    "btc": null,
+    "btc": "DOWN",
     "eth": "DOWN",
     "xrp": "DOWN",
     "sol": "DOWN",
     "doge": "DOWN",
     "hype": "DOWN",
-    "bnb": "DOWN"
+    "bnb": "UP"
   },
   {
     "date": "2026-08-08",
     "hour": 2,
-    "btc": null,
-    "eth": "DOWN",
-    "xrp": "UP",
-    "sol": "DOWN",
+    "btc": "DOWN",
+    "eth": "UP",
+    "xrp": "DOWN",
+    "sol": "UP",
     "doge": "UP",
     "hype": "UP",
-    "bnb": "UP"
+    "bnb": "DOWN"
   },
   {
     "date": "2026-08-08",
     "hour": 3,
-    "btc": null,
-    "eth": "UP",
-    "xrp": "DOWN",
+    "btc": "UP",
+    "eth": "DOWN",
+    "xrp": "UP",
     "sol": "UP",
     "doge": "UP",
-    "hype": "UP",
-    "bnb": "DOWN"
+    "hype": "DOWN",
+    "bnb": "UP"
   },
   {
     "date": "2026-08-08",
     "hour": 4,
-    "btc": null,
+    "btc": "DOWN",
     "eth": "DOWN",
     "xrp": "DOWN",
-    "sol": "DOWN",
-    "doge": "UP",
-    "hype": "DOWN",
-    "bnb": "UP"
-  },
-  {
-    "date": "2026-08-08",
-    "hour": 5,
-    "btc": null,
-    "eth": "UP",
-    "xrp": "UP",
     "sol": "UP",
     "doge": "DOWN",
     "hype": "UP",
-    "bnb": "UP"
-  },
-  {
-    "date": "2026-08-08",
-    "hour": 6,
-    "btc": null,
-    "eth": "UP",
-    "xrp": "UP",
-    "sol": "DOWN",
-    "doge": "UP",
-    "hype": "DOWN",
     "bnb": "DOWN"
   },
   {
     "date": "2026-08-08",
+    "hour": 5,
+    "btc": "UP",
+    "eth": "UP",
+    "xrp": "UP",
+    "sol": "DOWN",
+    "doge": "UP",
+    "hype": "UP",
+    "bnb": "DOWN"
+  },
+  {
+    "date": "2026-08-08",
+    "hour": 6,
+    "btc": "UP",
+    "eth": "UP",
+    "xrp": "DOWN",
+    "sol": "UP",
+    "doge": "DOWN",
+    "hype": "DOWN",
+    "bnb": "UP"
+  },
+  {
+    "date": "2026-08-08",
     "hour": 7,
-    "btc": null,
+    "btc": "UP",
     "eth": "UP",
     "xrp": "UP",
     "sol": "UP",
@@ -387,40 +387,40 @@
   {
     "date": "2026-08-08",
     "hour": 8,
-    "btc": null,
+    "btc": "DOWN",
     "eth": "DOWN",
     "xrp": "DOWN",
-    "sol": "DOWN",
-    "doge": "UP",
-    "hype": "UP",
-    "bnb": "DOWN"
-  },
-  {
-    "date": "2026-08-08",
-    "hour": 9,
-    "btc": null,
-    "eth": "UP",
-    "xrp": "DOWN",
     "sol": "UP",
-    "doge": "DOWN",
+    "doge": "UP",
     "hype": "DOWN",
     "bnb": "UP"
   },
   {
     "date": "2026-08-08",
-    "hour": 10,
-    "btc": null,
-    "eth": "UP",
+    "hour": 9,
+    "btc": "UP",
+    "eth": "DOWN",
     "xrp": "UP",
-    "sol": "UP",
-    "doge": "UP",
+    "sol": "DOWN",
+    "doge": "DOWN",
     "hype": "UP",
     "bnb": "DOWN"
   },
   {
     "date": "2026-08-08",
+    "hour": 10,
+    "btc": "UP",
+    "eth": "UP",
+    "xrp": "UP",
+    "sol": "UP",
+    "doge": "UP",
+    "hype": "DOWN",
+    "bnb": "UP"
+  },
+  {
+    "date": "2026-08-08",
     "hour": 11,
-    "btc": null,
+    "btc": "UP",
     "eth": "UP",
     "xrp": "UP",
     "sol": "UP",
@@ -530,18 +530,18 @@
   {
     "date": "2026-08-08",
     "hour": 21,
-    "btc": "DOWN",
-    "eth": "DOWN",
+    "btc": "UP",
+    "eth": "UP",
     "xrp": "UP",
     "sol": "UP",
-    "doge": "UP",
+    "doge": "DOWN",
     "hype": "UP",
-    "bnb": "DOWN"
+    "bnb": "UP"
   },
   {
     "date": "2026-08-08",
     "hour": 22,
-    "btc": "UP",
+    "btc": "DOWN",
     "eth": "DOWN",
     "xrp": "DOWN",
     "sol": "DOWN",
@@ -553,30 +553,30 @@
     "date": "2026-08-08",
     "hour": 23,
     "btc": "DOWN",
-    "eth": "UP",
-    "xrp": "DOWN",
-    "sol": "DOWN",
+    "eth": "DOWN",
+    "xrp": "UP",
+    "sol": "UP",
     "doge": "UP",
-    "hype": "UP",
-    "bnb": "UP"
+    "hype": "DOWN",
+    "bnb": "DOWN"
   },
   {
     "date": "2026-08-08",
     "hour": 24,
-    "btc": "UP",
-    "eth": "UP",
-    "xrp": "DOWN",
-    "sol": "DOWN",
+    "btc": "DOWN",
+    "eth": "DOWN",
+    "xrp": "UP",
+    "sol": "UP",
     "doge": "UP",
-    "hype": "UP",
-    "bnb": "UP"
+    "hype": "DOWN",
+    "bnb": "DOWN"
   },
   {
     "date": "2026-08-09",
     "hour": 1,
-    "btc": "UP",
+    "btc": "DOWN",
     "eth": "DOWN",
-    "xrp": "DOWN",
+    "xrp": "UP",
     "sol": "UP",
     "doge": "UP",
     "hype": "UP",
@@ -585,13 +585,13 @@
   {
     "date": "2026-08-09",
     "hour": 2,
-    "btc": "DOWN",
+    "btc": "UP",
     "eth": "UP",
-    "xrp": "UP",
-    "sol": "DOWN",
-    "doge": "UP",
+    "xrp": "DOWN",
+    "sol": "UP",
+    "doge": "DOWN",
     "hype": "DOWN",
-    "bnb": "DOWN"
+    "bnb": "UP"
   },
   {
     "date": "2026-08-09",
@@ -612,8 +612,8 @@
     "xrp": "DOWN",
     "sol": "DOWN",
     "doge": "DOWN",
-    "hype": "DOWN",
-    "bnb": "UP"
+    "hype": "UP",
+    "bnb": "DOWN"
   },
   {
     "date": "2026-08-09",
@@ -634,41 +634,41 @@
     "xrp": "UP",
     "sol": "UP",
     "doge": "UP",
-    "hype": "UP",
-    "bnb": "DOWN"
+    "hype": "DOWN",
+    "bnb": "UP"
   },
   {
     "date": "2026-08-09",
     "hour": 7,
     "btc": "UP",
-    "eth": "UP",
-    "xrp": "DOWN",
-    "sol": "UP",
-    "doge": "DOWN",
-    "hype": "UP",
-    "bnb": "DOWN"
+    "eth": "DOWN",
+    "xrp": "UP",
+    "sol": "DOWN",
+    "doge": "UP",
+    "hype": "DOWN",
+    "bnb": "UP"
   },
   {
     "date": "2026-08-09",
     "hour": 8,
-    "btc": "UP",
+    "btc": "DOWN",
     "eth": "DOWN",
-    "xrp": "DOWN",
+    "xrp": "UP",
     "sol": "UP",
-    "doge": "UP",
+    "doge": "DOWN",
     "hype": "DOWN",
     "bnb": "DOWN"
   },
   {
     "date": "2026-08-09",
     "hour": 9,
-    "btc": "DOWN",
-    "eth": "UP",
-    "xrp": "DOWN",
-    "sol": "UP",
+    "btc": "UP",
+    "eth": "DOWN",
+    "xrp": "UP",
+    "sol": "DOWN",
     "doge": "DOWN",
     "hype": "DOWN",
-    "bnb": "DOWN"
+    "bnb": "UP"
   },
   {
     "date": "2026-08-09",
@@ -701,7 +701,7 @@
     "sol": "UP",
     "doge": "UP",
     "hype": "UP",
-    "bnb": "UP"
+    "bnb": "DOWN"
   },
   {
     "date": "2026-08-09",
@@ -805,8 +805,8 @@
   {
     "date": "2026-08-09",
     "hour": 22,
-    "btc": "DOWN",
-    "eth": "DOWN",
+    "btc": "UP",
+    "eth": "UP",
     "xrp": "UP",
     "sol": "UP",
     "doge": "UP",
@@ -839,11 +839,11 @@
     "date": "2026-08-10",
     "hour": 1,
     "btc": "UP",
-    "eth": "UP",
-    "xrp": "DOWN",
-    "sol": "UP",
-    "doge": "DOWN",
-    "hype": "UP",
+    "eth": "DOWN",
+    "xrp": "UP",
+    "sol": "DOWN",
+    "doge": "UP",
+    "hype": "DOWN",
     "bnb": "DOWN"
   },
   {
@@ -876,24 +876,24 @@
     "xrp": "DOWN",
     "sol": "DOWN",
     "doge": "DOWN",
-    "hype": "DOWN",
+    "hype": "UP",
     "bnb": "UP"
   },
   {
     "date": "2026-08-10",
     "hour": 5,
-    "btc": "DOWN",
+    "btc": "UP",
     "eth": "UP",
-    "xrp": "UP",
+    "xrp": "DOWN",
     "sol": "DOWN",
-    "doge": "DOWN",
-    "hype": "UP",
-    "bnb": "DOWN"
+    "doge": "UP",
+    "hype": "DOWN",
+    "bnb": "UP"
   },
   {
     "date": "2026-08-10",
     "hour": 6,
-    "btc": "UP",
+    "btc": "DOWN",
     "eth": "DOWN",
     "xrp": "DOWN",
     "sol": "DOWN",
@@ -915,18 +915,18 @@
   {
     "date": "2026-08-10",
     "hour": 8,
-    "btc": "DOWN",
+    "btc": "UP",
     "eth": "UP",
     "xrp": "UP",
     "sol": "UP",
     "doge": "UP",
     "hype": "UP",
-    "bnb": "UP"
+    "bnb": "DOWN"
   },
   {
     "date": "2026-08-10",
     "hour": 9,
-    "btc": "UP",
+    "btc": "DOWN",
     "eth": "DOWN",
     "xrp": "DOWN",
     "sol": "DOWN",
@@ -937,7 +937,7 @@
   {
     "date": "2026-08-10",
     "hour": 10,
-    "btc": "UP",
+    "btc": "DOWN",
     "eth": "DOWN",
     "xrp": "DOWN",
     "sol": "DOWN",
@@ -948,13 +948,13 @@
   {
     "date": "2026-08-10",
     "hour": 11,
-    "btc": "UP",
+    "btc": "DOWN",
     "eth": "UP",
     "xrp": "DOWN",
     "sol": "UP",
     "doge": "DOWN",
     "hype": "UP",
-    "bnb": "DOWN"
+    "bnb": "UP"
   },
   {
     "date": "2026-08-10",
