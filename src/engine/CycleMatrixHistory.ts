@@ -81,6 +81,22 @@ export class CycleMatrixHistory extends EventEmitter {
     }
 
     this.history.set(coinUpper, records);
+    this.saveLiveHistory(coinUpper, hourStart, outcome);
+  }
+
+  private saveLiveHistory(coin: string, hourStart: number, outcome: string): void {
+    try {
+      const livePath = require("path").resolve(__dirname, "../../data/live_history.json");
+      let history: any[] = [];
+      if (require("fs").existsSync(livePath)) {
+        history = JSON.parse(require("fs").readFileSync(livePath, "utf8"));
+      }
+      const idx = history.findIndex((r: any) => r.coin === coin && r.hourTimestamp === hourStart);
+      if (idx >= 0) { history[idx].outcome = outcome; }
+      else { history.push({ coin, hourTimestamp: hourStart, outcome }); }
+      if (history.length > 500) history = history.slice(-500);
+      require("fs").writeFileSync(livePath, JSON.stringify(history), "utf8");
+    } catch (e) { /* silent */ }
   }
 
   /**

@@ -7,6 +7,7 @@ export interface BinanceTickerState {
   symbol: string;
   currentPrice: number;
   openPrice1H: number;      // Open price at top of 1H cycle
+  previousOpenPrice1H: number; // Open of PREVIOUS completed cycle
   highPrice1H: number;
   lowPrice1H: number;
   deltaAbs: number;          // Current - Open1H
@@ -32,6 +33,7 @@ export class BinanceWebsocketEngine extends EventEmitter {
         symbol: pair.symbol.toUpperCase(),
         currentPrice: 0,
         openPrice1H: 0,
+        previousOpenPrice1H: 0,
         highPrice1H: 0,
         lowPrice1H: 0,
         deltaAbs: 0,
@@ -207,6 +209,9 @@ export class BinanceWebsocketEngine extends EventEmitter {
   public setOpenPrice1H(symbol: string, openPrice: number): void {
     const state = this.tickerStates.get(symbol.toUpperCase());
     if (state) {
+      if (state.openPrice1H > 0 && state.openPrice1H !== openPrice) {
+        state.previousOpenPrice1H = state.openPrice1H;
+      }
       state.openPrice1H = openPrice;
       if (state.currentPrice > 0) {
         state.deltaAbs = state.currentPrice - openPrice;

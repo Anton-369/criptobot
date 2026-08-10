@@ -75,7 +75,7 @@ export class MatrixCollector {
           let swarmConsensus: 'UP' | 'DOWN' | 'MIXED' = 'MIXED';
           if (upCount >= 4) swarmConsensus = 'UP';
           if (downCount >= 4) swarmConsensus = 'DOWN';
-          const btcDir = s.btc || 'UP';
+          const btcDir = s.btc;
           const btcAltDivergence = btcDir !== swarmConsensus && swarmConsensus !== 'MIXED';
 
           const hourNum = parseInt(s.hour, 10);
@@ -83,13 +83,13 @@ export class MatrixCollector {
           return {
             hour: hourNum,
             timestampISO: isoString,
-            btc: s.btc || 'UP',
-            eth: s.eth || 'UP',
-            xrp: s.xrp || 'UP',
-            sol: s.sol || 'UP',
-            doge: s.doge || 'UP',
-            bnb: s.bnb || 'UP',
-            hype: s.hype || 'UP',
+            btc: s.btc,
+            eth: s.eth,
+            xrp: s.xrp,
+            sol: s.sol,
+            doge: s.doge,
+            bnb: s.bnb,
+            hype: s.hype,
             swarmConsensus,
             btcAltDivergence
           };
