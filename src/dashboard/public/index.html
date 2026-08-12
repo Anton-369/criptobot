@@ -584,6 +584,7 @@
               '<td>' + divTag + '</td></tr>';
           }).join('');
           document.getElementById('rowCount').innerText = data.simpleHistory.length;
+          document.getElementById('badgeUpdate').innerText = '🟢 API ' + data.simpleHistory.length + ' reg';
         }
       }).catch(() => {});
     }

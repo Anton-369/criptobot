@@ -110,7 +110,8 @@ export class PolymarketClobConnector {
                   const s = slug.toLowerCase();
 
                   // STRICT 1-HOUR MARKET FILTER: Exclude 5-minute and 15-minute micro markets
-                  const isMicroMarket = s.includes('-5m-') || s.includes('-15m-') || q.includes('5M-') || q.includes('15M-') || q.includes('5-MINUTE') || q.includes('15-MINUTE');
+                  const isMicroMarket = s.includes('-5m-') || s.includes('-15m-') || q.includes('5M-') || q.includes('15M-') || q.includes('5-MINUTE') || q.includes('15-MINUTE')
+                    || /\\d{1,2}:\\d{2}\\s*(AM|PM)\\s*-\\s*\\d{1,2}:\\d{2}\\s*(AM|PM)/i.test(q); // time ranges like "11:50AM-11:55AM"
                   if (isMicroMarket) continue;
 
                   const endDateMs = ev.endDate ? new Date(ev.endDate).getTime() : (m.endDateIso ? new Date(m.endDateIso).getTime() : (m.endDate ? new Date(m.endDate).getTime() : 0));
@@ -123,12 +124,22 @@ export class PolymarketClobConnector {
                     const clobTokenIds = typeof m.clobTokenIds === 'string' ? JSON.parse(m.clobTokenIds) : m.clobTokenIds;
 
                     if (Array.isArray(clobTokenIds) && clobTokenIds.length >= 2) {
+                      // Map outcomes to tokens instead of assuming [0]=UP, [1]=DOWN
+                      let upTokenId = clobTokenIds[0];
+                      let downTokenId = clobTokenIds[1];
+                      if (m.outcomes && Array.isArray(m.outcomes)) {
+                        for (let oi = 0; oi < m.outcomes.length && oi < clobTokenIds.length; oi++) {
+                          const label = (m.outcomes[oi] || '').toUpperCase();
+                          if (label === 'YES' || label === 'UP') upTokenId = clobTokenIds[oi];
+                          if (label === 'NO' || label === 'DOWN') downTokenId = clobTokenIds[oi];
+                        }
+                      }
                       const marketObj: Polymarket1HMarket = {
                         coin: coin,
                         question: m.question || ev.title,
                         conditionId: m.conditionId,
-                        upTokenId: clobTokenIds[0],
-                        downTokenId: clobTokenIds[1],
+                        upTokenId: upTokenId,
+                        downTokenId: downTokenId,
                         slug: ev.slug || '',
                         endDateISO: m.endDateIso || ev.endDate || ''
                       };

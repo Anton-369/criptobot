@@ -8,13 +8,18 @@ import { DashboardServer } from './dashboard/server';
 import { MatrixCollector } from './analytics/MatrixCollector';
 import { CONFIG } from './config/environment';
 import { PatternEngine, CoinPrediction } from './engine/PatternEngine';
+import { DatabaseManager } from './storage/DatabaseManager';
+import { PolymarketCollector } from './connectors/PolymarketCollector';
 import * as path from 'path';
 
 async function main() {
   console.log("=================================================================");
-  console.log("⚡ CRIPTOBOT v2.0 - ULTRA-FAST LATENCY SNIPER BOT ENGINE");
+  console.log("⚡ CRIPTOBOT v3.0 - ULTRA-FAST LATENCY SNIPER BOT ENGINE");
   console.log(`📌 Modo de Ejecución: ${CONFIG.EXECUTION_MODE}`);
   console.log("=================================================================\n");
+
+  // 0. Initialize SQLite Database & Polymarket 24/7 Collector
+  const dbManager = new DatabaseManager();
 
   // 1. Initialize Polymarket CLOB Connector
   const polyClob = new PolymarketClobConnector();
@@ -28,6 +33,10 @@ async function main() {
   // 2. Initialize Binance Spot Stream Engine
   const binanceWs = new BinanceWebsocketEngine();
   binanceWs.start();
+
+  // 3. Start 24/7 Polymarket Collector (Discovery bursts at :00 + 1-min snapshots + Spot prices)
+  const polyCollector = new PolymarketCollector(polyClob, dbManager, binanceWs);
+  await polyCollector.start();
 
   // 3. Initialize Execution Engine & Wallet Reconciliation
   const execEngine = new ExecutionEngine(polyClob);

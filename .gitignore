@@ -4,6 +4,6 @@ dist/
 .env.*
 *.log
 data/*.db
-archive/criptobot.db.corrupt
-data/live_history.json
-data/tabla_simple_1h.json
+data/*.sqlite
+data/*.sqlite-wal
+data/*.sqlite-shm

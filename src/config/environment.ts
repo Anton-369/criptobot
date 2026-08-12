@@ -6,6 +6,7 @@ dotenv.config({ path: '/home/anton/alpha-os/.env.clob' });
 
 export const CONFIG = {
   EXECUTION_MODE: (process.env.EXECUTION_MODE || 'SHADOW') as 'SHADOW' | 'LIVE',
+  LIVE_FIRING_ENABLED: false, // ⛔ MASTER SAFETY GUARD: BOT 100% OFF UNTIL EXPLICITLY ENABLED BY USER
   POLYGON_RPC_URL: process.env.POLYGON_RPC_URL || 'https://polygon-bor-rpc.publicnode.com',
   PK: process.env.PK || process.env.PM_PRIVATE_KEY || '',
   PROXY_WALLET: process.env.PROXY_WALLET || process.env.CLOB_ADDRESS || '0xe57Ef37c17df560084fF3C1EB7bb3e9fdcCfA300',
@@ -13,10 +14,10 @@ export const CONFIG = {
   CLOB_API_URL: 'https://clob.polymarket.com',
   HTTP_PROXY: process.env.HTTP_PROXY || process.env.PROXY_URL || 'http://95.211.64.139:8889',
   CHAIN_ID: 137, // Polygon Mainnet
-  
+
   // Binance WS Base URL
   BINANCE_WS_URL: 'wss://stream.binance.com:9443/ws',
-  
+
   // Tracked Trading Pairs (2 Beacons + 5 Tradable)
   PAIRS: [
     { coin: 'BTC', symbol: 'btcusdt', role: 'BEACON' },
@@ -27,7 +28,7 @@ export const CONFIG = {
     { coin: 'BNB', symbol: 'bnbusdt', role: 'TRADABLE' },
     { coin: 'HYPE', symbol: 'hypeusdt', role: 'TRADABLE' }
   ],
-  
+
   // Bullet Sizing & Risk Rules
   DEFAULT_BULLET_USDC: 2.50,
   SOL_INSURANCE_BULLET_USDC: 1.00,

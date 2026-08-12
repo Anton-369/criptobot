@@ -154,8 +154,8 @@ export class MatrixCollector {
 
   public finalizeHourCycle(allTickers: BinanceTickerState[]): void {
     const now = new Date();
-    // ET/Chile = UTC-4 — store ET hour to match seed/historical data
-    const currentHour = ((now.getUTCHours() - 4) + 24) % 24;
+    // ET/Chile = UTC-4 — store the COMPLETED cycle's ET hour
+    const completedHour = ((now.getUTCHours() - 5) + 24) % 24; // -5 because -4 for ET, -1 for completed cycle
     const isoString = now.toISOString();
 
     const coinDirections: Record<string, 'UP' | 'DOWN'> = {};
@@ -176,7 +176,7 @@ export class MatrixCollector {
         const rangePct = stat.openPrice > 0 ? ((stat.highPrice - stat.lowPrice) / stat.openPrice) * 100 : 0;
 
         const deepRecord: DeepMatrixRecord = {
-          hour: currentHour,
+          hour: completedHour,
           timestampISO: isoString,
           coin,
           openPrice: stat.openPrice,
@@ -218,7 +218,7 @@ export class MatrixCollector {
     const btcAltDivergence = btcDir !== swarmConsensus && swarmConsensus !== 'MIXED';
 
     const simpleRecord: SimpleMatrixRecord = {
-      hour: currentHour,
+      hour: completedHour,
       timestampISO: isoString,
       btc: btcDir,
       eth: coinDirections['ETH']!,
@@ -234,7 +234,7 @@ export class MatrixCollector {
     // Dedup: replace existing record for this UTC hour instead of adding duplicate
     const existingIdx = this.simpleHistory.findIndex(r => {
       const rDate = new Date(r.timestampISO);
-      return rDate.getUTCHours() === currentHour &&
+      return rDate.getUTCHours() === completedHour &&
              rDate.toISOString().slice(0,10) === now.toISOString().slice(0,10);
     });
     if (existingIdx >= 0) {

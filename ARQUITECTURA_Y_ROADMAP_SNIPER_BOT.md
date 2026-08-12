@@ -1,97 +1,89 @@
-# ARQUITECTURA MAESTRA Y ROADMAP: ULTRA-FAST LATENCY SNIPER BOT (CRIPTOBOT v2.0)
+# ARQUITECTURA MAESTRA Y ROADMAP: ULTRA-FAST LATENCY SNIPER BOT (CRIPTOBOT v3.0)
 
-**Proyecto:** Criptobot Ultra-Fast HFT Engine  
-**Versión:** 2.0 (Especificación de Producción Definitiva)  
+**Proyecto:** Criptobot Ultra-Fast Quantitative HFT Engine  
+**Versión:** 3.0 (Especificación Modular de Producción)  
 **Autor:** Antigravity AI & Anton  
-**Estado:** Listo para Desarrollo  
-**Inspiración & Base Técnica:** `PROPUESTA_BOT_FRANCOTIRADOR_HFT.md`  
-**Capital Inicial:** $13.00 USDC (Flujo de Caja Reciclable Horario)  
+**Estado:** En Progreso (Fase 0 y Fase 1 COMPLETADAS)  
+**Horario Operativo:** ET (Eastern Time) / Chile (CLT/CLST)  
+**Safety Switch:** `LIVE_FIRING_ENABLED: false` (Bloqueo Físico en OFF)  
 
 ---
 
-## 1. Arquitectura Ultra-Rápida de Ultra-Baja Latencia (<15ms)
-
-Para garantizar la máxima velocidad de ejecución y superar el tiempo de reacción del mercado, Criptobot v2.0 implementa el motor de ultra-baja latencia diseñado en `PROPUESTA_BOT_FRANCOTIRADOR_HFT.md`:
-
-```mermaid
-graph TD
-    A[WebSocket Binance Spot Ticker] -->|Stream de Ticks < 15ms| B[Momentum & Latency Detector]
-    B -->|Trigger: Distance-to-Strike en < 500ms| C[Off-Chain EIP-712 Order Signer]
-    C -->|Envío HTTP REST direct al CLOB| D[Polymarket CLOB - Orders FOK]
-    D -->|Confirmación de Fill Instantáneo| E[Take Profit Manager / Oracle Hold]
-    E -->|Re-venta Límite a +50% - +100% ROI| F[Reclamación de USDC en Wallet]
-```
-
-### Componentes de Ultra-Velocidad:
-1. **`BinanceStreamEngine.ts`**: Conexión WebSocket persistente de latencia cero (`wss://stream.binance.com:9443/ws/<pair>@trade`). Procesa los cambios de precio en Binance Spot en menos de **15 milisegundos**.
-2. **`MomentumDetector.ts`**: Evalúa el delta de precio respecto a la apertura del ciclo (`Distance-to-Strike`) en ventanas de **500 milisegundos**, sin bloqueo de hilos.
-3. **`ClobSniperEngine.ts`**: 
-   * Firma órdenes fuera de cadena (Off-Chain Layer 2) mediante la especificación **EIP-712** utilizando `@polymarket/clob-client`.
-   * **Cero llamadas RPC pesadas a Polygon en la ruta crítica del disparo**: la orden se envía en milisegundos como un payload JSON pre-firmado directamente al servidor CLOB de Polymarket.
-   * Utiliza únicamente órdenes límite **Fill-Or-Kill (FOK)**.
-4. **`TakeProfitManager.ts`**: En cuanto la orden de compra es confirmada, coloca automáticamente una orden límite de re-venta en el libro para asegurar ganancias en minutos (+50% a +100% ROI) sin esperar al settlement.
-
----
-
-## 2. Reglas de Hierro y Garantía Anti-Errores (Cero Hardcodeo)
-
-| Componente | Regla de Hierro | Implementación Técnica |
-| :--- | :--- | :--- |
-| **Dashboard** | **100% Datos en Vivo de la API/Blockchain (Cero Valores MOCK/Hardcodeados)** | Conexión directa a `clobClient.getCollateralBalance()`, `clobClient.getOpenOrders()` y Polygon RPC para mostrar: <br>1. **Saldo Total en Wallet** <br>2. **Saldo Disponible Libre para Operar** <br>3. **Posiciones Activas Abiertas** <br>4. **Historial de Resoluciones** |
-| **Órdenes** | **Únicamente Órdenes Límite FOK (Fill-Or-Kill)** | Cero órdenes a mercado. Si no está la liquidez exacta a $2.00 USD al precio límite deseado, la orden se rechaza automáticamente a nivel de protocolo sin gastar nada. |
-| **Decisiones** | **Cero dependencia de la BD local para operar** | La BD SQLite es un log administrativo pasivo fuera del hilo principal. El motor toma decisiones leyendo en tiempo real el WebSocket de Binance Spot y la API de Polymarket. |
-| **Gestión Washybot** | **Modo RESOLVE_ONLY (Congelación de Nuevas Posiciones)** | Washybot entra en modo pasivo de liquidación: no abre nuevas posiciones y únicamente gestiona el cobro u oráculo de las posiciones existentes para proteger los $13.00 USDC. |
-
----
-
-## 3. Matriz Operativa por Moneda (XRP, SOL, DOGE)
-
-### 🔹 Moneda 1: XRP (Francotirador Scalper Ultra-Rápido)
-* **Ventana Temporal**: **Minutos 15 a 28** del ciclo de 1 Hora.
-* **Rango de Cuota Entrada**: **$0.31 a $0.42** (Descuento del 58% al 69%).
-* **Condición Binance Spot**: `Distance-to-Strike > +0.05%` respecto a la apertura 00:00.
-* **Gestión de Salida**: Re-venta inmediata en el libro con Limit Sell a **$0.65 - $0.85** (+50% a +100% ROI rápido) impulsado por `TakeProfitManager.ts`.
-
-### 🟣 Moneda 2: SOLANA (Cobertura Asimétrica 75% / 25%)
-* **Ventana Temporal**: **Minutos 33 a 43** del ciclo de 1 Hora.
-* **Capital por Ciclo**: **$2.66 USDC total** por ciclo de Solana.
-  * **Bala 1 (Lado Dominante - 75%)**: **$2.00 USDC** al lado con tendencia en Binance Spot (ej. UP a $0.40).
-  * **Bala 2 (Seguro Desfavorecido - 25%)**: **$0.66 USDC** al lado opuesto a precio super descuento ($0.15 - $0.25).
-* **Gestión de Salida**: 100% Hold to Oracle ($1.00 USD settlement).
-
-### 🟡 Moneda 3: DOGECOIN (Cazador Tardío de 1 Minuto)
-* **Ventana Temporal**: **Minutos 33 a 58** del ciclo de 1 Hora (Libros desiertos en la primera media hora).
-* **Rango de Cuota Entrada**: **$0.20 a $0.35** (En la segunda mitad del ciclo).
-* **Condición Binance Spot**: Desviación acumulada limpia en Binance Spot.
-* **Gestión de Salida**: Hold to Oracle ($1.00 USD).
-
----
-
-## 4. Modelo Financiero: Reciclaje de Capital Horario y Compuesto
-
-Dado que los mercados de 1 Hora resuelven al finalizar cada hora (10:00, 11:00, 12:00, etc.):
-* **Inyección Inmediata**: Al cerrar la hora, el Smart Contract de Polymarket liquida la posición ganadora e inyecta el dinero de vuelta al wallet en tiempo real.
-* **Reutilización de las 6 Balas**: Los $13.00 USDC se reciclan hora tras hora, permitiendo realizar entre **15 y 24 operaciones diarias**.
-* **Escalamiento Automático**: A medida que el saldo en el wallet crezca de $13 a $25, $50 y $100+ USDC, el bot escalará el tamaño de la bala de $2.00 USD a $5.00 USD de forma automática.
-
----
-
-## 5. Web Dashboard en Tiempo Real (API Driven)
-
-El Dashboard en tiempo real utilizará **Express + WebSockets + Vanilla CSS**, leyendo datos directos de la API oficial sin mocks:
+## 📌 ESTADO Y ROADMAP DE 7 FASES
 
 ```
-+-----------------------------------------------------------------------------------+
-| CRIPTOBOT v2.0 - LIVE CONTROL DASHBOARD | [MODO: LIVE / SHADOW]                   |
-+-----------------------------------------------------------------------------------+
-| SALDO TOTAL WALLET: $13.00 USDC | DISPONIBLE LIBRE: $13.00 USDC | EN ÓRDENES: $0.00 |
-+-----------------------------------------------------------------------------------+
-| TICKERS EN VIVO (BINANCE SPOT vs POLYMARKET 1H)                                   |
-| - XRPUSDT:  $1.0220 | Open: $1.0210 | Delta: +0.10% | Poly UP: $0.35 | Sello: 🎯 UP|
-| - SOLUSDT:  $73.85  | Open: $73.72  | Delta: +0.18% | Poly UP: $0.23 | Sello: 🎯 UP|
-| - DOGEUSDT: $0.0697 | Open: $0.0697 | Delta:  0.00% | Poly UP: $0.50 | Sello: ⏸️ WAIT|
-+-----------------------------------------------------------------------------------+
-| POSICIONES REALES EN WALLET (LIVE CLOB API)                                       |
-| [2026-08-08 00:28] XRP 1H UP | Qty: 5.71 | Price: $0.35 | Invertido: $2.00 | Status: OPEN |
-+-----------------------------------------------------------------------------------+
+[✅ FASE 0] Saneamiento de Código y Master Safety Switch (COMPLETADA)
+[✅ FASE 1] Colector 24/7 de 7 Monedas + Discovery Burst & SQLite HFT (COMPLETADA)
+[   FASE 2] Ingesta Histórica (4 Meses) + Colecta en Vivo de Validación Spreads
+[   FASE 3] Motor de Calibración Offline Statistically Validated (p < 0.05)
+[   FASE 4] Oráculo Sincronizado en Vivo (Ciclos :00:05 ET/Chile)
+[   FASE 5] Sniper HFT Multi-Disparo EV Engine (>5 disparos/hora, Cooldown 3m)
+[   FASE 6] Control Dashboard Read-Only (Puerto 8506) & Monitoreo 24/7
+[   FASE 7] Prueba Piloto con Capital Micro (5-10 disparos de $1.00 USD)
 ```
+
+---
+
+## 🛠️ DETALLE TÉCNICO DE FASES
+
+### ✅ FASE 0: Saneamiento de Código & Master Safety Guard
+- **Master Safety Switch:** Agregado `LIVE_FIRING_ENABLED: false` en `src/config/environment.ts` y comprobación al inicio de `executeSignal()` en `ExecutionEngine.ts`.
+- **Saneamiento `server.ts`:** Eliminada la llave de cierre extra en la línea 105 que destruía la clase `DashboardServer`.
+- **Saneamiento `MatrixCollector.ts`:** Sustituida la variable `currentHour` por `completedHour` en la finalización de ciclo a las `:00`.
+- **Verificación:** Compilación estricta TypeScript `tsc --noEmit` con **0 errores**.
+
+---
+
+### ✅ FASE 1: Colector 24/7 de 7 Monedas & Discovery Burst (Capa 1 + Capa 5)
+- **Soporte 7 Activos:** BTC, ETH, XRP, SOL, DOGE, BNB y HYPE.
+- **Discovery Poller:** Ráfagas de descubrimiento entre `:00:00` y `:00:10` ET/Chile para indexar los nuevos mercados de 1H creados en Polymarket en tiempo real (< 10ms RAM cache).
+- **Persistencia SQLite (`data/criptobot_v3.sqlite`):**
+  - **Modo WAL:** `PRAGMA journal_mode = WAL;` (Lectura/Escritura concurrente sin bloqueos de disco).
+  - **Tabla `snapshots_mercado`:** Registro cada 60s de `yes_price`, `no_price`, `best_ask_up/down`, `best_bid_up/down` y profundidad del orderbook.
+  - **Tabla `precios_subyacente`:** Registro cada 60s del Spot de Binance (`price`, `high_1h`, `low_1h`, `open_1h`, `delta_pct_1h`).
+  - **Tabla `predicciones_log`:** Log de predicciones del Oráculo y estado de disparos.
+- **Integración:** Totalmente operativo e integrado en `src/index.ts`.
+
+---
+
+### ⏳ FASE 2: Ingesta Histórica (4 Meses) + Validaciones en Vivo
+- Descarga e ingesta de datos históricosSpot (Binance) y Polyscan/Pyth/Hype para alimentar el backtesting de los últimos 4 meses.
+- Acumulación de 1 día de colecta en vivo en `criptobot_v3.sqlite` para calibrar spreads bid-ask reales y slippage en Polymarket.
+
+---
+
+### ⏳ FASE 3: Motor de Calibración Offline (`backtest_calibration.py`)
+- Módulo parametrizable desde `calibration_config.json`.
+- Implementación de split 80/20 train/test.
+- Test binomial estricto ($p < 0.05$) sobre hipótesis H1-H4.
+- Generación del archivo auto-mantenido `parametros_calibrados.json`.
+
+---
+
+### ⏳ FASE 4: Capa 3 - Oráculo Sincronizado en Vivo
+- Proceso autónomo que lee `parametros_calibrados.json` + `precios_subyacente`.
+- Escribe `oracle_state.json` cada hora en el segundo `:00:05` ET/Chile.
+- Cero acoplamiento con la ejecución de disparos.
+
+---
+
+### ⏳ FASE 5: Capa 4 - Sniper HFT Multi-Disparo Engine
+- Motor con cálculo de Valor Esperado ($\text{EV} \ge +0.15 \text{ USD}$).
+- Capacidad para realizar **> 5 disparos por ciclo de 1 Hora** repartidos entre las 7 monedas.
+- Cooldown estricto de **3 minutos** entre disparos por moneda.
+- Límite de exposición máxima por moneda ($5.00 USD) y seguro asimétrico subordinado a posición principal previa.
+
+---
+
+### ⏳ FASE 6 & 7: Dashboard Read-Only & Prueba Piloto con Micro-Capital
+- Dashboard en puerto 8506 exclusivo para lectura e insumos visuales.
+- Ejecución de 5 a 10 disparos de prueba con capital controlado ($1.00 USD) tras autorización previa del usuario.
+
+---
+
+## 🔒 ARQUITECTURA DE SEGURIDAD FÍSICA
+
+1. **Estado OFF Garantizado:** El sistema no enviará ninguna orden `LIVE` mientras `LIVE_FIRING_ENABLED` se mantenga en `false`.
+2. **Desacoplamiento Total:** Cada capa opera de forma independiente usando contratos JSON y SQLite en el VPS.
+3. **Migrabilidad:** Diseñado para correr en VPS Linux local sin dependencias propietarias, listo para migración a AWS en EE.UU.
+

@@ -52,6 +52,25 @@ export class DashboardServer {
     const publicDir = fs.existsSync(path.join(__dirname, 'public'))
       ? path.join(__dirname, 'public')
       : path.resolve(__dirname, '../../src/dashboard/public');
+
+    // Explicit root route: serve index.html with no-cache AND embedded data
+    this.app.get('/', async (req, res) => {
+      const htmlPath = path.join(publicDir, 'index.html');
+      if (fs.existsSync(htmlPath)) {
+        let html = fs.readFileSync(htmlPath, 'utf8');
+        // Embed live data directly into the page
+        const status = await this.buildStatus();
+        const inlineData = JSON.stringify(status);
+        html = html.replace('</head>', `<script>window.__INLINE_DATA__ = ${inlineData};</script></head>`);
+        res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+        res.send(html);
+      } else {
+        res.status(404).send('index.html not found');
+      }
+    });
+
     // Serve static files with no-cache headers
     this.app.use(express.static(publicDir, {
       setHeaders: (res) => {
@@ -62,23 +81,26 @@ export class DashboardServer {
     }));
 
     this.app.get('/api/status', async (req, res) => {
-      const balances = this.execEngine.getBalances();
-      const positions = this.execEngine.getPositions();
-      const tickers = await this.getTickersWithTelemetry();
-      const coinPerformance = await this.getCoinPerformanceStats();
-
-      res.json({
-        success: true,
-        timestamp: Date.now(),
-        mode: CONFIG.EXECUTION_MODE,
-        balances,
-        tickers,
-        positions,
-        coinPerformance,
-        simpleHistory: this.matrixCollector ? this.matrixCollector.getSimpleHistory() : [],
-        deepHistory: this.matrixCollector ? this.matrixCollector.getDeepHistory() : []
-      });
+      res.json(await this.buildStatus());
     });
+  }
+
+  private async buildStatus(): Promise<any> {
+    const balances = this.execEngine.getBalances();
+    const positions = this.execEngine.getPositions();
+    const tickers = await this.getTickersWithTelemetry();
+    const coinPerformance = await this.getCoinPerformanceStats();
+    return {
+      success: true,
+      timestamp: Date.now(),
+      mode: CONFIG.EXECUTION_MODE,
+      balances,
+      tickers,
+      positions,
+      coinPerformance,
+      simpleHistory: this.matrixCollector ? this.matrixCollector.getSimpleHistory() : [],
+      deepHistory: this.matrixCollector ? this.matrixCollector.getDeepHistory() : []
+    };
   }
 
   private lastCoinPerformanceCache: any[] = [];

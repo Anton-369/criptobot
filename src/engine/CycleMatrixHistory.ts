@@ -86,17 +86,26 @@ export class CycleMatrixHistory extends EventEmitter {
 
   private saveLiveHistory(coin: string, hourStart: number, outcome: string): void {
     try {
-      const livePath = require("path").resolve(__dirname, "../../data/live_history.json");
+      const fs = require('fs');
+      const path = require('path');
+      const livePath = path.resolve(__dirname, '../../data/live_history.json');
       let history: any[] = [];
-      if (require("fs").existsSync(livePath)) {
-        history = JSON.parse(require("fs").readFileSync(livePath, "utf8"));
+      if (fs.existsSync(livePath)) {
+        history = JSON.parse(fs.readFileSync(livePath, 'utf8'));
       }
-      const idx = history.findIndex((r: any) => r.coin === coin && r.hourTimestamp === hourStart);
-      if (idx >= 0) { history[idx].outcome = outcome; }
-      else { history.push({ coin, hourTimestamp: hourStart, outcome }); }
+      // Deduplicate by coin + hourStart
+      const existingIdx = history.findIndex((r: any) => r.coin === coin && r.hourTimestamp === hourStart);
+      if (existingIdx >= 0) {
+        history[existingIdx].outcome = outcome;
+      } else {
+        history.push({ coin, hourTimestamp: hourStart, outcome });
+      }
+      // Keep last 500 entries
       if (history.length > 500) history = history.slice(-500);
-      require("fs").writeFileSync(livePath, JSON.stringify(history), "utf8");
-    } catch (e) { /* silent */ }
+      fs.writeFileSync(livePath, JSON.stringify(history), 'utf8');
+    } catch (e) {
+      // Silent — persistence failure should not crash the bot
+    }
   }
 
   /**

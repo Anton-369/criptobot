@@ -115,7 +115,7 @@ export class ExecutionEngine extends EventEmitter {
 
           const ONE_HOUR_MS = 60 * 60 * 1000;
           const shadowPos = this.positions.filter(p => p.id.startsWith('SHADOW_') && (Date.now() - p.entryTimestamp) < ONE_HOUR_MS);
-          
+
           // Deduplicate live positions by tokenId/asset
           const combined = [...this.recentLiveExecutions, ...livePos, ...shadowPos];
           const uniqueMap = new Map<string, PositionRecord>();
@@ -237,6 +237,11 @@ export class ExecutionEngine extends EventEmitter {
   }
 
   public async executeSignal(sig: OpportunitySignal): Promise<boolean> {
+    if (!CONFIG.LIVE_FIRING_ENABLED) {
+      console.log(`[SAFETY GUARD] ⛔ Disparo bloqueado. El bot está en modo OFF (LIVE_FIRING_ENABLED=false).`);
+      return false;
+    }
+
     if (this.isExecutingSignal) {
       console.warn(`[ExecutionEngine] ⚠️ Lock activo. Ignorando señal concurrente para ${sig.coin} (${sig.strategy}).`);
       return false;
