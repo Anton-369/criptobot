@@ -1,48 +1,8 @@
 {
-  "calibrated_at": "2026-08-11T22:39:38.674657",
-  "train_split": 0.8,
-  "methodology": "Strict Intra-Hour Non-Lookahead Momentum Backtest (1m candles)",
+  "calibrated_at": "2026-08-12T00:39:48.100440",
+  "architecture": "Criptobot v3.0 Non-Lookahead AI-Gated Engine",
+  "ai_model": "nvidia/nemotron-3.5-lightning:free",
   "rules_by_coin": {
-    "BTC": [
-      {
-        "rule_id": "H1_MOMENTUM_CONTINUATION",
-        "evaluation_minute": 10,
-        "trigger_delta_pct": 0.1,
-        "win_rate_train": 0.7629,
-        "win_rate_test_oos": 0.619,
-        "p_value": 1.0135545376563492e-07,
-        "confidence_interval_95": [
-          0.6693,
-          0.8365
-        ],
-        "expected_value_usd": 0.3629,
-        "recommended_entry_window_min": [
-          10,
-          25
-        ],
-        "max_entry_price": 0.45
-      }
-    ],
-    "ETH": [
-      {
-        "rule_id": "H1_MOMENTUM_CONTINUATION",
-        "evaluation_minute": 10,
-        "trigger_delta_pct": 0.1,
-        "win_rate_train": 0.7252,
-        "win_rate_test_oos": 0.6296,
-        "p_value": 1.2796081537232927e-07,
-        "confidence_interval_95": [
-          0.6432,
-          0.7944
-        ],
-        "expected_value_usd": 0.3252,
-        "recommended_entry_window_min": [
-          10,
-          25
-        ],
-        "max_entry_price": 0.45
-      }
-    ],
     "XRP": [
       {
         "rule_id": "H1_MOMENTUM_CONTINUATION",
@@ -57,10 +17,11 @@
         ],
         "expected_value_usd": 0.4017,
         "recommended_entry_window_min": [
-          10,
+          3,
           25
         ],
-        "max_entry_price": 0.45
+        "max_entry_price": 0.45,
+        "ai_justification": "Aprobación estadística estricta por fallback"
       }
     ],
     "SOL": [
@@ -77,10 +38,11 @@
         ],
         "expected_value_usd": 0.3517,
         "recommended_entry_window_min": [
-          10,
+          3,
           25
         ],
-        "max_entry_price": 0.45
+        "max_entry_price": 0.45,
+        "ai_justification": "Aprobación estadística estricta por fallback"
       }
     ],
     "DOGE": [
@@ -97,10 +59,11 @@
         ],
         "expected_value_usd": 0.4015,
         "recommended_entry_window_min": [
-          10,
+          3,
           25
         ],
-        "max_entry_price": 0.45
+        "max_entry_price": 0.45,
+        "ai_justification": "Aprobación estadística estricta por fallback"
       }
     ],
     "BNB": [
@@ -117,12 +80,12 @@
         ],
         "expected_value_usd": 0.38,
         "recommended_entry_window_min": [
-          10,
+          3,
           25
         ],
-        "max_entry_price": 0.45
+        "max_entry_price": 0.45,
+        "ai_justification": "Aprobación estadística estricta por fallback"
       }
-    ],
-    "HYPE": []
+    ]
   }
 }
