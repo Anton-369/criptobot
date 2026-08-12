@@ -1,0 +1,134 @@
+{
+  "calibrated_at": "2026-08-11T22:14:41.267880",
+  "train_split": 0.8,
+  "total_train_samples": 16129,
+  "total_test_samples": 4032,
+  "rules_by_coin": {
+    "BTC": [
+      {
+        "rule_id": "H1_MOMENTUM_CONTINUATION",
+        "win_rate_train": 1.0,
+        "win_rate_test": 1.0,
+        "p_value": 1.1441778670468376e-246,
+        "confidence_interval_95": [
+          0.9953,
+          1.0
+        ],
+        "expected_value_usd": 0.6,
+        "recommended_entry_window_min": [
+          1,
+          25
+        ],
+        "max_entry_price": 0.45
+      }
+    ],
+    "ETH": [
+      {
+        "rule_id": "H1_MOMENTUM_CONTINUATION",
+        "win_rate_train": 1.0,
+        "win_rate_test": 1.0,
+        "p_value": 6.503898174780929e-260,
+        "confidence_interval_95": [
+          0.9956,
+          1.0
+        ],
+        "expected_value_usd": 0.6,
+        "recommended_entry_window_min": [
+          1,
+          25
+        ],
+        "max_entry_price": 0.45
+      }
+    ],
+    "XRP": [
+      {
+        "rule_id": "H1_MOMENTUM_CONTINUATION",
+        "win_rate_train": 1.0,
+        "win_rate_test": 1.0,
+        "p_value": 3.1757315306547506e-263,
+        "confidence_interval_95": [
+          0.9956,
+          1.0
+        ],
+        "expected_value_usd": 0.6,
+        "recommended_entry_window_min": [
+          1,
+          25
+        ],
+        "max_entry_price": 0.45
+      }
+    ],
+    "SOL": [
+      {
+        "rule_id": "H1_MOMENTUM_CONTINUATION",
+        "win_rate_train": 1.0,
+        "win_rate_test": 1.0,
+        "p_value": 2.203606415850622e-280,
+        "confidence_interval_95": [
+          0.9959,
+          1.0
+        ],
+        "expected_value_usd": 0.6,
+        "recommended_entry_window_min": [
+          1,
+          25
+        ],
+        "max_entry_price": 0.45
+      }
+    ],
+    "DOGE": [
+      {
+        "rule_id": "H1_MOMENTUM_CONTINUATION",
+        "win_rate_train": 1.0,
+        "win_rate_test": 1.0,
+        "p_value": 9.025971879324148e-277,
+        "confidence_interval_95": [
+          0.9958,
+          1.0
+        ],
+        "expected_value_usd": 0.6,
+        "recommended_entry_window_min": [
+          1,
+          25
+        ],
+        "max_entry_price": 0.45
+      }
+    ],
+    "BNB": [
+      {
+        "rule_id": "H1_MOMENTUM_CONTINUATION",
+        "win_rate_train": 1.0,
+        "win_rate_test": 1.0,
+        "p_value": 1.3639663065038175e-253,
+        "confidence_interval_95": [
+          0.9954,
+          1.0
+        ],
+        "expected_value_usd": 0.6,
+        "recommended_entry_window_min": [
+          1,
+          25
+        ],
+        "max_entry_price": 0.45
+      }
+    ],
+    "HYPE": [
+      {
+        "rule_id": "H1_MOMENTUM_CONTINUATION",
+        "win_rate_train": 1.0,
+        "win_rate_test": 1.0,
+        "p_value": 2.2250738585072014e-308,
+        "confidence_interval_95": [
+          0.9963,
+          1.0
+        ],
+        "expected_value_usd": 0.6,
+        "recommended_entry_window_min": [
+          1,
+          25
+        ],
+        "max_entry_price": 0.45
+      }
+    ]
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "dataset": {
+    "db_path": "/home/anton/criptobot/data/criptobot_v3.sqlite",
+    "train_split_ratio": 0.8,
+    "confidence_level": 0.95,
+    "max_p_value": 0.05
+  },
+  "coins": ["BTC", "ETH", "XRP", "SOL", "DOGE", "BNB", "HYPE"],
+  "hypotheses": {
+    "H1_momentum_continuation": {
+      "min_delta_pct": 0.10,
+      "window_start_min": 1,
+      "window_end_min": 15
+    },
+    "H2_elastic_reversal": {
+      "min_consecutive_down": 3,
+      "min_delta_pct": -0.20,
+      "window_start_min": 15,
+      "window_end_min": 30
+    },
+    "H3_cross_asset_sync": {
+      "lead_coin": "BTC",
+      "sync_threshold_pct": 0.15,
+      "window_start_min": 10,
+      "window_end_min": 40
+    },
+    "H4_late_aperture_sniper": {
+      "window_start_min": 33,
+      "window_end_min": 58,
+      "max_entry_price": 0.35
+    }
+  },
+  "output_path": "/home/anton/criptobot/data/parametros_calibrados.json"
+}
