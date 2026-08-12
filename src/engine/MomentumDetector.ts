@@ -6,6 +6,9 @@ import { CONFIG } from '../config/environment';
 
 import { PatternEngine, CoinPrediction } from './PatternEngine';
 
+import * as fs from 'fs';
+import * as path from 'path';
+
 export interface OpportunitySignal {
   coin: string;
   strategy: string;
@@ -29,23 +32,41 @@ export class MomentumDetector extends EventEmitter {
   private latestOdds: Map<string, BestOdds> = new Map();
   private oracle: CoinPrediction[] = [];
   private emittedThisWindow: Set<string> = new Set();
+  private calibratedRules: Map<string, any> = new Map();
 
   public setOracle(predictions: CoinPrediction[]): void {
     this.oracle = predictions;
   }
 
-  /** Check if oracle agrees with a proposed trade direction.
-   *  Only blocks when oracle has HIGH confidence (≥70%) in the OPPOSITE direction.
-   *  Weak oracle signals pass through — spot confirmation takes priority. */
   private oracleApproves(coin: string, side: 'UP' | 'DOWN'): boolean {
     if (this.oracle.length === 0) return true;
     const p = this.oracle.find(o => o.coin === coin);
     if (!p) return true;
-    // Only block if oracle has strong conviction (≥70%) for the OPPOSITE side
     if (p.predictedSide !== side && p.confidencePct >= 70) {
       return false;
     }
     return true;
+  }
+
+  private loadCalibratedRules(): void {
+    try {
+      const contractPath = path.resolve(__dirname, '../../data/parametros_calibrados.json');
+      if (fs.existsSync(contractPath)) {
+        const raw = fs.readFileSync(contractPath, 'utf8');
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.rules_by_coin) {
+          this.calibratedRules.clear();
+          for (const [coin, rules] of Object.entries(parsed.rules_by_coin)) {
+            if (Array.isArray(rules) && rules.length > 0) {
+              this.calibratedRules.set(coin, rules);
+            }
+          }
+          console.log(`[MomentumDetector] 📜 Contrato parametros_calibrados.json cargado. Monedas autorizadas: [ ${Array.from(this.calibratedRules.keys()).join(', ')} ]`);
+        }
+      }
+    } catch (e: any) {
+      console.warn(`[MomentumDetector] ⚠️ No se pudo cargar contrato calibrado: ${e.message}`);
+    }
   }
 
   constructor(
@@ -57,6 +78,7 @@ export class MomentumDetector extends EventEmitter {
     this.binanceWs = binanceWs;
     this.polyClob = polyClob;
     this.matrixHistory = matrixHistory || new CycleMatrixHistory();
+    this.loadCalibratedRules();
   }
 
   public getMatrixHistory(): CycleMatrixHistory {
@@ -74,6 +96,7 @@ export class MomentumDetector extends EventEmitter {
     if (this.isEvaluating) return;
     this.isEvaluating = true;
     this.emittedThisWindow.clear(); // Reset dedup per evaluation cycle
+    this.loadCalibratedRules(); // Mantener reglas sincronizadas
 
     try {
       const now = new Date();
@@ -86,11 +109,6 @@ export class MomentumDetector extends EventEmitter {
         this.lastRecordedHour = currentHour;
       }
 
-      // Time windows:
-      // Ventana 0 (Minuto 01 a 10): Bala de Apertura & Desfase Ineficiencia
-      // Ventana 1 (Minuto 12 a 25): Entrada Principal Direccional con Confluencia
-      // Ventana 2 (Minuto 33 a 43): Póliza de Seguro Asimétrica (Risk-Free Lock)
-      // Ventana 3 (Minuto 44 a 60): ZONA DE CANDADO (Hold-to-Oracle)
       const isApertureWindow = currentMinute >= 1 && currentMinute <= 10;
       const isMainBulletWindow = currentMinute >= 12 && currentMinute <= 25;
       const isInsuranceWindow = currentMinute >= 33 && currentMinute <= 43;
@@ -108,6 +126,11 @@ export class MomentumDetector extends EventEmitter {
       // Evaluate each tradable pair (XRP, SOL, DOGE, BNB, HYPE)
       const activeCoins = ['XRP', 'SOL', 'DOGE', 'BNB', 'HYPE'];
       for (const coin of activeCoins) {
+        // FILTRO FASE 5: Si la moneda NO tiene reglas aprobadas en parametros_calibrados.json, ignorar.
+        if (!this.calibratedRules.has(coin)) {
+          continue;
+        }
+
         const pair = CONFIG.PAIRS.find((p: any) => p.coin === coin);
         if (!pair) continue;
 

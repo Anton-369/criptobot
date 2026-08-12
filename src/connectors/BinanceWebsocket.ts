@@ -92,8 +92,22 @@ export class BinanceWebsocketEngine extends EventEmitter {
     if (this.isRunning) return;
     this.isRunning = true;
     this.fetch1HOpenPrices();
+    this.scheduleHourlyReset();
     this.connect();
     this.startHypePoller();
+  }
+
+  private scheduleHourlyReset(): void {
+    const now = new Date();
+    const nextHour = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours() + 1, 0, 5, 0));
+    const delayMs = nextHour.getTime() - now.getTime();
+
+    setTimeout(() => {
+      if (!this.isRunning) return;
+      console.log(`[BinanceWS] ⏰ Transición de ciclo horario detectada (:00:05 ET/UTC). Refrescando precios de apertura 1H...`);
+      this.fetch1HOpenPrices();
+      this.scheduleHourlyReset();
+    }, delayMs);
   }
 
   private startHypePoller(): void {

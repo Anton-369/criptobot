@@ -221,6 +221,39 @@ export class PolymarketClobConnector {
     return odds;
   }
 
+  public async validateOrderbookLiquidity(tokenId: string, requiredShares: number, maxPrice: number = 0.45): Promise<{ isValid: boolean; bestAsk: number; depth: number; reason: string }> {
+    try {
+      const url = `${CONFIG.CLOB_API_URL}/book?token_id=${tokenId}`;
+      const resp = await fetch(url, { signal: AbortSignal.timeout(3000) });
+      if (resp.ok) {
+        const data: any = await resp.json();
+        if (data && Array.isArray(data.asks) && data.asks.length > 0) {
+          const validAsks = data.asks
+            .map((a: any) => ({ price: parseFloat(a.price), size: parseFloat(a.size) }))
+            .filter((a: any) => !isNaN(a.price) && a.price > 0 && a.price <= maxPrice);
+
+          if (validAsks.length === 0) {
+            return { isValid: false, bestAsk: 1.0, depth: 0, reason: `No hay asks por debajo del precio máximo $${maxPrice}` };
+          }
+
+          const bestAsk = Math.min(...validAsks.map((a: any) => a.price));
+          const depthAtBest = validAsks
+            .filter((a: any) => Math.abs(a.price - bestAsk) < 0.0001)
+            .reduce((sum: number, a: any) => sum + a.size, 0);
+
+          if (depthAtBest < requiredShares) {
+            return { isValid: false, bestAsk, depth: depthAtBest, reason: `Profundidad insuficiente (${depthAtBest.toFixed(1)} < ${requiredShares.toFixed(1)} acciones requeridas)` };
+          }
+
+          return { isValid: true, bestAsk, depth: depthAtBest, reason: 'Liquidez y precio verificados en Orderbook CLOB' };
+        }
+      }
+    } catch (e: any) {
+      return { isValid: false, bestAsk: 1.0, depth: 0, reason: `Error consultando orderbook: ${e.message}` };
+    }
+    return { isValid: false, bestAsk: 1.0, depth: 0, reason: 'Orderbook vacío o no disponible' };
+  }
+
   public getActiveMarket(coin: string): Polymarket1HMarket | undefined {
     return this.activeMarkets.get(coin.toUpperCase());
   }

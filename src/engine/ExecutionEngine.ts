@@ -398,7 +398,15 @@ export class ExecutionEngine extends EventEmitter {
     }
 
     try {
-      console.log(`\n💥 [LIVE FOK EXECUTION] Enviando orden FOK de $${sig.bulletSizeUSDC.toFixed(2)} USD a Polymarket...`);
+      // Validar profundidad del orderbook antes de emitir la orden
+      const requiredShares = sig.bulletSizeUSDC / sig.targetPrice;
+      const obValidation = await this.polyClob.validateOrderbookLiquidity(sig.targetTokenId, requiredShares, 0.45);
+      if (!obValidation.isValid) {
+        console.warn(`[ExecutionEngine] ⛔ Rechazado por Orderbook CLOB: ${obValidation.reason}`);
+        return false;
+      }
+
+      console.log(`\n💥 [LIVE FOK EXECUTION] Enviando orden FOK de $${sig.bulletSizeUSDC.toFixed(2)} USD a Polymarket... (Ask: $${obValidation.bestAsk.toFixed(3)}, Profundidad: ${obValidation.depth.toFixed(1)})`);
 
       const orderResp = await client.createAndPostMarketOrder({
         tokenID: sig.targetTokenId,
