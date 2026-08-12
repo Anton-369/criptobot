@@ -33,6 +33,7 @@ export class MomentumDetector extends EventEmitter {
   private oracle: CoinPrediction[] = [];
   private emittedThisWindow: Set<string> = new Set();
   private calibratedRules: Map<string, any> = new Map();
+  private lastContractMtime: number = 0;
 
   public setOracle(predictions: CoinPrediction[]): void {
     this.oracle = predictions;
@@ -52,6 +53,10 @@ export class MomentumDetector extends EventEmitter {
     try {
       const contractPath = path.resolve(__dirname, '../../data/parametros_calibrados.json');
       if (fs.existsSync(contractPath)) {
+        const stats = fs.statSync(contractPath);
+        if (stats.mtimeMs <= this.lastContractMtime) return;
+        this.lastContractMtime = stats.mtimeMs;
+
         const raw = fs.readFileSync(contractPath, 'utf8');
         const parsed = JSON.parse(raw);
         if (parsed && parsed.rules_by_coin) {
@@ -61,7 +66,7 @@ export class MomentumDetector extends EventEmitter {
               this.calibratedRules.set(coin, rules);
             }
           }
-          console.log(`[MomentumDetector] 📜 Contrato parametros_calibrados.json cargado. Monedas autorizadas: [ ${Array.from(this.calibratedRules.keys()).join(', ')} ]`);
+          console.log(`[MomentumDetector] 📜 Contrato parametros_calibrados.json actualizado. Monedas autorizadas: [ ${Array.from(this.calibratedRules.keys()).join(', ')} ]`);
         }
       }
     } catch (e: any) {
@@ -109,26 +114,12 @@ export class MomentumDetector extends EventEmitter {
         this.lastRecordedHour = currentHour;
       }
 
-      const isApertureWindow = currentMinute >= 1 && currentMinute <= 10;
-      const isMainBulletWindow = currentMinute >= 12 && currentMinute <= 25;
-      const isInsuranceWindow = currentMinute >= 33 && currentMinute <= 43;
-
-      if (!isApertureWindow && !isMainBulletWindow && !isInsuranceWindow) {
-        return;
-      }
-
-      // Get macro beacon directions
-      const btcTicker = this.binanceWs.getTickerState('BTCUSDT');
-      const ethTicker = this.binanceWs.getTickerState('ETHUSDT');
-      const btcDir: 'UP' | 'DOWN' = (btcTicker?.deltaPct || 0) >= 0 ? 'UP' : 'DOWN';
-      const ethDir: 'UP' | 'DOWN' = (ethTicker?.deltaPct || 0) >= 0 ? 'UP' : 'DOWN';
-
-      // Evaluate each tradable pair (XRP, SOL, DOGE, BNB, HYPE)
+      // Evaluar cada moneda activa de forma 100% DINÁMICA mediante las reglas de la IA
       const activeCoins = ['XRP', 'SOL', 'DOGE', 'BNB', 'HYPE'];
       for (const coin of activeCoins) {
-        // FILTRO FASE 5: Si la moneda NO tiene reglas aprobadas en parametros_calibrados.json, ignorar.
-        if (!this.calibratedRules.has(coin)) {
-          continue;
+        const rules = this.calibratedRules.get(coin);
+        if (!rules || !Array.isArray(rules) || rules.length === 0) {
+          continue; // Moneda no aprobada por el filtro cuantitativo / IA (ej. HYPE)
         }
 
         const pair = CONFIG.PAIRS.find((p: any) => p.coin === coin);
@@ -141,287 +132,54 @@ export class MomentumDetector extends EventEmitter {
           continue;
         }
 
-        // Fetch live Polymarket orderbook odds
+        // Consultar cuotas del orderbook de Polymarket
         const odds: BestOdds = await this.polyClob.getBestOdds(market.upTokenId, market.downTokenId);
         this.latestOdds.set(coin, odds);
-        
-        // Capa B: Get historical directional bias
-        const bias: DirectionalBias = this.matrixHistory.getDirectionalBias(coin, btcDir, ethDir);
 
-        // Evaluate specific coin hybrid strategy
-        switch (coin) {
-          case 'XRP':
-            await this.evaluateXRP(market, ticker, odds, bias, currentMinute, isApertureWindow, isMainBulletWindow, isInsuranceWindow);
-            break;
-          case 'SOL':
-            await this.evaluateSOL(market, ticker, odds, bias, currentMinute, isApertureWindow, isMainBulletWindow, isInsuranceWindow);
-            break;
-          case 'DOGE':
-            await this.evaluateDOGE(market, ticker, odds, bias, currentMinute, isApertureWindow, isMainBulletWindow, isInsuranceWindow);
-            break;
-          case 'BNB':
-            await this.evaluateBNB(market, ticker, odds, bias, currentMinute, isApertureWindow, isMainBulletWindow, isInsuranceWindow);
-            break;
-          case 'HYPE':
-            await this.evaluateHYPE(market, ticker, odds, bias, currentMinute, isApertureWindow, isMainBulletWindow, isInsuranceWindow);
-            break;
+        // Ejecutar las reglas dinámicas provenientes de parametros_calibrados.json
+        for (const rule of rules) {
+          const windowMin = rule.recommended_entry_window_min || [1, 25];
+          if (currentMinute < windowMin[0] || currentMinute > windowMin[1]) {
+            continue;
+          }
+
+          const triggerDelta = rule.trigger_delta_pct || 0.10;
+          const maxPrice = rule.max_entry_price || 0.45;
+
+          let targetSide: 'UP' | 'DOWN' | null = null;
+          let targetOdds = 1.0;
+          let targetTokenId = '';
+
+          if (ticker.deltaPct >= triggerDelta) {
+            targetSide = 'UP';
+            targetOdds = odds.upBestAsk;
+            targetTokenId = market.upTokenId;
+          } else if (ticker.deltaPct <= -triggerDelta) {
+            targetSide = 'DOWN';
+            targetOdds = odds.downBestAsk;
+            targetTokenId = market.downTokenId;
+          }
+
+          if (targetSide && targetOdds >= 0.20 && targetOdds <= maxPrice) {
+            this.emitOpportunity({
+              coin,
+              strategy: rule.rule_id || 'AI_MOMENTUM_RULE',
+              targetSide,
+              targetTokenId,
+              targetPrice: targetOdds,
+              bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
+              spotDeltaPct: ticker.deltaPct,
+              cycleMinute: currentMinute,
+              reason: `[AI Contract] ${rule.rule_id} ${targetSide} @ $${targetOdds.toFixed(3)} | Spot: ${ticker.deltaPct >= 0 ? '+' : ''}${ticker.deltaPct.toFixed(2)}% | WR Train: ${(rule.win_rate_train * 100).toFixed(1)}% | WR Test: ${(rule.win_rate_test_oos * 100).toFixed(1)}% | p-val: ${rule.p_value.toExponential(2)}`,
+              timestamp: Date.now()
+            });
+          }
         }
       }
     } catch (err: any) {
-      // Handle soft errors
+      // Manejo de errores suaves
     } finally {
       this.isEvaluating = false;
-    }
-  }
-
-  /**
-   * XRP Evaluator: Rebote Elástico + Asimetría BTC + Micro-vela Spot
-   */
-  private async evaluateXRP(
-    market: Polymarket1HMarket,
-    ticker: BinanceTickerState,
-    odds: BestOdds,
-    bias: DirectionalBias,
-    currentMinute: number,
-    isAperture: boolean,
-    isMain: boolean,
-    isInsurance: boolean
-  ): Promise<void> {
-    const coin = 'XRP';
-    const strat = 'XRP_HYBRID_SNIPER';
-
-    if (isAperture || isMain) {
-      // Require BOTH bias AND spot for BOTH directions (symmetric)
-      // Aperture window: lower thresholds (early entry)
-      // Main window: standard thresholds
-      const isApertureWindow = isAperture && !isMain;
-      const spotUpThreshold = isApertureWindow ? 0.05 : 0.10;
-      const spotDownThreshold = isApertureWindow ? -0.10 : -0.20;
-      const spotUp = ticker.deltaPct >= spotUpThreshold;
-      const spotDown = ticker.deltaPct <= spotDownThreshold;
-
-      if (bias.predictedSide === 'UP' && spotUp && odds.upBestAsk >= 0.25 && odds.upBestAsk <= 0.45) {
-        this.emitOpportunity({
-          coin, strategy: strat, targetSide: 'UP',
-          targetTokenId: market.upTokenId, targetPrice: odds.upBestAsk,
-          bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC, spotDeltaPct: ticker.deltaPct,
-          cycleMinute: currentMinute,
-          reason: `XRP UP ${isApertureWindow?'(Apertura)':'(Main)'}: Bias ${bias.predictedSide} + Spot +${ticker.deltaPct.toFixed(2)}% @ $${odds.upBestAsk.toFixed(3)}`,
-          timestamp: Date.now()
-        });
-      } else if (bias.predictedSide === 'DOWN' && spotDown && odds.downBestAsk >= 0.25 && odds.downBestAsk <= 0.45) {
-        this.emitOpportunity({
-          coin, strategy: strat, targetSide: 'DOWN',
-          targetTokenId: market.downTokenId, targetPrice: odds.downBestAsk,
-          bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC, spotDeltaPct: ticker.deltaPct,
-          cycleMinute: currentMinute,
-          reason: `XRP DOWN ${isApertureWindow?'(Apertura)':'(Main)'}: Bias ${bias.predictedSide} + Spot ${ticker.deltaPct.toFixed(2)}% @ $${odds.downBestAsk.toFixed(3)}`,
-          timestamp: Date.now()
-        });
-      }
-    }
-  }
-
-  /**
-   * SOL Evaluator: High Volatility Impulse + Active Asymmetric Insurance
-   */
-  private async evaluateSOL(
-    market: Polymarket1HMarket,
-    ticker: BinanceTickerState,
-    odds: BestOdds,
-    bias: DirectionalBias,
-    currentMinute: number,
-    isAperture: boolean,
-    isMain: boolean,
-    isInsurance: boolean
-  ): Promise<void> {
-    const coin = 'SOL';
-    const strat = 'SOL_HYBRID_VOLATILITY';
-
-    if (isAperture || isMain) {
-      // Symmetric: require bias AND spot for BOTH directions
-      const isApertureWindow = isAperture && !isMain;
-      const spotUpThreshold = isApertureWindow ? 0.10 : 0.20;
-      const spotDownThreshold = isApertureWindow ? -0.15 : -0.25;
-      const spotUp = ticker.deltaPct >= spotUpThreshold;
-      const spotDown = ticker.deltaPct <= spotDownThreshold;
-
-      if (bias.predictedSide === 'UP' && spotUp && odds.upBestAsk >= 0.25 && odds.upBestAsk <= 0.45) {
-        this.emitOpportunity({
-          coin, strategy: strat, targetSide: 'UP',
-          targetTokenId: market.upTokenId, targetPrice: odds.upBestAsk,
-          bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC, spotDeltaPct: ticker.deltaPct,
-          cycleMinute: currentMinute,
-          reason: `SOL UP: Bias ${bias.predictedSide} (${bias.confidencePct}%) + Spot +${ticker.deltaPct.toFixed(2)}% @ $${odds.upBestAsk.toFixed(3)}`,
-          timestamp: Date.now()
-        });
-      } else if (bias.predictedSide === 'DOWN' && spotDown && odds.downBestAsk >= 0.25 && odds.downBestAsk <= 0.45) {
-        this.emitOpportunity({
-          coin, strategy: strat, targetSide: 'DOWN',
-          targetTokenId: market.downTokenId, targetPrice: odds.downBestAsk,
-          bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC, spotDeltaPct: ticker.deltaPct,
-          cycleMinute: currentMinute,
-          reason: `SOL DOWN: Impulso Spot ${ticker.deltaPct.toFixed(2)}% @ $${odds.downBestAsk.toFixed(3)}`,
-          timestamp: Date.now()
-        });
-      }
-    }
-
-    if (isInsurance) {
-      // Insurance still valid: requires strong existing position in opposite direction
-      if (odds.downBestAsk >= 0.08 && odds.downBestAsk <= 0.25) {
-        this.emitOpportunity({
-          coin, strategy: strat, targetSide: 'DOWN',
-          targetTokenId: market.downTokenId, targetPrice: odds.downBestAsk,
-          bulletSizeUSDC: CONFIG.SOL_INSURANCE_BULLET_USDC || 1.00, spotDeltaPct: ticker.deltaPct,
-          cycleMinute: currentMinute,
-          reason: `🛡️ POLIZA SEGURO SOL: DOWN @ $${odds.downBestAsk.toFixed(3)} (Ventana 2)`,
-          timestamp: Date.now()
-        });
-      } else if (odds.upBestAsk >= 0.08 && odds.upBestAsk <= 0.25) {
-        this.emitOpportunity({
-          coin, strategy: strat, targetSide: 'UP',
-          targetTokenId: market.upTokenId, targetPrice: odds.upBestAsk,
-          bulletSizeUSDC: CONFIG.SOL_INSURANCE_BULLET_USDC || 1.00, spotDeltaPct: ticker.deltaPct,
-          cycleMinute: currentMinute,
-          reason: `🛡️ POLIZA SEGURO SOL: UP @ $${odds.upBestAsk.toFixed(3)} (Ventana 2)`,
-          timestamp: Date.now()
-        });
-      }
-    }
-  }
-
-  /**
-   * DOGE Evaluator: Swarm Connector Bridge
-   */
-  private async evaluateDOGE(
-    market: Polymarket1HMarket,
-    ticker: BinanceTickerState,
-    odds: BestOdds,
-    bias: DirectionalBias,
-    currentMinute: number,
-    isAperture: boolean,
-    isMain: boolean,
-    isInsurance: boolean
-  ): Promise<void> {
-    const coin = 'DOGE';
-    const strat = 'DOGE_HYBRID_SWARM';
-
-    if (isAperture || isMain) {
-      // FIXED: Require a REAL signal — bias must be non-NEUTRAL OR strong spot momentum.
-      // Prevents DOGE from firing on every single cycle with zero confirmation.
-      const hasStrongSpot = Math.abs(ticker.deltaPct) >= 0.15;
-      const hasNonNeutralBias = bias.predictedSide !== 'NEUTRAL';
-
-      if (!hasStrongSpot && !hasNonNeutralBias) return; // No signal — skip
-
-      const side = (hasNonNeutralBias ? bias.predictedSide : (ticker.deltaPct >= 0 ? 'UP' : 'DOWN')) as 'UP' | 'DOWN';
-      const targetOdds = side === 'UP' ? odds.upBestAsk : odds.downBestAsk;
-      const targetTokenId = side === 'UP' ? market.upTokenId : market.downTokenId;
-
-      if (targetOdds >= 0.25 && targetOdds <= 0.45) {
-        this.emitOpportunity({
-          coin, strategy: strat, targetSide: side, targetTokenId, targetPrice: targetOdds,
-          bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC, spotDeltaPct: ticker.deltaPct,
-          cycleMinute: currentMinute,
-          reason: `DOGE Swarm ${side} @ $${targetOdds.toFixed(3)} [Bias: ${bias.predictedSide} (${bias.confidencePct}%) | Spot: ${ticker.deltaPct.toFixed(2)}%]`,
-          timestamp: Date.now()
-        });
-      }
-    }
-  }
-
-  /**
-   * BNB Evaluator: Cluster ETH Sync + Lag Arbitrage
-   */
-  private async evaluateBNB(
-    market: Polymarket1HMarket,
-    ticker: BinanceTickerState,
-    odds: BestOdds,
-    bias: DirectionalBias,
-    currentMinute: number,
-    isAperture: boolean,
-    isMain: boolean,
-    isInsurance: boolean
-  ): Promise<void> {
-    const coin = 'BNB';
-    const strat = 'BNB_HYBRID_ETH_CLUSTER';
-
-    if (isAperture || isMain) {
-      // Require bias AND spot confirmation (was missing spot before)
-      const isApertureWindow = isAperture && !isMain;
-      const spotUpThreshold = isApertureWindow ? 0.05 : 0.10;
-      const spotDownThreshold = isApertureWindow ? -0.10 : -0.15;
-      const spotUp = ticker.deltaPct >= spotUpThreshold;
-      const spotDown = ticker.deltaPct <= spotDownThreshold;
-
-      if (bias.predictedSide === 'UP' && spotUp && odds.upBestAsk >= 0.20 && odds.upBestAsk <= 0.45) {
-        this.emitOpportunity({
-          coin: coin,
-          strategy: strat,
-          targetSide: 'UP',
-          targetTokenId: market.upTokenId,
-          targetPrice: odds.upBestAsk,
-          bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
-          spotDeltaPct: ticker.deltaPct,
-          cycleMinute: currentMinute,
-          reason: `BNB Cluster ETH Sync UP a $${odds.upBestAsk.toFixed(3)} [Confianza: ${bias.confidencePct}%] -> ${bias.reason}`,
-          timestamp: Date.now()
-        });
-      } else if (bias.predictedSide === 'DOWN' && spotDown && odds.downBestAsk >= 0.20 && odds.downBestAsk <= 0.45) {
-        this.emitOpportunity({
-          coin: coin,
-          strategy: strat,
-          targetSide: 'DOWN',
-          targetTokenId: market.downTokenId,
-          targetPrice: odds.downBestAsk,
-          bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
-          spotDeltaPct: ticker.deltaPct,
-          cycleMinute: currentMinute,
-          reason: `BNB Cluster ETH Sync DOWN a $${odds.downBestAsk.toFixed(3)} [Confianza: ${bias.confidencePct}%]`,
-          timestamp: Date.now()
-        });
-      }
-    }
-  }
-
-  /**
-   * HYPE Evaluator: Hyperliquid DEX Arbitrage & Uncontested PolyCLOB Inefficiency
-   */
-  private async evaluateHYPE(
-    market: Polymarket1HMarket,
-    ticker: BinanceTickerState,
-    odds: BestOdds,
-    bias: DirectionalBias,
-    currentMinute: number,
-    isAperture: boolean,
-    isMain: boolean,
-    isInsurance: boolean
-  ): Promise<void> {
-    const coin = 'HYPE';
-    const strat = 'HYPE_HYBRID_DEX_ARBITRAGE';
-
-    if (isAperture || isMain) {
-      // FIXED: HYPE has low liquidity — require a real trigger, not just any quote in range
-      const hasStrongSpot = Math.abs(ticker.deltaPct) >= 0.20;
-      const hasNonNeutralBias = bias.predictedSide !== 'NEUTRAL';
-
-      if (!hasStrongSpot && !hasNonNeutralBias) return; // No signal — skip
-
-      const side = (hasNonNeutralBias ? bias.predictedSide : (ticker.deltaPct >= 0 ? 'UP' : 'DOWN')) as 'UP' | 'DOWN';
-      const targetOdds = side === 'UP' ? odds.upBestAsk : odds.downBestAsk;
-      const targetTokenId = side === 'UP' ? market.upTokenId : market.downTokenId;
-
-      // Tighter range for HYPE due to low liquidity
-      if (targetOdds >= 0.20 && targetOdds <= 0.45) {
-        this.emitOpportunity({
-          coin, strategy: strat, targetSide: side, targetTokenId, targetPrice: targetOdds,
-          bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC, spotDeltaPct: ticker.deltaPct,
-          cycleMinute: currentMinute,
-          reason: `HYPE DEX Ineficiencia ${side} @ $${targetOdds.toFixed(3)} [Bias: ${bias.predictedSide} (${bias.confidencePct}%) | Spot: ${ticker.deltaPct.toFixed(2)}%]`,
-          timestamp: Date.now()
-        });
-      }
     }
   }
 
