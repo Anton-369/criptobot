@@ -1,77 +1,33 @@
 {
-  "generado": "2026-08-12T23:06:09.020021Z",
-  "coins": {
-    "XRPUSDT": {
-      "beta_0_intercept": -0.019445150272752076,
-      "beta_1_racha_down": 0.09545091019149263,
-      "beta_2_delta_spot_temprano": 1.1516468685648011,
-      "normalizacion_media": [
-        0.9694906020157995,
-        0.0015368356140917619
-      ],
-      "normalizacion_std": [
-        1.3071668160974894,
-        0.2924570416637797
-      ],
-      "metricas_oos": {
-        "n_folds": 3572,
-        "accuracy": 0.6724524076147816,
-        "logloss": 0.603688836935642
+  "calibrated_at": "2026-08-13T20:06:00.511884",
+  "train_split": 0.8,
+  "methodology": "Strict 100% Real 1m Microstructure Backtest (No Historical Estimations)",
+  "rules_by_coin": {
+    "BTC": [],
+    "ETH": [],
+    "XRP": [],
+    "SOL": [],
+    "DOGE": [],
+    "BNB": [],
+    "HYPE": [
+      {
+        "rule_id": "H1_MOMENTUM_CONTINUATION",
+        "evaluation_minute": 10,
+        "trigger_delta_pct": 0.1,
+        "win_rate_train": 0.9412,
+        "win_rate_test_oos": 1.0,
+        "p_value": 0.0001373291015625,
+        "confidence_interval_95": [
+          0.7302,
+          0.9895
+        ],
+        "expected_value_usd": 0.5412,
+        "recommended_entry_window_min": [
+          10,
+          25
+        ],
+        "max_entry_price": 0.45
       }
-    },
-    "SOLUSDT": {
-      "beta_0_intercept": 0.03670928715218542,
-      "beta_1_racha_down": 0.08815470259132101,
-      "beta_2_delta_spot_temprano": 1.1316218738955497,
-      "normalizacion_media": [
-        0.9147371288477254,
-        0.0010984056505303995
-      ],
-      "normalizacion_std": [
-        1.2333679908054556,
-        0.34752588522570715
-      ],
-      "metricas_oos": {
-        "n_folds": 3572,
-        "accuracy": 0.6794512877939529,
-        "logloss": 0.6108649659670897
-      }
-    },
-    "DOGEUSDT": {
-      "beta_0_intercept": 0.019271314879677467,
-      "beta_1_racha_down": 0.0576595011991349,
-      "beta_2_delta_spot_temprano": 1.317062976835455,
-      "normalizacion_media": [
-        0.9555979297194225,
-        -0.00035055880627422626
-      ],
-      "normalizacion_std": [
-        1.3207645836450688,
-        0.34650792066994945
-      ],
-      "metricas_oos": {
-        "n_folds": 3572,
-        "accuracy": 0.688969764837626,
-        "logloss": 0.5904596690544701
-      }
-    },
-    "BNBUSDT": {
-      "beta_0_intercept": 0.08177117912671969,
-      "beta_1_racha_down": 0.08438940072354306,
-      "beta_2_delta_spot_temprano": 1.1748476438982403,
-      "normalizacion_media": [
-        0.8828657041678016,
-        0.001875836768371938
-      ],
-      "normalizacion_std": [
-        1.2206379597646257,
-        0.23711132587174202
-      ],
-      "metricas_oos": {
-        "n_folds": 3572,
-        "accuracy": 0.6788913773796192,
-        "logloss": 0.6039055371252341
-      }
-    }
+    ]
   }
 }
