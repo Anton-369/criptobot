@@ -6,6 +6,7 @@ import { DataValidator } from '../data/dataValidator';
 import { EdgeCalculator } from '../features/edgeCalculator';
 import { LiquidityGuard } from '../risk/liquidityGuard';
 import { RiskManager } from '../risk/riskManager';
+import { PositionMonitor } from '../risk/positionMonitor';
 import { Repository } from '../db/repository';
 import { initDatabase } from '../db/schema';
 import * as path from 'path';
@@ -28,6 +29,7 @@ export class MomentumDetector extends EventEmitter {
   private polyClob: PolymarketClobConnector;
   private modelRegistry: ModelRegistry;
   private riskManager: RiskManager;
+  private positionMonitor: PositionMonitor | null = null;
   private repository: Repository | null = null;
   private evalInterval: NodeJS.Timeout | null = null;
   private emittedThisWindow: Set<string> = new Set();
@@ -45,9 +47,16 @@ export class MomentumDetector extends EventEmitter {
     this.riskManager = new RiskManager();
 
     initDatabase()
-      .then((db) => {
+      .then(async (db) => {
         this.repository = new Repository(db);
         console.log('[MomentumDetector] 🗄️ Database Repository connected.');
+
+        // Sync RiskManager state from SQLite to survive process restarts
+        await this.riskManager.syncFromDatabase(this.repository);
+
+        // Start active PositionMonitor loop for Early Exit (TP $0.92 / SL $0.35)
+        this.positionMonitor = new PositionMonitor(this.polyClob, this.repository, this.riskManager);
+        this.positionMonitor.start(5000);
       })
       .catch((err) => console.error('[MomentumDetector] ❌ DB Init Error:', err));
   }
@@ -78,6 +87,9 @@ export class MomentumDetector extends EventEmitter {
     if (this.evalInterval) {
       clearInterval(this.evalInterval);
       this.evalInterval = null;
+    }
+    if (this.positionMonitor) {
+      this.positionMonitor.stop();
     }
   }
 
@@ -185,11 +197,21 @@ export class MomentumDetector extends EventEmitter {
           1.0 // $1 USD order size
         );
 
-        // 6.5 Risk Manager Check (Kill Switches & Limits)
+        // Fetch real active exposure and active position count for this coin directly from SQLite
+        let currentTotalExposureUSD = 0;
+        let openPositionsCountForCoin = 0;
+        if (this.repository) {
+          currentTotalExposureUSD = await this.repository.getActiveExposureUSD();
+          const coinPositions = await this.repository.getActivePositions(baseCoin);
+          openPositionsCountForCoin = coinPositions.length;
+        }
+
+        // 6.5 Risk Manager Check (Kill Switches & Real Limits)
         const riskCheck = this.riskManager.validateTrade(
           baseCoin,
           1.0,
-          this.emittedThisWindow.has(baseCoin) ? 1 : 0
+          openPositionsCountForCoin,
+          currentTotalExposureUSD
         );
 
         const isFullyApproved = edge.approved && liquidity.approved && riskCheck.approved;

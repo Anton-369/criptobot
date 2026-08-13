@@ -36,6 +36,27 @@ export interface SignalRecord {
   risk_approved?: number;
 }
 
+export interface PositionRecord {
+  id?: number;
+  signal_id?: number;
+  order_id?: number;
+  coin: string;
+  market_token_id: string;
+  side: string;
+  status: 'OPEN' | 'CLOSED_TP' | 'CLOSED_SL' | 'CLOSED_EXPIRED';
+  entry_price: number;
+  exit_price?: number;
+  qty: number;
+  entry_usd: number;
+  exit_usd?: number;
+  fees?: number;
+  slippage?: number;
+  pnl?: number;
+  opened_at: string;
+  closed_at?: string;
+  exit_reason?: string;
+}
+
 export interface HealthRecord {
   ts: string;
   module: string;
@@ -86,12 +107,82 @@ export class Repository {
     });
   }
 
-  public logHealth(health: HealthRecord): Promise<void> {
+  public savePosition(position: PositionRecord): Promise<number> {
     return new Promise((resolve, reject) => {
-      const sql = `INSERT INTO system_health (ts, module, status, latency_ms, message) VALUES (?, ?, ?, ?, ?)`;
-      this.db.run(sql, [health.ts, health.module, health.status, health.latency_ms ?? 0, health.message || ''], (err) => {
+      const sql = `
+        INSERT INTO positions (
+          signal_id, order_id, coin, market_token_id, side, status,
+          entry_price, qty, entry_usd, opened_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      const params = [
+        position.signal_id || null, position.order_id || null, position.coin,
+        position.market_token_id, position.side, position.status,
+        position.entry_price, position.qty, position.entry_usd, position.opened_at
+      ];
+
+      this.db.run(sql, params, function (err) {
+        if (err) return reject(err);
+        resolve(this.lastID);
+      });
+    });
+  }
+
+  public updatePositionStatus(
+    id: number,
+    status: string,
+    exitPrice: number,
+    exitUSD: number,
+    pnl: number,
+    exitReason: string
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        UPDATE positions
+        SET status = ?, exit_price = ?, exit_usd = ?, pnl = ?, closed_at = ?, exit_reason = ?
+        WHERE id = ?
+      `;
+      const nowIso = new Date().toISOString();
+      this.db.run(sql, [status, exitPrice, exitUSD, pnl, nowIso, exitReason, id], (err) => {
         if (err) return reject(err);
         resolve();
+      });
+    });
+  }
+
+  public getActivePositions(coin?: string): Promise<PositionRecord[]> {
+    return new Promise((resolve, reject) => {
+      let sql = `SELECT * FROM positions WHERE status = 'OPEN'`;
+      const params: any[] = [];
+
+      if (coin) {
+        sql += ` AND coin = ?`;
+        params.push(coin);
+      }
+
+      this.db.all(sql, params, (err, rows) => {
+        if (err) return reject(err);
+        resolve(rows as PositionRecord[]);
+      });
+    });
+  }
+
+  public getActiveExposureUSD(): Promise<number> {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT COALESCE(SUM(entry_usd), 0) as total FROM positions WHERE status = 'OPEN'`;
+      this.db.get(sql, [], (err, row: any) => {
+        if (err) return reject(err);
+        resolve(row ? row.total : 0);
+      });
+    });
+  }
+
+  public getDailyPnLUSD(sinceIsoTimestamp: string): Promise<number> {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT COALESCE(SUM(pnl), 0) as total_pnl FROM positions WHERE closed_at >= ?`;
+      this.db.get(sql, [sinceIsoTimestamp], (err, row: any) => {
+        if (err) return reject(err);
+        resolve(row ? row.total_pnl : 0);
       });
     });
   }
@@ -102,6 +193,16 @@ export class Repository {
       this.db.all(sql, [limit], (err, rows) => {
         if (err) return reject(err);
         resolve(rows as SignalRecord[]);
+      });
+    });
+  }
+
+  public logHealth(health: HealthRecord): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const sql = `INSERT INTO system_health (ts, module, status, latency_ms, message) VALUES (?, ?, ?, ?, ?)`;
+      this.db.run(sql, [health.ts, health.module, health.status, health.latency_ms ?? 0, health.message || ''], (err) => {
+        if (err) return reject(err);
+        resolve();
       });
     });
   }

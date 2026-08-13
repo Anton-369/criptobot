@@ -1,3 +1,5 @@
+import { Repository } from '../db/repository';
+
 export interface RiskCheckResult {
   approved: boolean;
   reject_reason?: string;
@@ -23,6 +25,29 @@ export class RiskManager {
   constructor(initialExposure: number = 0, initialDailyPnL: number = 0) {
     this.activeExposureUSD = initialExposure;
     this.dailyPnLUSD = initialDailyPnL;
+  }
+
+  /**
+   * Restores state from SQLite to guarantee persistence across process restarts
+   */
+  public async syncFromDatabase(repo: Repository): Promise<void> {
+    try {
+      const now = new Date();
+      const todayStartIso = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0)).toISOString();
+
+      this.activeExposureUSD = await repo.getActiveExposureUSD();
+      this.dailyPnLUSD = await repo.getDailyPnLUSD(todayStartIso);
+
+      console.log(`[RiskManager] 🔄 State synced from SQLite. Active Exposure: $${this.activeExposureUSD.toFixed(2)} | Daily PnL: $${this.dailyPnLUSD.toFixed(2)}`);
+
+      if (this.dailyPnLUSD <= RiskManager.MAX_DAILY_LOSS_USD) {
+        this.isKillSwitchActive = true;
+        this.killSwitchReason = `DAILY_DRAWDOWN_EXCEEDED (Restored from DB): Daily PnL=$${this.dailyPnLUSD.toFixed(2)} <= -$5.00`;
+        console.error(`[RiskManager] 🚨 RESTORED KILL SWITCH FROM DB! ${this.killSwitchReason}`);
+      }
+    } catch (err: any) {
+      console.error(`[RiskManager] ⚠️ Error syncing state from DB:`, err.message);
+    }
   }
 
   /**
@@ -71,9 +96,11 @@ export class RiskManager {
     coin: string,
     targetOrderUSD: number = 1.0,
     openPositionsCountForCoin: number = 0,
-    currentTotalExposureUSD: number = 0
+    currentTotalExposureUSD?: number
   ): RiskCheckResult {
-    this.activeExposureUSD = currentTotalExposureUSD;
+    if (currentTotalExposureUSD !== undefined) {
+      this.activeExposureUSD = currentTotalExposureUSD;
+    }
 
     // 1. Check Global Kill Switch
     if (this.isKillSwitchActive) {
