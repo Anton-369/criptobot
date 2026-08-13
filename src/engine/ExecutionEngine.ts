@@ -1,10 +1,9 @@
 import { EventEmitter } from 'events';
 import { ClobClient, OrderType, Side } from '@polymarket/clob-client';
-import { Wallet } from 'ethers';
 import { CONFIG } from '../config/environment';
 import { OpportunitySignal } from './MomentumDetector';
 import { PolymarketClobConnector } from '../connectors/PolymarketClob';
-import { StateManager, PersistedFill } from './StateManager';
+import { StateManager } from './StateManager';
 import * as path from 'path';
 
 export interface PositionRecord {
@@ -48,9 +47,8 @@ export class ExecutionEngine extends EventEmitter {
   public async initialize(): Promise<void> {
     console.log(`[ExecutionEngine] 🚀 Inicializando motor en MODO: ${this.mode}`);
 
-    // Load persisted state from previous runs (survives restarts)
+    // Load persisted state from previous runs
     const persistedFills = this.stateManager.getCycleFills();
-    const nowMs = Date.now();
     const cycleStartMs = Date.UTC(
       new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate(),
       new Date().getUTCHours(), 0, 0, 0
@@ -76,12 +74,11 @@ export class ExecutionEngine extends EventEmitter {
     try {
       const url = `https://data-api.polymarket.com/positions?user=${CONFIG.PROXY_WALLET}&sizeThreshold=0`;
       const resp = await fetch(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' }
+        headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36' }
       });
       if (resp.ok) {
         const rawPositions: any = await resp.json();
         if (Array.isArray(rawPositions)) {
-          // Build lookup of existing positions to preserve original entryTimestamp
           const existingTimestamps = new Map<string, number>();
           for (const ep of this.positions) {
             existingTimestamps.set(ep.tokenId, ep.entryTimestamp);
@@ -94,9 +91,8 @@ export class ExecutionEngine extends EventEmitter {
               coin: p.title?.toUpperCase().includes('XRP') ? 'XRP' :
                 p.title?.toUpperCase().includes('SOL') ? 'SOL' :
                   p.title?.toUpperCase().includes('DOGE') ? 'DOGE' :
-                    p.title?.toUpperCase().includes('BNB') ? 'BNB' :
-                      p.title?.toUpperCase().includes('HYPE') ? 'HYPE' : 'CLIMA/WASHY',
-              strategy: 'WASHY/LEGACY',
+                    p.title?.toUpperCase().includes('BNB') ? 'BNB' : 'CLIMA/WASHY',
+              strategy: 'LOGIT_V3',
               side: (p.outcome || 'YES').toUpperCase() as any,
               tokenId: p.asset,
               entryPrice: parseFloat(p.avgPrice) || 0,
@@ -104,237 +100,54 @@ export class ExecutionEngine extends EventEmitter {
               investedUSDC: parseFloat(p.initialValue) || 0,
               currentValueUSDC: parseFloat(p.currentValue) || 0,
               status: 'OPEN',
-              // Preserve original timestamp if position already known; use Date.now() only for new positions
               entryTimestamp: existingTimestamps.get(p.asset) || Date.now(),
               title: p.title
             }));
 
-          // Preserve recent local LIVE executions (< 5 mins) to prevent Polymarket Data API indexing lag from wiping local state
           const FIVE_MIN_MS = 5 * 60 * 1000;
           this.recentLiveExecutions = this.recentLiveExecutions.filter(p => (Date.now() - p.entryTimestamp) < FIVE_MIN_MS);
 
           const ONE_HOUR_MS = 60 * 60 * 1000;
           const shadowPos = this.positions.filter(p => p.id.startsWith('SHADOW_') && (Date.now() - p.entryTimestamp) < ONE_HOUR_MS);
 
-          // Deduplicate live positions by tokenId/asset
           const combined = [...this.recentLiveExecutions, ...livePos, ...shadowPos];
           const uniqueMap = new Map<string, PositionRecord>();
-          for (const pos of combined) {
-            const key = `${pos.coin}_${pos.side}_${pos.tokenId}`;
-            if (!uniqueMap.has(key) || (uniqueMap.get(key)!.investedUSDC < pos.investedUSDC)) {
-              uniqueMap.set(key, pos);
-            }
+          for (const p of combined) {
+            if (!uniqueMap.has(p.tokenId)) uniqueMap.set(p.tokenId, p);
           }
           this.positions = Array.from(uniqueMap.values());
         }
       }
     } catch (err: any) {
-      console.warn(`[ExecutionEngine] Error consultando posiciones en vivo de la wallet: ${err.message}`);
+      console.warn(`[ExecutionEngine] ⚠️ Error leyendo posiciones de wallet API: ${err.message}`);
     }
-
     return this.positions;
   }
 
-  public async refreshWalletBalances(): Promise<{ total: number; free: number; locked: number; nativeGasPOL: number }> {
-    let maticGas = 0;
+  public async refreshWalletBalances(): Promise<void> {
     try {
-      // 1. Fetch live open positions first to ensure locked capital is up to date
-      await this.fetchLiveWalletPositions();
-
-      // 2. Check Native POL/MATIC gas balance on Polygon RPC for EOA Wallet
-      const respGas = await fetch(CONFIG.POLYGON_RPC_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'eth_getBalance',
-          params: [CONFIG.EOA_WALLET, 'latest'],
-          id: 1
-        })
-      });
-      if (respGas.ok) {
-        const jsonGas: any = await respGas.json();
-        if (jsonGas.result && jsonGas.result !== '0x') {
-          maticGas = parseInt(jsonGas.result, 16) / 1e18;
-        }
-      }
-
-      // 3. Query Polymarket CLOB Collateral balance (SignatureType 3 / Poly Proxy)
-      const polyClobCash = await this.polyClob.getCollateralBalance();
-
-      // 4. Check Native USDC and USDC.e balance on Polygon RPC for EOA & Proxy Wallets
-      const usdcNativeContract = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
-      const usdcBridgedContract = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174';
-
-      let rpcCashUSDC = 0;
-
-      for (const walletAddr of [CONFIG.PROXY_WALLET, CONFIG.EOA_WALLET]) {
-        for (const contract of [usdcNativeContract, usdcBridgedContract]) {
-          try {
-            const resp = await fetch(CONFIG.POLYGON_RPC_URL, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                jsonrpc: '2.0',
-                method: 'eth_call',
-                params: [{
-                  to: contract,
-                  data: `0x70a08231000000000000000000000000${walletAddr.substring(2)}`
-                }, 'latest'],
-                id: 1
-              })
-            });
-
-            if (resp.ok) {
-              const resJson: any = await resp.json();
-              if (resJson.result && resJson.result !== '0x') {
-                const val = parseInt(resJson.result, 16) / 1e6;
-                rpcCashUSDC += val;
-              }
-            }
-          } catch (e) {
-            // Ignore single contract failures
-          }
-        }
-      }
-
-      (this as any).nativeGasPOL = maticGas;
-      this.totalBalanceUSDC = polyClobCash > 0 ? polyClobCash : rpcCashUSDC;
-
-      // Fallback: if CLOB balance query returns 0 (v5 POLY_PROXY limitation),
-      // estimate from Data API positions total value
-      if (this.totalBalanceUSDC <= 0 && this.positions.length > 0) {
-        const posTotal = this.positions.reduce((sum, p) => sum + (p.currentValueUSDC || p.investedUSDC), 0);
-        if (posTotal > 0) {
-          this.totalBalanceUSDC = posTotal;
-        }
-      }
+      const bal = await this.polyClob.getCollateralBalance();
+      this.totalBalanceUSDC = bal;
+      this.availableBalanceUSDC = bal;
     } catch (err: any) {
-      console.warn(`[ExecutionEngine] No se pudo obtener saldo en vivo: ${err.message}`);
+      console.warn(`[ExecutionEngine] ⚠️ Error refrescando balance: ${err.message}`);
     }
-
-    // Calculate in-orders locked capital from active positions
-    // Only count positions with actual value (>0). Resolved/dead positions (value=0) = freed capital.
-    const openPositions = this.positions.filter(p => p.status === 'OPEN');
-    this.inOrdersUSDC = openPositions.reduce((sum, p) => {
-      if (p.currentValueUSDC !== undefined && p.currentValueUSDC !== null) {
-        return sum + p.currentValueUSDC; // use actual value (may be 0 = resolved)
-      }
-      return sum + p.investedUSDC; // fallback for positions not yet fetched from API
-    }, 0);
-    // Available = liquid CLOB cash minus what's locked in open positions
-    this.availableBalanceUSDC = Math.max(0, this.totalBalanceUSDC - this.inOrdersUSDC);
-
-    const result = {
-      total: this.totalBalanceUSDC + this.inOrdersUSDC, // Total Portfolio Value (Cash + Positions)
-      free: this.totalBalanceUSDC,                     // Free Liquid USDC Cash
-      locked: this.inOrdersUSDC,                        // In active positions
-      nativeGasPOL: maticGas                            // Native Gas
-    };
-
-    this.emit('balance_updated', result);
-    return result;
   }
 
   public async executeSignal(sig: OpportunitySignal): Promise<boolean> {
-    if (!CONFIG.LIVE_FIRING_ENABLED) {
-      console.log(`[SAFETY GUARD] ⛔ Disparo bloqueado. El bot está en modo OFF (LIVE_FIRING_ENABLED=false).`);
-      return false;
-    }
-
-    if (this.isExecutingSignal) {
-      console.warn(`[ExecutionEngine] ⚠️ Lock activo. Ignorando señal concurrente para ${sig.coin} (${sig.strategy}).`);
-      return false;
-    }
-
+    if (this.isExecutingSignal) return false;
     this.isExecutingSignal = true;
 
     try {
-      // Refresh live wallet state first
-      await this.refreshWalletBalances();
-
-      // Check if free balance is sufficient
-      if (this.availableBalanceUSDC < sig.bulletSizeUSDC) {
-        console.warn(`[ExecutionEngine] ⚠️ Saldo disponible insuficiente ($${this.availableBalanceUSDC.toFixed(2)} USD) para la bala ($${sig.bulletSizeUSDC.toFixed(2)} USD)`);
-        return false;
-      }
-
-      // Cycle start anchored to UTC :00 to match Polymarket cycle boundaries
-      const nowUtc = new Date();
-      const cycleStartMs = Date.UTC(
-        nowUtc.getUTCFullYear(), nowUtc.getUTCMonth(), nowUtc.getUTCDate(),
-        nowUtc.getUTCHours(), 0, 0, 0
-      );
-
-      // Clean local cycle fills older than current 1H cycle
-      this.localCycleFills = this.localCycleFills.filter(f => f.timestamp >= cycleStartMs);
-      this.stateManager.cleanCycleFills(cycleStartMs);
-
-      // Filter active open positions for this coin in current cycle from both wallet and local fills
+      // Cooldown: Minimum 1 minute (60,000ms) gap between entries on the same coin
       const currentLocalFills = this.localCycleFills.filter(f => f.coin === sig.coin);
-      const currentWalletPositions = this.positions.filter(
-        p => p.coin === sig.coin && p.status === 'OPEN'
-      );
-
-      const isInsuranceSig = sig.bulletSizeUSDC <= 1.0;
-
-      if (isInsuranceSig) {
-        // STRICT SAFETY RULE: Insurance bullets MUST have an open main directional position (> $1.0) in the opposite direction
-        const hasOppositeMainBullet = currentLocalFills.some(f => f.investedUSDC > 1.0 && f.side !== sig.targetSide) ||
-          currentWalletPositions.some(p => p.investedUSDC > 1.0 && p.side !== sig.targetSide);
-        if (!hasOppositeMainBullet) {
-          console.warn(`[ExecutionEngine] ⛔ Seguro rechazado: No existe bala principal opuesta en ${sig.coin} para asegurar.`);
-          return false;
-        }
-
-        // Max 1 Insurance Bullet per coin per 1H cycle
-        const hasInsurance = currentLocalFills.some(f => f.investedUSDC <= 1.0) ||
-          currentWalletPositions.some(p => p.investedUSDC <= 1.0);
-        if (hasInsurance) {
-          return false;
-        }
-
-        // Also check total exposure (insurance + main) doesn't exceed per-coin cap
-        const localInsInvested = currentLocalFills
-          .filter(f => f.investedUSDC <= 1.0)
-          .reduce((sum, f) => sum + f.investedUSDC, 0);
-        const localMainInvestedIns = currentLocalFills
-          .filter(f => f.investedUSDC > 1.0)
-          .reduce((sum, f) => sum + f.investedUSDC, 0);
-        const coinCap = CONFIG.TOTAL_MAX_CAPITAL_USDC / 5; // $5.00 per coin
-        if (localMainInvestedIns + localInsInvested + sig.bulletSizeUSDC > coinCap) {
-          console.warn(`[ExecutionEngine] ⛔ Seguro excedería límite de $${coinCap.toFixed(2)} en ${sig.coin}.`);
-          return false;
-        }
-      } else {
-        // Calculate max exposure from both local fills and API wallet state
-        const localMainInvested = currentLocalFills
-          .filter(f => f.investedUSDC > 1.0)
-          .reduce((sum, f) => sum + f.investedUSDC, 0);
-
-        const walletMainInvested = currentWalletPositions
-          .filter(p => p.investedUSDC > 1.0)
-          .reduce((sum, p) => sum + p.investedUSDC, 0);
-
-        const totalMainInvested = Math.max(localMainInvested, walletMainInvested);
-        const coinCap = CONFIG.TOTAL_MAX_CAPITAL_USDC / 5; // $5.00 per coin
-
-        if (totalMainInvested + sig.bulletSizeUSDC > coinCap) {
-          console.warn(`[ExecutionEngine] ⛔ Límite alcanzado: Exposición máxima en ${sig.coin} superaría $${coinCap.toFixed(2)} USD ($${totalMainInvested.toFixed(2)} ya invertidos).`);
-          return false;
-        }
-      }
-
-      // Cooldown: Minimum 3 minutes (180,000ms) gap between any bullet entries on the same coin
       const lastFillTimestamp = Math.max(
         0,
-        ...currentLocalFills.map(f => f.timestamp),
-        ...currentWalletPositions.map(p => p.entryTimestamp)
+        ...currentLocalFills.map(f => f.timestamp)
       );
 
-      if (lastFillTimestamp > 0 && (Date.now() - lastFillTimestamp) < 180000) {
-        const remainingSec = Math.ceil((180000 - (Date.now() - lastFillTimestamp)) / 1000);
-        console.warn(`[ExecutionEngine] ⏳ Cooldown activo para ${sig.coin}: Faltan ${remainingSec}s para el próximo disparo.`);
+      if (lastFillTimestamp > 0 && (Date.now() - lastFillTimestamp) < 60000) {
+        console.warn(`[ExecutionEngine] ⏳ Cooldown activo para ${sig.coin}: Ya se ejecutó un disparo en los últimos 60s.`);
         return false;
       }
 
@@ -380,11 +193,8 @@ export class ExecutionEngine extends EventEmitter {
     });
     this.refreshWalletBalances();
 
-    console.log(`\n👻 [SHADOW EXECUTION] Orden Límite FOK Simulada Favorable`);
-    console.log(`   Coin:     ${pos.coin} | Lado: ${pos.side}`);
-    console.log(`   Estrategia:${pos.strategy}`);
-    console.log(`   Precio:   $${pos.entryPrice.toFixed(3)} | Acciones: ${pos.shares.toFixed(2)}`);
-    console.log(`   Invertido:$${pos.investedUSDC.toFixed(2)} USDC`);
+    console.log(`\n👻 [SHADOW EXECUTION] Orden Simulada Favorable`);
+    console.log(`   Coin: ${pos.coin} | Lado: ${pos.side} | Precio: $${pos.entryPrice.toFixed(3)} | Invertido: $${pos.investedUSDC.toFixed(2)} USDC`);
 
     this.emit('position_opened', pos);
     return true;
@@ -398,15 +208,17 @@ export class ExecutionEngine extends EventEmitter {
     }
 
     try {
-      // Validar profundidad del orderbook antes de emitir la orden
+      // Validate orderbook liquidity using sig.targetPrice * 1.02 (2% slippage cap), NOT hardcoded 0.45!
       const requiredShares = sig.bulletSizeUSDC / sig.targetPrice;
-      const obValidation = await this.polyClob.validateOrderbookLiquidity(sig.targetTokenId, requiredShares, 0.45);
+      const slippageCapPrice = Math.min(0.95, sig.targetPrice * 1.02);
+
+      const obValidation = await this.polyClob.validateOrderbookLiquidity(sig.targetTokenId, requiredShares, slippageCapPrice);
       if (!obValidation.isValid) {
         console.warn(`[ExecutionEngine] ⛔ Rechazado por Orderbook CLOB: ${obValidation.reason}`);
         return false;
       }
 
-      console.log(`\n💥 [LIVE FOK EXECUTION] Enviando orden FOK de $${sig.bulletSizeUSDC.toFixed(2)} USD a Polymarket... (Ask: $${obValidation.bestAsk.toFixed(3)}, Profundidad: ${obValidation.depth.toFixed(1)})`);
+      console.log(`\n💥 [LIVE FOK EXECUTION] Enviando orden FOK real de $${sig.bulletSizeUSDC.toFixed(2)} USD a Polymarket... (Ask: $${obValidation.bestAsk.toFixed(3)}, Depth: $${obValidation.depth.toFixed(1)})`);
 
       const orderResp = await client.createAndPostMarketOrder({
         tokenID: sig.targetTokenId,
@@ -450,7 +262,7 @@ export class ExecutionEngine extends EventEmitter {
         this.emit('position_opened', pos);
         return true;
       } else {
-        console.warn(`❌ [LIVE REJECTED] Orden FOK rechazada: ${JSON.stringify(orderResp)}`);
+        console.warn(`❌ [LIVE REJECTED] Orden FOK rechazada por Polymarket API: ${JSON.stringify(orderResp)}`);
         return false;
       }
     } catch (err: any) {
@@ -472,7 +284,6 @@ export class ExecutionEngine extends EventEmitter {
       total: this.totalBalanceUSDC + this.inOrdersUSDC,
       free: this.availableBalanceUSDC,
       locked: this.inOrdersUSDC,
-      nativeGasPOL: (this as any).nativeGasPOL || 0,
       mode: this.mode
     };
   }

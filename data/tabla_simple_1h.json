@@ -52,10 +52,10 @@
     "btcAltDivergence": false
   },
   {
-    "hour": 11,
-    "timestampISO": "2026-08-13T16:00:58.361Z",
-    "btc": "UP",
-    "eth": "UP",
+    "hour": 16,
+    "timestampISO": "2026-08-13T21:00:59.360Z",
+    "btc": "DOWN",
+    "eth": "DOWN",
     "xrp": "UP",
     "sol": "UP",
     "doge": "DOWN",

@@ -258,6 +258,22 @@ export class PolymarketClobConnector {
     return this.activeMarkets.get(coin.toUpperCase());
   }
 
+  
+  public async preflightLiveCheck(): Promise<{ ok: boolean; balanceUSDC: number; reason: string }> {
+    try {
+      const bal = await this.getCollateralBalance();
+      if (bal < 1.0) {
+        return { ok: false, balanceUSDC: bal, reason: 'INSUFFICIENT_USDC_BALANCE: Balance $' + bal.toFixed(2) + ' USD < .00 USD required' };
+      }
+      if (!this.clobClient) {
+        return { ok: false, balanceUSDC: bal, reason: 'CLOB_CLIENT_NOT_AUTHENTICATED: EIP-712 Private Key or CLOB credentials missing' };
+      }
+      return { ok: true, balanceUSDC: bal, reason: 'LIVE_PREFLIGHT_OK' };
+    } catch (err: any) {
+      return { ok: false, balanceUSDC: 0, reason: 'PREFLIGHT_ERROR: ' + err.message };
+    }
+  }
+
   public getClobClient(): ClobClient | null {
     return this.clobClient;
   }
