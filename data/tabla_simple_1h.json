@@ -13,16 +13,16 @@
     "btcAltDivergence": false
   },
   {
-    "hour": 9,
-    "timestampISO": "2026-08-13T14:00:58.533Z",
+    "hour": 14,
+    "timestampISO": "2026-08-13T19:00:58.969Z",
     "btc": "UP",
     "eth": "UP",
-    "xrp": "DOWN",
+    "xrp": "UP",
     "sol": "UP",
     "doge": "UP",
-    "bnb": "DOWN",
-    "hype": "DOWN",
-    "swarmConsensus": "MIXED",
+    "bnb": "UP",
+    "hype": "UP",
+    "swarmConsensus": "UP",
     "btcAltDivergence": false
   },
   {

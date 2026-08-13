@@ -31,23 +31,35 @@ export class ModelRegistry {
   }
 
   public loadModels(): void {
-    try {
-      if (fs.existsSync(this.paramsPath)) {
-        const raw = fs.readFileSync(this.paramsPath, 'utf-8');
-        const data = JSON.parse(raw);
-        this.manifest = {
-          model_id: data.model_id || 'logit_etapa1_binance_6m',
-          version: data.version || '3.0.0',
-          created_at: data.created_at || new Date().toISOString(),
-          coins: data.coins || {}
-        };
-        console.log(`[ModelRegistry] 🧠 Loaded model manifest '${this.manifest.model_id}' with ${Object.keys(this.manifest.coins).length} coins.`);
-      } else {
-        console.warn(`[ModelRegistry] ⚠️ Calibration file not found at ${this.paramsPath}`);
+    const candidatePaths = [
+      this.paramsPath,
+      path.resolve(__dirname, '../../data/parametros_calibrados.json'),
+      '/home/anton/oraculo-calibracion/data/parametros_calibrados.json'
+    ];
+
+    for (const p of candidatePaths) {
+      try {
+        if (fs.existsSync(p)) {
+          const raw = fs.readFileSync(p, 'utf-8');
+          const data = JSON.parse(raw);
+
+          if (data && data.coins && Object.keys(data.coins).length > 0) {
+            this.manifest = {
+              model_id: data.model_id || 'logit_etapa1_binance_6m',
+              version: data.version || '3.0.0',
+              created_at: data.created_at || data.generado || new Date().toISOString(),
+              coins: data.coins
+            };
+            console.log(`[ModelRegistry] 🧠 Loaded model manifest from '${p}' with ${Object.keys(this.manifest.coins).length} coins.`);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error(`[ModelRegistry] ⚠️ Warning reading manifest at '${p}':`, err);
       }
-    } catch (err) {
-      console.error(`[ModelRegistry] ❌ Error loading calibration manifest:`, err);
     }
+
+    console.warn(`[ModelRegistry] ⚠️ No valid calibration manifest found in candidate paths.`);
   }
 
   public isCoinActive(symbol: string): boolean {
@@ -58,8 +70,8 @@ export class ModelRegistry {
   public getCalibration(symbol: string): CoinCalibration | null {
     if (!this.manifest || !this.manifest.coins) return null;
     const key = symbol.toUpperCase().endsWith('USDT') ? symbol.toUpperCase() : symbol.toUpperCase() + 'USDT';
-    
-    // Safety guard: return calibration ONLY if active and has >= 500 folds
+
+    // Safety guard: return calibration ONLY if active
     if (!this.isCoinActive(key)) {
       return null;
     }
