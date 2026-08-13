@@ -1,9 +1,11 @@
 import { EventEmitter } from 'events';
 import { BinanceWebsocketEngine } from '../connectors/BinanceWebsocket';
 import { PolymarketClobConnector } from '../connectors/PolymarketClob';
+import { PolymarketWebsocketConnector } from '../connectors/PolymarketWebsocket';
 import { ModelRegistry } from '../model/modelRegistry';
 import { DataValidator } from '../data/dataValidator';
 import { EdgeCalculator } from '../features/edgeCalculator';
+import { HypeSignalEngine } from '../features/HypeSignalEngine';
 import { LiquidityGuard } from '../risk/liquidityGuard';
 import { RiskManager } from '../risk/riskManager';
 import { PositionMonitor } from '../risk/positionMonitor';
@@ -27,6 +29,7 @@ export interface OpportunitySignal {
 export class MomentumDetector extends EventEmitter {
   private binanceWs: BinanceWebsocketEngine;
   private polyClob: PolymarketClobConnector;
+  private polyWss: PolymarketWebsocketConnector;
   private modelRegistry: ModelRegistry;
   private riskManager: RiskManager;
   private positionMonitor: PositionMonitor | null = null;
@@ -41,6 +44,8 @@ export class MomentumDetector extends EventEmitter {
     super();
     this.binanceWs = binanceWs;
     this.polyClob = polyClob;
+    this.polyWss = new PolymarketWebsocketConnector();
+    this.polyWss.connect();
 
     const paramsPath = path.resolve(__dirname, '../../data/parametros_calibrados.json');
     this.modelRegistry = new ModelRegistry(paramsPath);
@@ -78,7 +83,7 @@ export class MomentumDetector extends EventEmitter {
   }
 
   public start(intervalMs: number = 500): void {
-    console.log(`[MomentumDetector] 🚀 Starting Phase 2 Quantitative & Risk Detector Loop (${intervalMs}ms interval)...`);
+    console.log(`[MomentumDetector] 🚀 Starting Phase 3 Ultra-Low Latency WSS & HYPE Loop (${intervalMs}ms interval)...`);
     if (this.evalInterval) clearInterval(this.evalInterval);
     this.evalInterval = setInterval(() => this.evaluateCycleWindow(), intervalMs);
   }
@@ -91,6 +96,7 @@ export class MomentumDetector extends EventEmitter {
     if (this.positionMonitor) {
       this.positionMonitor.stop();
     }
+    this.polyWss.disconnect();
   }
 
   private async evaluateCycleWindow(): Promise<void> {
@@ -129,13 +135,36 @@ export class MomentumDetector extends EventEmitter {
           continue;
         }
 
-        // 2. Market & Odds Data
+        // 2. Market & Token IDs Check
         const market = this.polyClob.getActiveMarket(baseCoin);
         if (!market) {
           continue;
         }
 
-        const odds = await this.polyClob.getBestOdds(market.upTokenId, market.downTokenId);
+        // Auto-subscribe WSS to active market tokens
+        this.polyWss.subscribeTokens([market.upTokenId, market.downTokenId]);
+
+        // Try WSS Cache first for ultra-low latency (<15ms)
+        let odds = this.polyWss.getCachedOdds(market.upTokenId, market.downTokenId);
+        let dataSource = 'WSS_ULTRA_LOW_LATENCY';
+
+        // Fallback to HTTP REST if WSS cache is warming up
+        if (!odds) {
+          const restOdds = await this.polyClob.getBestOdds(market.upTokenId, market.downTokenId);
+          if (restOdds) {
+            odds = {
+              upBestAsk: restOdds.upBestAsk,
+              downBestAsk: restOdds.downBestAsk,
+              upBestBid: restOdds.upBestBid,
+              downBestBid: restOdds.downBestBid,
+              upAskDepth: restOdds.upAskDepth,
+              downAskDepth: restOdds.downAskDepth,
+              lastUpdated: Date.now()
+            };
+            dataSource = 'REST_FALLBACK';
+          }
+        }
+
         if (!odds) {
           continue;
         }
@@ -151,7 +180,7 @@ export class MomentumDetector extends EventEmitter {
           continue;
         }
 
-        // 4. Calculate Features (racha_down 1H and delta_15m)
+        // 4. Calculate Features (racha_down 1H, delta_15m, and HYPE velocity)
         const candleState15m = await this.binanceWs.fetch1mCandles(symbol, 15);
         const candleValidation = DataValidator.validateBinanceCandles(candleState15m);
         if (!candleValidation.valid) {
@@ -162,6 +191,9 @@ export class MomentumDetector extends EventEmitter {
         const openPriceMin1 = candleState15m[0].open || candleState15m[0].close;
         const currentPrice = candleState15m[candleState15m.length - 1].close;
         const deltaSpot15m = ((currentPrice - openPriceMin1) / openPriceMin1) * 100;
+
+        // Compute HYPE Micro-Momentum Velocity
+        const hype = HypeSignalEngine.calculateHype(candleState15m);
 
         // Calculate 1H racha_down (consecutive previous completed 1H candles that closed DOWN)
         const candleState1H = await this.binanceWs.fetch1HCandles(symbol, 10);
@@ -227,7 +259,7 @@ export class MomentumDetector extends EventEmitter {
             hour_bucket: hourBucket,
             coin: baseCoin,
             market_token_id: edge.selected_side === 'YES' ? market.upTokenId : market.downTokenId,
-            model_id: 'logit_v3_phase2',
+            model_id: `logit_v3_phase3_${dataSource.toLowerCase()}`,
             x1_raw: rachaDown,
             x2_raw: deltaSpot15m,
             x1_norm: edge.x1_norm,
@@ -258,14 +290,14 @@ export class MomentumDetector extends EventEmitter {
 
           const opportunity: OpportunitySignal = {
             coin: baseCoin,
-            strategy: 'LOGIT_V3_NET_EDGE',
+            strategy: 'LOGIT_V3_NET_EDGE_WSS',
             targetSide: edge.selected_side === 'YES' ? 'UP' : 'DOWN',
             targetTokenId: edge.selected_side === 'YES' ? market.upTokenId : market.downTokenId,
             targetPrice: targetAsk,
             bulletSizeUSDC: 1.0,
             spotDeltaPct: deltaSpot15m,
             cycleMinute: minute,
-            reason: `P(IA)=${(edge.p_ia * 100).toFixed(1)}% | EdgeNet=${(edge.selected_edge_net * 100).toFixed(2)}% | Ask=$${targetAsk.toFixed(3)} | Depth=$${targetAskDepth.toFixed(1)} | RiskOK=true`,
+            reason: `P(IA)=${(edge.p_ia * 100).toFixed(1)}% | EdgeNet=${(edge.selected_edge_net * 100).toFixed(2)}% | HYPEScore=${hype.hype_score.toFixed(2)} (${hype.direction}) | Source=${dataSource} | Ask=$${targetAsk.toFixed(3)} | Depth=$${targetAskDepth.toFixed(1)}`,
             timestamp: Date.now()
           };
 
