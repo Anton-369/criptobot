@@ -5,6 +5,7 @@ import { ModelRegistry } from '../model/modelRegistry';
 import { DataValidator } from '../data/dataValidator';
 import { EdgeCalculator } from '../features/edgeCalculator';
 import { LiquidityGuard } from '../risk/liquidityGuard';
+import { RiskManager } from '../risk/riskManager';
 import { Repository } from '../db/repository';
 import { initDatabase } from '../db/schema';
 import * as path from 'path';
@@ -26,6 +27,7 @@ export class MomentumDetector extends EventEmitter {
   private binanceWs: BinanceWebsocketEngine;
   private polyClob: PolymarketClobConnector;
   private modelRegistry: ModelRegistry;
+  private riskManager: RiskManager;
   private repository: Repository | null = null;
   private evalInterval: NodeJS.Timeout | null = null;
   private emittedThisWindow: Set<string> = new Set();
@@ -40,6 +42,7 @@ export class MomentumDetector extends EventEmitter {
 
     const paramsPath = path.resolve(__dirname, '../../data/parametros_calibrados.json');
     this.modelRegistry = new ModelRegistry(paramsPath);
+    this.riskManager = new RiskManager();
 
     initDatabase()
       .then((db) => {
@@ -61,8 +64,12 @@ export class MomentumDetector extends EventEmitter {
     return null;
   }
 
+  public getRiskManager(): RiskManager {
+    return this.riskManager;
+  }
+
   public start(intervalMs: number = 500): void {
-    console.log(`[MomentumDetector] 🚀 Starting Phase 1 Quantitative Detector Loop (${intervalMs}ms interval)...`);
+    console.log(`[MomentumDetector] 🚀 Starting Phase 2 Quantitative & Risk Detector Loop (${intervalMs}ms interval)...`);
     if (this.evalInterval) clearInterval(this.evalInterval);
     this.evalInterval = setInterval(() => this.evaluateCycleWindow(), intervalMs);
   }
@@ -88,6 +95,11 @@ export class MomentumDetector extends EventEmitter {
       if (currentHour !== this.lastEvaluatedHour) {
         this.emittedThisWindow.clear();
         this.lastEvaluatedHour = currentHour;
+
+        // Reset daily stats at midnight UTC (00:00)
+        if (currentHour === 0) {
+          this.riskManager.resetDailyStats();
+        }
       }
 
       // Only evaluate inside the firing window around :15:01.500
@@ -143,7 +155,6 @@ export class MomentumDetector extends EventEmitter {
         const candleState1H = await this.binanceWs.fetch1HCandles(symbol, 10);
         let rachaDown = 0;
         if (candleState1H.length >= 2) {
-          // Index candleState1H.length - 1 is current hour, index - 2 is previous completed hour
           for (let i = candleState1H.length - 2; i >= 0; i--) {
             if (candleState1H[i].close < candleState1H[i].open) {
               rachaDown++;
@@ -174,6 +185,16 @@ export class MomentumDetector extends EventEmitter {
           1.0 // $1 USD order size
         );
 
+        // 6.5 Risk Manager Check (Kill Switches & Limits)
+        const riskCheck = this.riskManager.validateTrade(
+          baseCoin,
+          1.0,
+          this.emittedThisWindow.has(baseCoin) ? 1 : 0
+        );
+
+        const isFullyApproved = edge.approved && liquidity.approved && riskCheck.approved;
+        const rejectReason = edge.reject_reason || liquidity.reject_reason || riskCheck.reject_reason;
+
         // ISO Standardized Hour Bucket for relational SQL integrity
         const hourBucket = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), currentHour, 0, 0)).toISOString();
 
@@ -184,7 +205,7 @@ export class MomentumDetector extends EventEmitter {
             hour_bucket: hourBucket,
             coin: baseCoin,
             market_token_id: edge.selected_side === 'YES' ? market.upTokenId : market.downTokenId,
-            model_id: 'logit_v3_phase1',
+            model_id: 'logit_v3_phase2',
             x1_raw: rachaDown,
             x2_raw: deltaSpot15m,
             x1_norm: edge.x1_norm,
@@ -202,15 +223,15 @@ export class MomentumDetector extends EventEmitter {
             edge_net_yes: edge.edge_net_yes,
             edge_net_no: edge.edge_net_no,
             selected_side: edge.selected_side,
-            status: edge.approved && liquidity.approved ? 'APPROVED' : 'REJECTED',
-            reject_reason: edge.reject_reason || liquidity.reject_reason,
+            status: isFullyApproved ? 'APPROVED' : 'REJECTED',
+            reject_reason: rejectReason,
             data_quality_ok: 1,
-            risk_approved: edge.approved && liquidity.approved ? 1 : 0
+            risk_approved: riskCheck.approved ? 1 : 0
           });
         }
 
-        // 8. Emit Signal if both Edge and Liquidity are Approved
-        if (edge.approved && liquidity.approved) {
+        // 8. Emit Signal if Edge, Liquidity, and RiskManager are Approved
+        if (isFullyApproved) {
           this.emittedThisWindow.add(baseCoin);
 
           const opportunity: OpportunitySignal = {
@@ -222,14 +243,14 @@ export class MomentumDetector extends EventEmitter {
             bulletSizeUSDC: 1.0,
             spotDeltaPct: deltaSpot15m,
             cycleMinute: minute,
-            reason: `P(IA)=${(edge.p_ia * 100).toFixed(1)}% | EdgeNet=${(edge.selected_edge_net * 100).toFixed(2)}% | Ask=$${targetAsk.toFixed(3)} | Depth=$${targetAskDepth.toFixed(1)}`,
+            reason: `P(IA)=${(edge.p_ia * 100).toFixed(1)}% | EdgeNet=${(edge.selected_edge_net * 100).toFixed(2)}% | Ask=$${targetAsk.toFixed(3)} | Depth=$${targetAskDepth.toFixed(1)} | RiskOK=true`,
             timestamp: Date.now()
           };
 
           console.log(`[MomentumDetector] 🎯 APPROVED SIGNAL FOR ${baseCoin}: ${opportunity.reason}`);
           this.emit('opportunity', opportunity);
         } else {
-          console.log(`[MomentumDetector] ⏸️ REJECTED SIGNAL FOR ${baseCoin}: ${edge.reject_reason || liquidity.reject_reason}`);
+          console.log(`[MomentumDetector] ⏸️ REJECTED SIGNAL FOR ${baseCoin}: ${rejectReason}`);
         }
       }
     } finally {
