@@ -1,91 +1,77 @@
 {
-  "calibrated_at": "2026-08-12T00:39:48.100440",
-  "architecture": "Criptobot v3.0 Non-Lookahead AI-Gated Engine",
-  "ai_model": "nvidia/nemotron-3.5-lightning:free",
-  "rules_by_coin": {
-    "XRP": [
-      {
-        "rule_id": "H1_MOMENTUM_CONTINUATION",
-        "evaluation_minute": 10,
-        "trigger_delta_pct": 0.1,
-        "win_rate_train": 0.8017,
-        "win_rate_test_oos": 0.8438,
-        "p_value": 1.7985730961645798e-11,
-        "confidence_interval_95": [
-          0.72,
-          0.8641
-        ],
-        "expected_value_usd": 0.4017,
-        "recommended_entry_window_min": [
-          3,
-          25
-        ],
-        "max_entry_price": 0.45,
-        "ai_justification": "Aprobación estadística estricta por fallback"
+  "generado": "2026-08-12T23:06:09.020021Z",
+  "coins": {
+    "XRPUSDT": {
+      "beta_0_intercept": -0.019445150272752076,
+      "beta_1_racha_down": 0.09545091019149263,
+      "beta_2_delta_spot_temprano": 1.1516468685648011,
+      "normalizacion_media": [
+        0.9694906020157995,
+        0.0015368356140917619
+      ],
+      "normalizacion_std": [
+        1.3071668160974894,
+        0.2924570416637797
+      ],
+      "metricas_oos": {
+        "n_folds": 3572,
+        "accuracy": 0.6724524076147816,
+        "logloss": 0.603688836935642
       }
-    ],
-    "SOL": [
-      {
-        "rule_id": "H1_MOMENTUM_CONTINUATION",
-        "evaluation_minute": 10,
-        "trigger_delta_pct": 0.1,
-        "win_rate_train": 0.7517,
-        "win_rate_test_oos": 0.7429,
-        "p_value": 4.953377367132351e-10,
-        "confidence_interval_95": [
-          0.6755,
-          0.8149
-        ],
-        "expected_value_usd": 0.3517,
-        "recommended_entry_window_min": [
-          3,
-          25
-        ],
-        "max_entry_price": 0.45,
-        "ai_justification": "Aprobación estadística estricta por fallback"
+    },
+    "SOLUSDT": {
+      "beta_0_intercept": 0.03670928715218542,
+      "beta_1_racha_down": 0.08815470259132101,
+      "beta_2_delta_spot_temprano": 1.1316218738955497,
+      "normalizacion_media": [
+        0.9147371288477254,
+        0.0010984056505303995
+      ],
+      "normalizacion_std": [
+        1.2333679908054556,
+        0.34752588522570715
+      ],
+      "metricas_oos": {
+        "n_folds": 3572,
+        "accuracy": 0.6794512877939529,
+        "logloss": 0.6108649659670897
       }
-    ],
-    "DOGE": [
-      {
-        "rule_id": "H1_MOMENTUM_CONTINUATION",
-        "evaluation_minute": 10,
-        "trigger_delta_pct": 0.1,
-        "win_rate_train": 0.8015,
-        "win_rate_test_oos": 0.6744,
-        "p_value": 9.409551585198049e-13,
-        "confidence_interval_95": [
-          0.7251,
-          0.8608
-        ],
-        "expected_value_usd": 0.4015,
-        "recommended_entry_window_min": [
-          3,
-          25
-        ],
-        "max_entry_price": 0.45,
-        "ai_justification": "Aprobación estadística estricta por fallback"
+    },
+    "DOGEUSDT": {
+      "beta_0_intercept": 0.019271314879677467,
+      "beta_1_racha_down": 0.0576595011991349,
+      "beta_2_delta_spot_temprano": 1.317062976835455,
+      "normalizacion_media": [
+        0.9555979297194225,
+        -0.00035055880627422626
+      ],
+      "normalizacion_std": [
+        1.3207645836450688,
+        0.34650792066994945
+      ],
+      "metricas_oos": {
+        "n_folds": 3572,
+        "accuracy": 0.688969764837626,
+        "logloss": 0.5904596690544701
       }
-    ],
-    "BNB": [
-      {
-        "rule_id": "H1_MOMENTUM_CONTINUATION",
-        "evaluation_minute": 10,
-        "trigger_delta_pct": 0.1,
-        "win_rate_train": 0.78,
-        "win_rate_test_oos": 0.8788,
-        "p_value": 7.952664236893068e-09,
-        "confidence_interval_95": [
-          0.6893,
-          0.85
-        ],
-        "expected_value_usd": 0.38,
-        "recommended_entry_window_min": [
-          3,
-          25
-        ],
-        "max_entry_price": 0.45,
-        "ai_justification": "Aprobación estadística estricta por fallback"
+    },
+    "BNBUSDT": {
+      "beta_0_intercept": 0.08177117912671969,
+      "beta_1_racha_down": 0.08438940072354306,
+      "beta_2_delta_spot_temprano": 1.1748476438982403,
+      "normalizacion_media": [
+        0.8828657041678016,
+        0.001875836768371938
+      ],
+      "normalizacion_std": [
+        1.2206379597646257,
+        0.23711132587174202
+      ],
+      "metricas_oos": {
+        "n_folds": 3572,
+        "accuracy": 0.6788913773796192,
+        "logloss": 0.6039055371252341
       }
-    ]
+    }
   }
 }

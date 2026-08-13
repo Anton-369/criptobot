@@ -53,18 +53,18 @@ def run_calibration():
 
     conn = sqlite3.connect(db_path)
 
-    # 1. Cargar Klines REALES de 1m (klines_1m)
+    # 1. Cargar Klines de 1m
     df_1m = pd.read_sql_query("SELECT * FROM klines_1m ORDER BY open_time_ms ASC;", conn)
-    print(f"📥 Cargados de SQLite: {len(df_1m):,} klines de 1m reales (microestructura sin estimaciones).")
+    print(f"📥 Cargados de SQLite: {len(df_1m):,} klines de 1m para análisis intra-hora.")
 
     if len(df_1m) == 0:
-        print("⚠️ Advertencia: No hay suficientes klines de 1m reales en SQLite.")
-        sys.exit(0)
+        print("❌ Error: No se encontraron klines de 1m en SQLite.")
+        sys.exit(1)
 
     calibrated_results = {
         "calibrated_at": pd.Timestamp.now().isoformat(),
         "train_split": train_ratio,
-        "methodology": "Strict 100% Real 1m Microstructure Backtest (No Historical Estimations)",
+        "methodology": "Strict Intra-Hour Non-Lookahead Momentum Backtest (1m candles)",
         "rules_by_coin": {}
     }
 
@@ -74,7 +74,7 @@ def run_calibration():
         if len(df_coin) == 0:
             continue
 
-        # Agrupar klines de 1m por ciclo de 1 hora
+        # Agrupar klines por ciclo de 1 hora
         cycles = {}
         for idx, row in df_coin.iterrows():
             ckey = row['cycle_key']
@@ -86,14 +86,16 @@ def run_calibration():
                 'close': float(row['close_price'])
             }
 
-        # Construir dataset de observaciones intra-hora 100% reales
+        # Construir dataset de observaciones intra-hora válidas
         data_rows = []
         for ckey, mins in cycles.items():
+            # Requerimos el minuto 0 (apertura) y el minuto 59 (cierre de hora)
             if 0 in mins and 59 in mins:
                 open_1h = mins[0]['open']
                 close_1h = mins[59]['close']
                 final_outcome = 'UP' if close_1h >= open_1h else 'DOWN'
 
+                # Evaluar momentum a minuto 10 y minuto 15
                 price_10m = mins[10]['close'] if 10 in mins else mins[0]['close']
                 delta_10m = ((price_10m - open_1h) / open_1h) * 100.0
 

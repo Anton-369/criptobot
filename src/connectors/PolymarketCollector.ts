@@ -1,6 +1,6 @@
 import { PolymarketClobConnector, Polymarket1HMarket } from './PolymarketClob';
 import { BinanceWebsocketEngine } from './BinanceWebsocket';
-import { DatabaseManager, MarketSnapshotRecord, SpotPriceRecord } from '../storage/DatabaseManager';
+import { DatabaseManager, MarketSnapshotRecord, SpotPriceRecord, KlineRecord } from '../storage/DatabaseManager';
 import { CONFIG } from '../config/environment';
 
 export class PolymarketCollector {
@@ -101,7 +101,7 @@ export class PolymarketCollector {
       // Record spot price tick if Binance WS engine available
       if (this.binanceWs) {
         const ticker = this.binanceWs.getTickerState(`${coin}USDT`.toLowerCase());
-        if (ticker) {
+        if (ticker && ticker.currentPrice > 0) {
           try {
             const spotRecord: SpotPriceRecord = {
               timestampET,
@@ -114,8 +114,27 @@ export class PolymarketCollector {
               deltaPct1h: parseFloat(ticker.deltaPct.toFixed(4))
             };
             await this.dbManager.saveSpotPrice(spotRecord);
+
+            // Also save kline record for AI calibration pipeline (klines_1m table)
+            const minuteInHour = now.getUTCMinutes();
+            const cycleDate = now.toISOString().slice(0, 10); // YYYY-MM-DD
+            const cycleKey = `${cycleDate}_${String(utcHour).padStart(2, '0')}`;
+            const openTimeMs = Date.UTC(
+              now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),
+              utcHour, minuteInHour, 0, 0
+            );
+
+            const klineRecord: KlineRecord = {
+              coin,
+              cycleKey,
+              minuteInHour,
+              openPrice: ticker.openPrice1H || ticker.currentPrice,
+              closePrice: ticker.currentPrice,
+              openTimeMs
+            };
+            await this.dbManager.saveKline(klineRecord);
           } catch (e: any) {
-            console.warn(`[PolymarketCollector] Error registrando spot price de ${coin}: ${e.message}`);
+            console.warn(`[PolymarketCollector] Error registrando spot/kline de ${coin}: ${e.message}`);
           }
         }
       }

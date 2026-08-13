@@ -53,19 +53,14 @@ export class DashboardServer {
       ? path.join(__dirname, 'public')
       : path.resolve(__dirname, '../../src/dashboard/public');
 
-    // Explicit root route: serve index.html with no-cache AND embedded data
-    this.app.get('/', async (req, res) => {
+    // Servir index.html de forma instantánea sin bloqueo síncrono
+    this.app.get('/', (req, res) => {
       const htmlPath = path.join(publicDir, 'index.html');
       if (fs.existsSync(htmlPath)) {
-        let html = fs.readFileSync(htmlPath, 'utf8');
-        // Embed live data directly into the page
-        const status = await this.buildStatus();
-        const inlineData = JSON.stringify(status);
-        html = html.replace('</head>', `<script>window.__INLINE_DATA__ = ${inlineData};</script></head>`);
         res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.set('Pragma', 'no-cache');
         res.set('Expires', '0');
-        res.send(html);
+        res.sendFile(htmlPath);
       } else {
         res.status(404).send('index.html not found');
       }
@@ -90,14 +85,56 @@ export class DashboardServer {
     const positions = this.execEngine.getPositions();
     const tickers = await this.getTickersWithTelemetry();
     const coinPerformance = await this.getCoinPerformanceStats();
+
+    let calibratedParams: any = null;
+    try {
+      const calPath = path.resolve(__dirname, '../../data/parametros_calibrados.json');
+      if (fs.existsSync(calPath)) {
+        calibratedParams = JSON.parse(fs.readFileSync(calPath, 'utf8'));
+      }
+    } catch (e) {}
+
+    let calibrationConfig: any = null;
+    try {
+      const cfgPath = path.resolve(__dirname, '../../calibration_config.json');
+      if (fs.existsSync(cfgPath)) {
+        calibrationConfig = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+      }
+    } catch (e) {}
+
+    let sqliteStats: any = null;
+    try {
+      const dbPath = path.resolve(__dirname, '../../data/criptobot_v3.sqlite');
+      if (fs.existsSync(dbPath)) {
+        const stats = fs.statSync(dbPath);
+        let dbSizeBytes = stats.size;
+        const walPath = `${dbPath}-wal`;
+        if (fs.existsSync(walPath)) {
+          dbSizeBytes += fs.statSync(walPath).size;
+        }
+        sqliteStats = {
+          dbPath,
+          sizeMB: (dbSizeBytes / (1024 * 1024)).toFixed(2),
+          mode: 'SQLite WAL Mode 24/7'
+        };
+      }
+    } catch (e) {}
+
+    const predictionLogs = await this.getPredictionLogsCached();
+
     return {
       success: true,
       timestamp: Date.now(),
       mode: CONFIG.EXECUTION_MODE,
+      version: 'v3.0 Ultra-Fast Latency Engine',
       balances,
       tickers,
       positions,
       coinPerformance,
+      calibratedParams,
+      calibrationConfig,
+      sqliteStats,
+      predictionLogs,
       simpleHistory: this.matrixCollector ? this.matrixCollector.getSimpleHistory() : [],
       deepHistory: this.matrixCollector ? this.matrixCollector.getDeepHistory() : []
     };
@@ -111,12 +148,12 @@ export class DashboardServer {
   private ODDS_CACHE_TTL_MS = 5000; // Refresh odds every 5 seconds max
 
   private async getCoinPerformanceStats(): Promise<any[]> {
-    const now = Date.now();
-    if (this.lastCoinPerformanceCache.length > 0 && (now - this.lastCoinPerformanceFetchTime < 15000)) {
-      return this.lastCoinPerformanceCache;
-    }
-
     try {
+      const now = Date.now();
+      if (now - this.lastCoinPerformanceFetchTime < 60000 && this.lastCoinPerformanceCache.length > 0) {
+        return this.lastCoinPerformanceCache;
+      }
+
       const wallet = CONFIG.PROXY_WALLET || '0xe57Ef37c17df560084fF3C1EB7bb3e9fdcCfA300';
       const response = await fetch(`https://data-api.polymarket.com/activity?user=${wallet}&limit=150`, {
         headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' }
@@ -124,7 +161,6 @@ export class DashboardServer {
       if (!response.ok) return this.lastCoinPerformanceCache;
       const data: any = await response.json();
 
-      // Dynamic 7-day rolling window — no hardcoded dates
       const sevenDaysAgo = Math.floor(Date.now() / 1000) - (7 * 24 * 3600);
       const aug9Trades = data.filter((t: any) => t.type === 'TRADE' && (t.timestamp || 0) >= sevenDaysAgo);
       const slugGroupMap: { [slug: string]: any[] } = {};
@@ -143,7 +179,16 @@ export class DashboardServer {
         DOGE: { coin: 'DOGE', events: 0, wins: 0, losses: 0, active: 0, invested: 0, payout: 0 }
       };
 
-      for (const slug of Object.keys(slugGroupMap)) {
+      const fetchWithTimeout = (url: string, timeoutMs: number) =>
+        Promise.race([
+          fetch(url),
+          new Promise<Response>((_, reject) =>
+            setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms`)), timeoutMs)
+          )
+        ]) as Promise<Response>;
+
+      const slugKeys = Object.keys(slugGroupMap);
+      await Promise.all(slugKeys.map(async (slug) => {
         const mTrades = slugGroupMap[slug];
         const title = mTrades[0].title || '';
         let coin = 'OTHER';
@@ -162,16 +207,7 @@ export class DashboardServer {
         const side = mTrades[0].outcome || 'Up';
 
         try {
-          // 3-second timeout to prevent Gamma API hang from crashing the process
-          const fetchWithTimeout = (url: string, timeoutMs: number) =>
-            Promise.race([
-              fetch(url),
-              new Promise<Response>((_, reject) =>
-                setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms`)), timeoutMs)
-              )
-            ]) as Promise<Response>;
-
-          const gRes = await fetchWithTimeout(`https://gamma-api.polymarket.com/events?slug=${slug}`, 3000);
+          const gRes = await fetchWithTimeout(`https://gamma-api.polymarket.com/events?slug=${slug}`, 2500);
           if (gRes.ok) {
             const gData: any = await gRes.json();
             if (gData && gData[0] && gData[0].markets && gData[0].markets[0]) {
@@ -196,24 +232,30 @@ export class DashboardServer {
             }
           }
         } catch (e) {
-          // ignore soft errors
+          // soft ignore
         }
-      }
+      }));
 
       const resultList = Object.values(coinStatsMap).map(c => {
         const wr = (c.wins + c.losses) > 0 ? (c.wins / (c.wins + c.losses)) * 100 : 0;
         const netPnL = c.payout - c.invested;
-        const roiPct = c.invested > 0 ? (netPnL / c.invested) * 100 : 0;
+        const roi = c.invested > 0 ? (netPnL / c.invested) * 100 : 0;
         return {
-          ...c,
+          coin: c.coin,
+          events: c.events,
+          wins: c.wins,
+          losses: c.losses,
+          active: c.active,
           winRatePct: wr,
-          netPnL,
-          roiPct
+          invested: c.invested,
+          payout: c.payout,
+          netPnL: netPnL,
+          roiPct: roi
         };
-      }).sort((a, b) => b.netPnL - a.netPnL);
+      }).sort((a, b) => b.winRatePct - a.winRatePct);
 
       this.lastCoinPerformanceCache = resultList;
-      this.lastCoinPerformanceFetchTime = Date.now();
+      this.lastCoinPerformanceFetchTime = now;
       return resultList;
     } catch (err) {
       console.error("Error fetching coin performance stats:", err);
@@ -268,6 +310,34 @@ export class DashboardServer {
     );
   }
 
+  private lastPredictionLogsCache: any[] = [];
+  private lastPredictionLogsFetchTime: number = 0;
+
+  private async getPredictionLogsCached(): Promise<any[]> {
+    const now = Date.now();
+    if (now - this.lastPredictionLogsFetchTime < 3000 && this.lastPredictionLogsCache.length > 0) {
+      return this.lastPredictionLogsCache;
+    }
+    try {
+      const dbPath = path.resolve(__dirname, '../../data/criptobot_v3.sqlite');
+      if (fs.existsSync(dbPath)) {
+        const sqlite3 = require('sqlite3').verbose();
+        const db = new sqlite3.Database(dbPath);
+        const rows: any[] = await new Promise((resolve) => {
+          db.all('SELECT * FROM predicciones_log ORDER BY id DESC LIMIT 30;', [], (err: any, res: any[]) => {
+            db.close();
+            if (err || !res) resolve([]);
+            else resolve(res);
+          });
+        });
+        this.lastPredictionLogsCache = rows;
+        this.lastPredictionLogsFetchTime = now;
+        return rows;
+      }
+    } catch (e) {}
+    return this.lastPredictionLogsCache;
+  }
+
   private setupWebSockets(): void {
     this.wss.on('connection', (ws: WebSocket) => {
       this.sendSnapshot(ws);
@@ -285,6 +355,7 @@ export class DashboardServer {
     const positions = this.execEngine.getPositions();
     const tickers = await this.getTickersWithTelemetry();
     const coinPerformance = await this.getCoinPerformanceStats();
+    const predictionLogs = await this.getPredictionLogsCached();
 
     ws.send(JSON.stringify({
       type: 'SNAPSHOT',
@@ -294,6 +365,7 @@ export class DashboardServer {
       tickers,
       positions,
       coinPerformance,
+      predictionLogs,
       simpleHistory: this.matrixCollector ? this.matrixCollector.getSimpleHistory() : [],
       deepHistory: this.matrixCollector ? this.matrixCollector.getDeepHistory() : []
     }));
@@ -306,6 +378,7 @@ export class DashboardServer {
     const positions = this.execEngine.getPositions();
     const tickersWithOdds = await this.getTickersWithTelemetry();
     const coinPerformance = await this.getCoinPerformanceStats();
+    const predictionLogs = await this.getPredictionLogsCached();
 
     const payload = JSON.stringify({
       type: 'TELEMETRY',
@@ -315,6 +388,7 @@ export class DashboardServer {
       tickers: tickersWithOdds,
       positions,
       coinPerformance,
+      predictionLogs,
       simpleHistory: this.matrixCollector ? this.matrixCollector.getSimpleHistory() : [],
       deepHistory: this.matrixCollector ? this.matrixCollector.getDeepHistory() : []
     });
@@ -327,8 +401,8 @@ export class DashboardServer {
   }
 
   public start(): void {
-    this.server.listen(this.port, () => {
-      console.log(`[Dashboard] 🌐 Control Dashboard en vivo disponible en: http://localhost:${this.port}`);
+    this.server.listen(this.port, '0.0.0.0', () => {
+      console.log(`[Dashboard] 🌐 Control Dashboard en vivo accesible externamente en: http://181.42.177.149:${this.port}`);
     });
   }
 }

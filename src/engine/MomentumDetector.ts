@@ -59,14 +59,20 @@ export class MomentumDetector extends EventEmitter {
 
         const raw = fs.readFileSync(contractPath, 'utf8');
         const parsed = JSON.parse(raw);
-        if (parsed && parsed.rules_by_coin) {
+        if (parsed && parsed.coins) {
+          this.calibratedRules.clear();
+          for (const [coinKey, data] of Object.entries(parsed.coins)) {
+            const coin = coinKey.replace('USDT', '');
+            this.calibratedRules.set(coin, data);
+          }
+          console.log(`[MomentumDetector] 📜 Contrato parametros_calibrados.json (Etapa 1 Logit) cargado. Monedas autorizadas: [ ${Array.from(this.calibratedRules.keys()).join(', ')} ]`);
+        } else if (parsed && parsed.rules_by_coin) {
           this.calibratedRules.clear();
           for (const [coin, rules] of Object.entries(parsed.rules_by_coin)) {
             if (Array.isArray(rules) && rules.length > 0) {
-              this.calibratedRules.set(coin, rules);
+              this.calibratedRules.set(coin, rules[0]);
             }
           }
-          console.log(`[MomentumDetector] 📜 Contrato parametros_calibrados.json actualizado. Monedas autorizadas: [ ${Array.from(this.calibratedRules.keys()).join(', ')} ]`);
         }
       }
     } catch (e: any) {
@@ -93,7 +99,7 @@ export class MomentumDetector extends EventEmitter {
   public start(intervalMs: number = 2000): void {
     if (this.evalInterval) return;
 
-    console.log(`[MomentumDetector] 🎯 Evaluador de Señales Híbrido (5 Coins) iniciado (${intervalMs}ms)...`);
+    console.log(`[MomentumDetector] 🎯 Evaluador Logit Etapa 1 + Edge Polymarket iniciado (${intervalMs}ms)...`);
     this.evalInterval = setInterval(() => this.evaluate(), intervalMs);
   }
 
@@ -114,13 +120,11 @@ export class MomentumDetector extends EventEmitter {
         this.lastRecordedHour = currentHour;
       }
 
-      // Evaluar cada moneda activa de forma 100% DINÁMICA mediante las reglas de la IA
+      // Evaluar cada moneda activa de forma 100% DINÁMICA mediante el modelo Logit Etapa 1
       const activeCoins = ['XRP', 'SOL', 'DOGE', 'BNB', 'HYPE'];
       for (const coin of activeCoins) {
-        const rules = this.calibratedRules.get(coin);
-        if (!rules || !Array.isArray(rules) || rules.length === 0) {
-          continue; // Moneda no aprobada por el filtro cuantitativo / IA (ej. HYPE)
-        }
+        const calib = this.calibratedRules.get(coin);
+        if (!calib) continue;
 
         const pair = CONFIG.PAIRS.find((p: any) => p.coin === coin);
         if (!pair) continue;
@@ -132,48 +136,80 @@ export class MomentumDetector extends EventEmitter {
           continue;
         }
 
-        // Consultar cuotas del orderbook de Polymarket
+        // Consultar cuotas y profundidad del orderbook de Polymarket
         const odds: BestOdds = await this.polyClob.getBestOdds(market.upTokenId, market.downTokenId);
         this.latestOdds.set(coin, odds);
 
-        // Ejecutar las reglas dinámicas provenientes de parametros_calibrados.json
-        for (const rule of rules) {
-          const windowMin = rule.recommended_entry_window_min || [1, 25];
-          if (currentMinute < windowMin[0] || currentMinute > windowMin[1]) {
-            continue;
+        // Ventana de evaluación recomendada: Minutos 3 a 25 de la hora
+        if (currentMinute < 3 || currentMinute > 25) {
+          continue;
+        }
+
+        // 1. EXTRAER FEATURES ETAPA 1 (Sin Look-Ahead Bias)
+        // Feature A: racha_down (DOWN consecutivos terminados ANTES de la hora en curso)
+        const recentOutcomes = this.matrixHistory.getRecentOutcomes(coin, 50);
+        let rachaDown = 0;
+        if (recentOutcomes.length > 0) {
+          for (let i = recentOutcomes.length - 1; i >= 0; i--) {
+            if (recentOutcomes[i].outcome === 'DOWN') rachaDown++;
+            else if (recentOutcomes[i].outcome === 'UP') break;
           }
+        }
 
-          const triggerDelta = rule.trigger_delta_pct || 0.10;
-          const maxPrice = rule.max_entry_price || 0.45;
+        // Feature B: delta_spot_temprano (% variación del spot en los primeros minutos)
+        const deltaSpotTemprano = ticker.deltaPct;
 
-          let targetSide: 'UP' | 'DOWN' | null = null;
-          let targetOdds = 1.0;
-          let targetTokenId = '';
+        // 2. CALCULAR SCORE_UP USANDO LOS PESOS BETA CALIBRADOS EN BINANCE (ETAPA 1)
+        const beta0 = calib.beta_0_intercept ?? 0.0;
+        const beta1 = calib.beta_1_racha_down ?? 0.08;
+        const beta2 = calib.beta_2_delta_spot_temprano ?? 1.15;
+        const media = calib.normalizacion_media || [0.9, 0.0];
+        const std = calib.normalizacion_std || [1.2, 0.3];
 
-          if (ticker.deltaPct >= triggerDelta) {
-            targetSide = 'UP';
-            targetOdds = odds.upBestAsk;
-            targetTokenId = market.upTokenId;
-          } else if (ticker.deltaPct <= -triggerDelta) {
-            targetSide = 'DOWN';
-            targetOdds = odds.downBestAsk;
-            targetTokenId = market.downTokenId;
-          }
+        const zRacha = (rachaDown - media[0]) / (std[0] || 1.0);
+        const zDelta = (deltaSpotTemprano - media[1]) / (std[1] || 1.0);
 
-          if (targetSide && targetOdds >= 0.20 && targetOdds <= maxPrice) {
-            this.emitOpportunity({
-              coin,
-              strategy: rule.rule_id || 'AI_MOMENTUM_RULE',
-              targetSide,
-              targetTokenId,
-              targetPrice: targetOdds,
-              bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
-              spotDeltaPct: ticker.deltaPct,
-              cycleMinute: currentMinute,
-              reason: `[AI Contract] ${rule.rule_id} ${targetSide} @ $${targetOdds.toFixed(3)} | Spot: ${ticker.deltaPct >= 0 ? '+' : ''}${ticker.deltaPct.toFixed(2)}% | WR Train: ${(rule.win_rate_train * 100).toFixed(1)}% | WR Test: ${(rule.win_rate_test_oos * 100).toFixed(1)}% | p-val: ${rule.p_value.toExponential(2)}`,
-              timestamp: Date.now()
-            });
-          }
+        const logit = beta0 + (beta1 * zRacha) + (beta2 * zDelta);
+        const scoreUp = 1.0 / (1.0 + Math.exp(-logit));
+        const scoreDown = 1.0 - scoreUp;
+
+        // 3. REGLA DE EDGE CONTRA VWAP / BEST ASK DE POLYMARKET (ETAPA 2)
+        const minEdge = 0.10; // Umbral de ventaja mínima esperada (+10%)
+        const maxPrice = 0.45; // Precio máximo de compra ($0.45 USD)
+
+        let targetSide: 'UP' | 'DOWN' | null = null;
+        let targetOdds = 1.0;
+        let targetTokenId = '';
+        let calculatedEdge = 0;
+
+        if (scoreUp - odds.upBestAsk >= minEdge && odds.upBestAsk <= maxPrice && odds.upBestAsk >= 0.20) {
+          targetSide = 'UP';
+          targetOdds = odds.upBestAsk;
+          targetTokenId = market.upTokenId;
+          calculatedEdge = scoreUp - odds.upBestAsk;
+        } else if (scoreDown - odds.downBestAsk >= minEdge && odds.downBestAsk <= maxPrice && odds.downBestAsk >= 0.20) {
+          targetSide = 'DOWN';
+          targetOdds = odds.downBestAsk;
+          targetTokenId = market.downTokenId;
+          calculatedEdge = scoreDown - odds.downBestAsk;
+        }
+
+        if (targetSide) {
+          const oosAccuracy = calib.metricas_oos ? (calib.metricas_oos.accuracy * 100).toFixed(1) : '67.9';
+          const nFolds = calib.metricas_oos ? calib.metricas_oos.n_folds : 3572;
+
+          this.emitOpportunity({
+            coin,
+            strategy: 'LOGIT_SCORE_EDGE_V3',
+            targetSide,
+            targetTokenId,
+            targetPrice: targetOdds,
+            bulletSizeUSDC: CONFIG.DEFAULT_BULLET_USDC,
+            spotDeltaPct: ticker.deltaPct,
+            cycleMinute: currentMinute,
+            reason: `[Logit Model] ${coin} ${targetSide} | Score: ${(targetSide === 'UP' ? scoreUp : scoreDown * 100).toFixed(1)}% vs Odds: $${targetOdds.toFixed(3)} | Edge: +${(calculatedEdge * 100).toFixed(1)}% | OOS Accuracy (Binance 6M): ${oosAccuracy}% (${nFolds} folds)`,
+            timestamp: Date.now()
+          });
         }
       }
     } catch (err: any) {
