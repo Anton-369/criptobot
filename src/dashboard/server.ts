@@ -295,7 +295,7 @@ export class DashboardServer {
 
         let bias = { coin: t.coin, predictedSide: 'NEUTRAL', confidencePct: 50.0, reason: 'Sin patrón activo' };
         if (this.detector) {
-          bias = this.detector.getMatrixHistory().getDirectionalBias(t.coin, btcDir, ethDir);
+          const mh = this.detector ? this.detector.getMatrixHistory() : null; if (mh) { bias = mh.getDirectionalBias(t.coin, btcDir, ethDir); }
         }
 
         return {
