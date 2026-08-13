@@ -1,8 +1,47 @@
 [
   {
-    "hour": 19,
-    "timestampISO": "2026-08-13T00:00:39.942Z",
+    "hour": 10,
+    "timestampISO": "2026-08-13T15:00:58.762Z",
     "btc": "UP",
+    "eth": "UP",
+    "xrp": "UP",
+    "sol": "UP",
+    "doge": "UP",
+    "bnb": "UP",
+    "hype": "UP",
+    "swarmConsensus": "UP",
+    "btcAltDivergence": false
+  },
+  {
+    "hour": 9,
+    "timestampISO": "2026-08-13T14:00:58.533Z",
+    "btc": "UP",
+    "eth": "UP",
+    "xrp": "DOWN",
+    "sol": "UP",
+    "doge": "UP",
+    "bnb": "DOWN",
+    "hype": "DOWN",
+    "swarmConsensus": "MIXED",
+    "btcAltDivergence": false
+  },
+  {
+    "hour": 8,
+    "timestampISO": "2026-08-13T13:00:58.401Z",
+    "btc": "UP",
+    "eth": "UP",
+    "xrp": "UP",
+    "sol": "UP",
+    "doge": "UP",
+    "bnb": "DOWN",
+    "hype": "UP",
+    "swarmConsensus": "UP",
+    "btcAltDivergence": false
+  },
+  {
+    "hour": 7,
+    "timestampISO": "2026-08-13T12:00:58.319Z",
+    "btc": "DOWN",
     "eth": "DOWN",
     "xrp": "DOWN",
     "sol": "DOWN",
@@ -10,7 +49,20 @@
     "bnb": "DOWN",
     "hype": "DOWN",
     "swarmConsensus": "DOWN",
-    "btcAltDivergence": true
+    "btcAltDivergence": false
+  },
+  {
+    "hour": 6,
+    "timestampISO": "2026-08-13T11:00:58.178Z",
+    "btc": "UP",
+    "eth": "DOWN",
+    "xrp": "DOWN",
+    "sol": "DOWN",
+    "doge": "UP",
+    "bnb": "UP",
+    "hype": "DOWN",
+    "swarmConsensus": "MIXED",
+    "btcAltDivergence": false
   },
   {
     "hour": 18,

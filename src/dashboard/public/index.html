@@ -780,50 +780,55 @@
       // 4. Tab 2: AI Brain Calibrated Cards (Modelo Logit Etapa 1 Binance 6M)
       const aiCardsContainer = document.getElementById('aiCardsContainer');
       if (aiCardsContainer && data.calibratedParams) {
-        let coinEntries = [];
-        if (data.calibratedParams.coins) {
-          coinEntries = Object.entries(data.calibratedParams.coins).map(([key, calib]) => ({
-            coin: key.replace('USDT', ''),
-            beta0: calib.beta_0_intercept ? calib.beta_0_intercept.toFixed(4) : '0.0000',
-            beta1: calib.beta_1_racha_down ? calib.beta_1_racha_down.toFixed(4) : '0.0800',
-            beta2: calib.beta_2_delta_spot_temprano ? calib.beta_2_delta_spot_temprano.toFixed(4) : '1.1500',
-            accuracy: calib.metricas_oos ? (calib.metricas_oos.accuracy * 100).toFixed(1) : '67.9',
-            logloss: calib.metricas_oos ? calib.metricas_oos.logloss.toFixed(4) : '0.6039',
-            nFolds: calib.metricas_oos ? calib.metricas_oos.n_folds : 3572
-          }));
-        } else if (data.calibratedParams.rules_by_coin) {
-          coinEntries = Object.entries(data.calibratedParams.rules_by_coin).map(([coin, rules]) => {
-            const r = rules[0] || {};
+        const activeCoins = ['BTC', 'ETH', 'XRP', 'SOL', 'DOGE', 'BNB', 'HYPE'];
+        const coinsMap = data.calibratedParams.coins || {};
+
+        const coinEntries = activeCoins.map(coin => {
+          const key = coin + 'USDT';
+          const calib = coinsMap[key];
+          if (calib) {
             return {
               coin,
-              beta0: '0.0000',
-              beta1: '0.0800',
-              beta2: '1.1500',
-              accuracy: ((r.win_rate_test_oos || 0.67) * 100).toFixed(1),
-              logloss: '0.6039',
-              nFolds: 3572
+              beta0: calib.beta_0_intercept !== undefined ? calib.beta_0_intercept.toFixed(4) : 'N/A',
+              beta1: calib.beta_1_racha_down !== undefined ? calib.beta_1_racha_down.toFixed(4) : 'N/A',
+              beta2: calib.beta_2_delta_spot_temprano !== undefined ? calib.beta_2_delta_spot_temprano.toFixed(4) : 'N/A',
+              accuracy: calib.metricas_oos ? (calib.metricas_oos.accuracy * 100).toFixed(1) : 'N/A',
+              logloss: calib.metricas_oos ? calib.metricas_oos.logloss.toFixed(4) : 'N/A',
+              nFolds: calib.metricas_oos ? calib.metricas_oos.n_folds : 0,
+              hasData: true
             };
-          });
-        }
+          } else {
+            return {
+              coin,
+              beta0: 'N/A',
+              beta1: 'N/A',
+              beta2: 'N/A',
+              accuracy: 'N/A',
+              logloss: 'N/A',
+              nFolds: 0,
+              hasData: false
+            };
+          }
+        });
 
         if (coinEntries.length > 0) {
           aiCardsContainer.innerHTML = coinEntries.map(c => `
-            <div class="ai-card">
+            <div class="ai-card" style="border: 1px solid ${c.hasData ? 'rgba(0, 255, 136, 0.25)' : 'rgba(255, 68, 68, 0.25)'};">
               <div class="ai-card-title">
                 <span>🤖 ${c.coin}</span>
-                <span class="tag-up" style="font-size: 0.72rem; padding: 2px 6px;">Accuracy OOS: ${c.accuracy}%</span>
+                <span class="${c.hasData ? 'tag-up' : 'tag-down'}" style="font-size: 0.72rem; padding: 2px 6px;">${c.hasData ? 'Accuracy OOS: ' + c.accuracy + '%' : 'SIN DATOS EN BINANCE'}</span>
               </div>
               <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.5rem;">
-                Modelo: <strong style="color: var(--accent-cyan);">Etapa 1 Regresión Logística (Binance 6 Meses)</strong>
+                Modelo: <strong style="color: var(--accent-cyan); font-size: 0.75rem;">${c.hasData ? 'Etapa 1 Regresión Logística (Binance 6M)' : 'Sin Histórico Binance (0 Folds)'}</strong>
               </div>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; font-size: 0.72rem; margin-bottom: 0.6rem;">
-                <div>Folds Out-of-Sample: <strong style="color:#fff;">${c.nFolds}</strong></div>
+                <div>Folds Out-of-Sample: <strong style="color:#fff;">${c.nFolds === 0 ? '0 (Sin datos)' : c.nFolds}</strong></div>
                 <div>Log-Loss OOS: <strong style="color: var(--accent-gold);">${c.logloss}</strong></div>
-                <div>$\beta_1$ (Racha DOWN): <strong style="color:#fff;">${c.beta1}</strong></div>
-                <div>$\beta_2$ ($\Delta$Spot 15m): <strong style="color: var(--accent-green);">${c.beta2}</strong></div>
+                <div>&beta;<sub>1</sub> (Racha DOWN): <strong style="color:#fff;">${c.beta1}</strong></div>
+                <div>&beta;<sub>2</sub> (&Delta;Spot 15m): <strong style="color: var(--accent-green);">${c.beta2}</strong></div>
               </div>
               <div style="font-size: 0.68rem; color: #a0aec0; background: rgba(255,255,255,0.03); padding: 0.4rem; border-radius: 6px;">
-                💡 <em>Calibrado sobre ${c.nFolds} horas consecutivas fuera de muestra (Binance bulk data). Evaluado con Edge de $\Delta_{\text{edge}} \ge +10\%$ en Polymarket.</em>
+                💡 <em>${c.hasData ? 'Calibrado sobre ' + c.nFolds + ' horas fuera de muestra (Binance Vision). Evaluado con Edge de +10% en Polymarket.' : 'Sin histórico en Binance Vision. Se requiere acumular 300+ velas de 1m en SQLite.'}</em>
               </div>
             </div>
           `).join('');
