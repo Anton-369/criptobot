@@ -182,12 +182,13 @@ export class MomentumDetector extends EventEmitter {
         let targetTokenId = '';
         let calculatedEdge = 0;
 
-        if (scoreUp - odds.upBestAsk >= minEdge && odds.upBestAsk <= maxPrice && odds.upBestAsk >= 0.20) {
+        const upDollarDepth = (odds.upAskDepth || 0) * odds.upBestAsk;
+        if (scoreUp - odds.upBestAsk >= minEdge && odds.upBestAsk <= maxPrice && odds.upBestAsk >= 0.20 && upDollarDepth >= 10.0) {
           targetSide = 'UP';
           targetOdds = odds.upBestAsk;
           targetTokenId = market.upTokenId;
           calculatedEdge = scoreUp - odds.upBestAsk;
-        } else if (scoreDown - odds.downBestAsk >= minEdge && odds.downBestAsk <= maxPrice && odds.downBestAsk >= 0.20) {
+        } else if (scoreDown - odds.downBestAsk >= minEdge && odds.downBestAsk <= maxPrice && odds.downBestAsk >= 0.20 && ((odds.downAskDepth || 0) * odds.downBestAsk >= 10.0)) {
           targetSide = 'DOWN';
           targetOdds = odds.downBestAsk;
           targetTokenId = market.downTokenId;

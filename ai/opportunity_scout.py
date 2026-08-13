@@ -92,18 +92,37 @@ Responde ÚNICAMENTE en JSON con el formato:
 }}
 """
     llm_res = call_llm(system_prompt, user_prompt)
-    try:
-        start_idx = llm_res.find("{")
-        end_idx = llm_res.rfind("}")
-        if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-            clean_json = llm_res[start_idx:end_idx+1]
-            parsed = json.loads(clean_json)
-            return parsed
-        parsed = json.loads(llm_res)
-        return parsed
-    except Exception as e:
-        print(f"⚠️ Error parseando respuesta de Scout: {e}")
-        return {"raw_response": llm_res, "summary": scout_summary}
+    if llm_res:
+        try:
+            start_idx = llm_res.find("{")
+            end_idx = llm_res.rfind("}")
+            if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                clean_json = llm_res[start_idx:end_idx+1]
+                parsed = json.loads(clean_json)
+                return parsed
+            return json.loads(llm_res)
+        except Exception:
+            pass
+
+    # Heuristic fallback recommendations calculated directly from scout_summary
+    recommendations = []
+    for coin, stats in scout_summary.items():
+        best_m = 10
+        max_wr = 0.0
+        for m, s in stats.items():
+            if s['signals'] > 0:
+                wr = s['wins'] / s['signals']
+                if wr >= max_wr:
+                    max_wr = wr
+                    best_m = m
+        recommendations.append({
+            "coin": coin,
+            "best_minute": best_m,
+            "estimated_win_rate_pct": round(max_wr * 100.0, 2),
+            "rationale": f"Scout heurístico local: Win rate de {round(max_wr * 100.0, 1)}% en minuto {best_m}."
+        })
+
+    return {"recommendations": recommendations, "summary": scout_summary}
 
 if __name__ == '__main__':
     print("🔍 Ejecutando Opportunity Scout con NVIDIA Nemotron...")

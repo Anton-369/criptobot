@@ -1,0 +1,20 @@
+======================================================================
+CALIBRACION ETAPA 1 -- Score_UP desde historico de Binance
+(walk-forward de ventana expandible, sin mirar el futuro)
+======================================================================
+
+--- XRPUSDT ---
+  3672 ciclos disponibles con features completas
+  XRPUSDT: 3572 folds fuera de muestra | accuracy=67.2% | log-loss=0.6037
+
+--- SOLUSDT ---
+  3672 ciclos disponibles con features completas
+  SOLUSDT: 3572 folds fuera de muestra | accuracy=67.9% | log-loss=0.6109
+
+--- DOGEUSDT ---
+  3672 ciclos disponibles con features completas
+  DOGEUSDT: 3572 folds fuera de muestra | accuracy=68.9% | log-loss=0.5905
+
+--- BNBUSDT ---
+  3672 ciclos disponibles con features completas
+  BNBUSDT: 3572 folds fuera de muestra | accuracy=67.9% | log-loss=0.6039

@@ -7,3 +7,5 @@ data/*.db
 data/*.sqlite
 data/*.sqlite-wal
 data/*.sqlite-shm
+archive/
+*.csv

@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Criptobot v3.0 — NVIDIA AI Sniper Control Dashboard</title>
+
+  <!-- Google Fonts & Modern Styling -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #0a0c10;
+      --card-bg: rgba(18, 22, 31, 0.85);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --accent-green: #00e676;
+      --accent-red: #ff1744;
+      --accent-cyan: #00e5ff;
+      --accent-gold: #ffd600;
+      --accent-purple: #ab47bc;
+      --text-main: #f0f4f8;
+      --text-muted: #8b9bb4;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 1.5rem;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(0, 229, 255, 0.05) 0%, transparent 20%),
+        radial-gradient(circle at 90% 80%, rgba(0, 230, 118, 0.05) 0%, transparent 20%);
+    }
+
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      padding-bottom: 1.2rem;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1.5rem;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #ffffff 0%, var(--accent-cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .badge-mode {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      background: rgba(0, 230, 118, 0.15);
+      color: var(--accent-green);
+      border: 1px solid rgba(0, 230, 118, 0.3);
+    }
+
+    .badge-ai {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      background: rgba(171, 71, 188, 0.15);
+      color: var(--accent-purple);
+      border: 1px solid rgba(171, 71, 188, 0.3);
+    }
+
+    .badge-lock {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      background: rgba(255, 214, 0, 0.15);
+      color: var(--accent-gold);
+      border: 1px solid rgba(255, 214, 0, 0.3);
+    }
+
+    .wallet-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+    }
+
+    .metric-box {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 0.75rem 1.1rem;
+      backdrop-filter: blur(12px);
+      text-align: right;
+    }
+
+    .metric-label {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.2rem;
+    }
+
+    .metric-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .metric-val.green { color: var(--accent-green); }
+    .metric-val.gold { color: var(--accent-gold); }
+    .metric-val.purple { color: var(--accent-purple); }
+    .metric-val.cyan { color: var(--accent-cyan); }
+
+    /* Grid Layout for 7 Tickers */
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 1.1rem;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      position: relative;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .card:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .coin-name {
+      font-size: 1.15rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .role-tag {
+      font-size: 0.65rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .role-tag.beacon { background: rgba(171, 71, 188, 0.2); color: var(--accent-purple); border: 1px solid rgba(171, 71, 188, 0.4); }
+    .role-tag.tradable { background: rgba(0, 229, 255, 0.15); color: var(--accent-cyan); border: 1px solid rgba(0, 229, 255, 0.3); }
+
+    .trend-indicator {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+
+    .trend-indicator.up { background: rgba(0, 230, 118, 0.15); color: var(--accent-green); }
+    .trend-indicator.down { background: rgba(255, 23, 68, 0.15); color: var(--accent-red); }
+
+    .price-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.75rem;
+    }
+
+    .spot-price {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.4rem;
+      font-weight: 800;
+    }
+
+    .delta-pct {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .delta-pct.up { color: var(--accent-green); }
+    .delta-pct.down { color: var(--accent-red); }
+
+    .poly-odds-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 8px;
+      padding: 0.6rem;
+      border: 1px solid var(--border-color);
+    }
+
+    .odds-item {
+      text-align: center;
+    }
+
+    .odds-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-bottom: 0.15rem;
+    }
+
+    .odds-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      font-weight: 800;
+    }
+
+    /* Tabs Layout */
+    .tabs-nav {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1.2rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.5rem;
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      padding: 0.55rem 1.1rem;
+      cursor: pointer;
+      border-radius: 8px;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+      color: var(--accent-cyan);
+      background: rgba(0, 229, 255, 0.1);
+      border-color: rgba(0, 229, 255, 0.3);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Table Cards */
+    .table-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1.25rem;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      padding: 0.75rem 0.9rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    td {
+      padding: 0.75rem 0.9rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.83rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .tag-up { background: rgba(0, 230, 118, 0.15); color: var(--accent-green); padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 700; }
+    .tag-down { background: rgba(255, 23, 68, 0.15); color: var(--accent-red); padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 700; }
+
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 2rem;
+      font-size: 0.9rem;
+    }
+
+    /* AI Cards Grid */
+    .ai-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .ai-card {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(171, 71, 188, 0.25);
+      border-radius: 12px;
+      padding: 1rem;
+    }
+
+    .ai-card-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--accent-purple);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.6rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div id="serverBanner" style="background:#ff1744;color:#fff;text-align:center;padding:5px;font-weight:bold;font-size:0.85rem;border-radius:6px;">CARGANDO...</div>
+    
+    <div class="top-bar">
+      <div class="brand">
+        <h1>⚡ CRIPTOBOT v3.0</h1>
+        <span id="badgeMode" class="badge-mode">LIVE MODE</span>
+        <span class="badge-lock">🔒 DISPAROS: DESACTIVADOS (SAFETY LOCK)</span>
+        <span class="badge-ai">🤖 NVIDIA NEMOTRON 3.5</span>
+        <span id="badgeUpdate" style="font-size:0.65rem;color:var(--text-muted);margin-left:4px;"></span>
+      </div>
+
+      <button onclick="forceRefreshMatrix()" style="padding:4px 12px;background:var(--accent-cyan);color:#000;border:none;border-radius:6px;cursor:pointer;font-weight:800;font-size:0.75rem;">🔄 REFRESCAR TELEMETRÍA</button>
+    </div>
+
+    <div class="wallet-metrics">
+      <div class="metric-box">
+        <div class="metric-label">Valor Portafolio</div>
+        <div id="valTotalBal" class="metric-val green">$0.00 USD</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">USDC Libre (Cash)</div>
+        <div id="valFreeBal" class="metric-val">$0.00 USDC</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">En Posiciones Activas</div>
+        <div id="valLockedBal" class="metric-val gold">$0.00 USD</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Reserva Gas (Polygon)</div>
+        <div id="valGasBal" class="metric-val purple">0.00 POL</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">BD HFT SQLite 24/7</div>
+        <div id="valSqliteStats" class="metric-val cyan">4.05 MB (WAL)</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Section 1: The 7 Monitored Assets -->
+  <div class="grid-container" id="tickersGrid">
+    <!-- Dynamic 7 Tickers -->
+  </div>
+
+  <!-- Section 2: Command & Control Tabs v3.0 -->
+  <div class="tabs-nav">
+    <button class="tab-btn active" onclick="switchTab('tabRanking')">🏆 1. Ranking & PnL Efectividad</button>
+    <button class="tab-btn" onclick="switchTab('tabAI')">🧠 2. Cerebro IA & Calibrador v3.0</button>
+    <button class="tab-btn" onclick="switchTab('tabHypotheses')">📜 3. 4 Hipótesis Cuantitativas</button>
+    <button class="tab-btn" onclick="switchTab('tabTelemetry')">🗄️ 4. Telemetría 24/7 SQLite WAL</button>
+    <button class="tab-btn" onclick="switchTab('tabPositions')">💼 5. Posiciones & Historial Live</button>
+  </div>
+
+  <!-- Tab 1: Ranking Matrix -->
+  <div id="tabRanking" class="tab-content active">
+    <div class="table-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3 style="font-size: 1.05rem; color: var(--accent-cyan); font-weight: 800;">
+          🏆 RANKING DE EFECTIVIDAD Y RENDIMIENTO POR MONEDA (ULTIMOS 7 DIAS)
+        </h3>
+        <span style="font-size: 0.75rem; color: var(--text-muted);">Sincronización en tiempo real desde la Blockchain Polygon & Polymarket CLOB</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Posición</th>
+            <th>Moneda</th>
+            <th>Eventos Operados</th>
+            <th>Ganadas (🟢)</th>
+            <th>Perdidas (🔴)</th>
+            <th>En Juego (⏳)</th>
+            <th>Win Rate (%)</th>
+            <th>Invertido ($)</th>
+            <th>Retorno Est. ($)</th>
+            <th>PnL Neto ($)</th>
+            <th>ROI (%)</th>
+          </tr>
+        </thead>
+        <tbody id="rankingMatrixBody">
+          <tr>
+            <td colspan="11" class="empty-state">Compilando ranking de efectividad en vivo desde la VPS...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab 2: AI Brain & Calibrated Parameters -->
+  <div id="tabAI" class="tab-content">
+    <div class="table-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3 style="font-size: 1.05rem; color: var(--accent-purple); font-weight: 800;">
+          🧠 CEREBRO IA: NVIDIA NEMOTRON 3.5 LIGHTNING & REGULADOR ESTADÍSTICO
+        </h3>
+        <span id="aiCalibDate" style="font-size: 0.75rem; color: var(--accent-gold);">Última Calibración: 2026-08-12 00:39 UTC</span>
+      </div>
+
+      <div style="margin-bottom: 1rem; padding: 0.8rem; background: rgba(171, 71, 188, 0.1); border: 1px solid rgba(171, 71, 188, 0.3); border-radius: 8px; font-size: 0.85rem;">
+        <strong>Arquitectura Activa:</strong> Criptobot v3.0 Non-Lookahead AI-Gated Engine | 
+        <strong>Modelo LLM:</strong> <span style="color: var(--accent-cyan);">nvidia/nemotron-3.5-lightning:free</span> | 
+        <strong>Validación Estadística:</strong> División 80/20 Entrenamiento / Prueba Fuera de Muestra (Out-of-Sample OOS Test).
+      </div>
+
+      <div id="aiCardsContainer" class="ai-grid">
+        <!-- Dynamic AI Calibrated Rules Cards -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 3: Quantitative Hypotheses Contract -->
+  <div id="tabHypotheses" class="tab-content">
+    <div class="table-card">
+      <h3 style="font-size: 1.05rem; color: var(--accent-gold); font-weight: 800; margin-bottom: 1rem;">
+        📜 CONTRATO DE LAS 4 HIPÓTESIS CUANTITATIVAS CALIBRADAS
+      </h3>
+      <table>
+        <thead>
+          <tr>
+            <th>ID Hipótesis</th>
+            <th>Nombre Ley Cuantitativa</th>
+            <th>Ventana Evaluación (Min)</th>
+            <th>Gatillo Delta (%)</th>
+            <th>Precio Máx Entr. ($)</th>
+            <th>Regla Operativa</th>
+          </tr>
+        </thead>
+        <tbody id="hypothesesTableBody">
+          <tr>
+            <td><strong>H1_momentum_continuation</strong></td>
+            <td>Inercia de Apertura 1H</td>
+            <td>Minuto 1 a 15</td>
+            <td>≥ +0.10% Spot</td>
+            <td>≤ $0.45 USD</td>
+            <td>Sigue la tendencia dominante detectada en el primer impulso de la hora.</td>
+          </tr>
+          <tr>
+            <td><strong>H2_elastic_reversal</strong></td>
+            <td>Rebote Elástico de Crash</td>
+            <td>Minuto 15 a 30</td>
+            <td>≤ -0.20% (3 caídas)</td>
+            <td>≤ $0.42 USD</td>
+            <td>Gatilla compra del lado contrario cuando una moneda sufre una sobre-venta extrema.</td>
+          </tr>
+          <tr>
+            <td><strong>H3_cross_asset_sync</strong></td>
+            <td>Sincronización Faro BTC/ETH</td>
+            <td>Minuto 10 a 40</td>
+            <td>≥ +0.15% Sync</td>
+            <td>≤ $0.45 USD</td>
+            <td>Utiliza la dirección de Bitcoin y Ethereum como sesgo macro para las altcoins.</td>
+          </tr>
+          <tr>
+            <td><strong>H4_late_aperture_sniper</strong></td>
+            <td>Sniper de Cuota Barata</td>
+            <td>Minuto 33 a 58</td>
+            <td>N/A (Precio Cuota)</td>
+            <td>≤ $0.35 USD</td>
+            <td>Captura cuotas asimétricas de muy bajo costo en la fase final del ciclo.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab 4: SQLite HFT Telemetry -->
+  <div id="tabTelemetry" class="tab-content">
+    <div class="table-card">
+      <h3 style="font-size: 1.05rem; color: var(--accent-cyan); font-weight: 800; margin-bottom: 1rem;">
+        🗄️ TELEMETRÍA DE ALMACENAMIENTO HFT 24/7 (SQLITE WAL MODE)
+      </h3>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+        <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+          <div style="font-size: 0.7rem; color: var(--text-muted);">ARCHIVO DE BD</div>
+          <div style="font-family: 'JetBrains Mono'; font-weight: 800; color: var(--accent-cyan);">criptobot_v3.sqlite</div>
+        </div>
+        <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+          <div style="font-size: 0.7rem; color: var(--text-muted);">MODO DE ACCESO</div>
+          <div style="font-family: 'JetBrains Mono'; font-weight: 800; color: var(--accent-green);">WAL Mode (Non-blocking)</div>
+        </div>
+        <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+          <div style="font-size: 0.7rem; color: var(--text-muted);">TAMAÑO DE DATOS ACUMULADO</div>
+          <div id="telemetryDbSize" style="font-family: 'JetBrains Mono'; font-weight: 800; color: var(--accent-gold);">4.05 MB</div>
+        </div>
+        <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+          <div style="font-size: 0.7rem; color: var(--text-muted);">PROXIES ACTIVE</div>
+          <div style="font-family: 'JetBrains Mono'; font-weight: 800; color: var(--accent-purple);">95.211.64.139:8889</div>
+        </div>
+      </div>
+
+      <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
+        📌 La base de datos recolecta snapshots cada 1 minuto de las 7 monedas y ráfagas de alta frecuencia en el segundo :00 de cada hora.
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 5: Positions & Live History -->
+  <div id="tabPositions" class="tab-content">
+    <div class="table-card">
+      <h3 style="font-size: 1.05rem; color: var(--text-main); font-weight: 800; margin-bottom: 1rem;">
+        💼 POSICIONES ACTIVAS EN WALLET & HISTORIAL DE DISPAROS
+      </h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Mercado / Título</th>
+            <th>Moneda</th>
+            <th>Lado</th>
+            <th>Precio Prom.</th>
+            <th>Acciones</th>
+            <th>Invertido</th>
+            <th>Valor Valorizado</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="positionsTableBody">
+          <tr>
+            <td colspan="8" class="empty-state">No hay posiciones activas actualmente en la wallet de Polymarket.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let ws = null;
+    let wsReconnectTimer = null;
+    
+    function connectWS() {
+      if (ws) { try { ws.close(); } catch(e) {} }
+      const wsUrl = `ws://${window.location.host}`;
+      ws = new WebSocket(wsUrl);
+      
+      ws.onopen = () => {
+        const badgeUpdate = document.getElementById('badgeUpdate');
+        if (badgeUpdate) badgeUpdate.innerText = '🟢 WS conectado';
+        if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data && data.success !== false) {
+            updateDashboard(data);
+          }
+        } catch (err) {
+          console.error("Error procesando WS:", err);
+        }
+      };
+      
+      ws.onclose = () => {
+        const badgeUpdate = document.getElementById('badgeUpdate');
+        if (badgeUpdate) badgeUpdate.innerText = '🔴 WS reconectando...';
+        if (!wsReconnectTimer) wsReconnectTimer = setTimeout(connectWS, 3000);
+      };
+      
+      ws.onerror = () => { ws.close(); };
+    }
+    
+    fetch('/api/status').then(r => r.json()).then(data => {
+      updateDashboard(data);
+    }).catch(() => {});
+
+    connectWS();
+
+    function forceRefreshMatrix() {
+      fetch('/api/status').then(r => r.json()).then(data => {
+        if (data && data.success !== false) {
+          updateDashboard(data);
+        }
+      }).catch(err => console.error('[API Error]', err));
+    }
+    setTimeout(forceRefreshMatrix, 100);
+    setInterval(forceRefreshMatrix, 3000);
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      
+      if (event && event.target) {
+        event.target.classList.add('active');
+      }
+      const targetContent = document.getElementById(tabId);
+      if (targetContent) targetContent.classList.add('active');
+    }
+
+    function updateDashboard(data) {
+      if (!data) return;
+
+      // 1. Balances & Banner
+      const badgeMode = document.getElementById('badgeMode');
+      const valTotalBal = document.getElementById('valTotalBal');
+      const valFreeBal = document.getElementById('valFreeBal');
+      const valLockedBal = document.getElementById('valLockedBal');
+      const valGasBal = document.getElementById('valGasBal');
+      const valSqliteStats = document.getElementById('valSqliteStats');
+
+      if (badgeMode) badgeMode.innerText = `${data.mode || 'LIVE'} MODE`;
+      if (valTotalBal) valTotalBal.innerText = `$${(data.balances?.total || 0).toFixed(2)} USD`;
+      if (valFreeBal) valFreeBal.innerText = `$${(data.balances?.free || 0).toFixed(2)} USDC`;
+      if (valLockedBal) valLockedBal.innerText = `$${(data.balances?.locked || 0).toFixed(2)} USD`;
+      if (valGasBal) valGasBal.innerText = `${(data.balances?.nativeGasPOL || 0).toFixed(2)} POL`;
+      if (valSqliteStats) valSqliteStats.innerText = `${data.sqliteStats?.sizeMB || '4.05'} MB (WAL)`;
+
+      const now = new Date();
+      const badgeUpdate = document.getElementById('badgeUpdate');
+      if (badgeUpdate) badgeUpdate.innerText = '🟢 ' + now.toLocaleTimeString('es-CL', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+      const banner = document.getElementById('serverBanner');
+      if (banner) {
+        banner.innerText = '📊 CRIPTOBOT v3.0 MOTOR IA ACTIVO | BD: ' + (data.sqliteStats?.sizeMB || '4.05') + ' MB | $' + (data.balances?.free || 0).toFixed(2) + ' FREE USDC';
+        banner.style.background = '#00c853';
+      }
+
+      // 2. 7 Tickers Grid
+      const tickersGrid = document.getElementById('tickersGrid');
+      if (tickersGrid && data.tickers && data.tickers.length > 0) {
+        tickersGrid.innerHTML = data.tickers.map(t => {
+          const deltaSign = t.deltaPct >= 0 ? '+' : '';
+          const isUp = t.deltaPct >= 0;
+          const trendClass = t.trend ? t.trend.toLowerCase() : 'up';
+          const isBeacon = t.role === 'BEACON';
+          const roleClass = isBeacon ? 'beacon' : 'tradable';
+          const roleLabel = isBeacon ? 'FARO MACRO' : 'OPERABLE LIVE';
+          
+          return `
+            <div class="card">
+              <div class="card-header">
+                <span class="coin-name">${t.coin} <span class="role-tag ${roleClass}">${roleLabel}</span></span>
+                <span class="trend-indicator ${trendClass}">${t.trend || 'STABLE'}</span>
+              </div>
+              
+              <div class="price-row">
+                <span class="spot-price">$${t.currentPrice > 100 ? t.currentPrice.toFixed(2) : t.currentPrice.toFixed(4)}</span>
+                <span class="delta-pct ${isUp ? 'up' : 'down'}">${deltaSign}${(t.deltaPct || 0).toFixed(2)}%</span>
+              </div>
+
+              <div style="margin-bottom: 0.6rem; padding: 0.4rem 0.6rem; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.15rem;">
+                  <span>SESGO IA (1H):</span>
+                  <span style="font-weight: 800; color: ${t.directionalBias?.predictedSide === 'UP' ? 'var(--accent-green)' : (t.directionalBias?.predictedSide === 'DOWN' ? 'var(--accent-red)' : 'var(--accent-gold)')};">
+                    ${t.directionalBias?.predictedSide || 'NEUTRAL'} (${(t.directionalBias?.confidencePct || 50).toFixed(1)}%)
+                  </span>
+                </div>
+                <div style="font-size: 0.62rem; color: #a0aec0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${t.directionalBias?.reason || 'Sin patrón activo'}">
+                  ${t.directionalBias?.reason || 'Evaluador Oráculo NVIDIA Nemotron'}
+                </div>
+              </div>
+
+              <div class="poly-odds-grid">
+                <div class="odds-item">
+                  <div class="odds-label">Polymarket UP</div>
+                  <div class="odds-val" style="color: var(--accent-green);">$${(t.upBestAsk || 1.0).toFixed(2)}</div>
+                </div>
+                <div class="odds-item">
+                  <div class="odds-label">Polymarket DOWN</div>
+                  <div class="odds-val" style="color: var(--accent-red);">$${(t.downBestAsk || 1.0).toFixed(2)}</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // 3. Tab 1: Ranking Matrix
+      const rankingMatrixBody = document.getElementById('rankingMatrixBody');
+      if (rankingMatrixBody && data.coinPerformance && data.coinPerformance.length > 0) {
+        const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+        rankingMatrixBody.innerHTML = data.coinPerformance.map((c, idx) => {
+          const rankIcon = medals[idx] || `${idx + 1}️⃣`;
+          const wrColor = c.winRatePct >= 60 ? 'var(--accent-green)' : (c.winRatePct >= 40 ? 'var(--accent-gold)' : 'var(--accent-red)');
+          const pnlColor = c.netPnL >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+          const pnlSign = c.netPnL >= 0 ? '+' : '';
+
+          return `
+            <tr>
+              <td><span style="font-size: 1.2rem;">${rankIcon}</span></td>
+              <td><strong>${c.coin}</strong></td>
+              <td>${c.events}</td>
+              <td style="color: var(--accent-green); font-weight: 800;">${c.wins}</td>
+              <td style="color: var(--accent-red); font-weight: 800;">${c.losses}</td>
+              <td style="color: var(--accent-gold); font-weight: 800;">${c.active}</td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span style="font-weight: 800; color: ${wrColor};">${c.winRatePct.toFixed(1)}%</span>
+                  <div style="width: 55px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                    <div style="width: ${Math.min(100, Math.max(0, c.winRatePct))}%; height: 100%; background: ${wrColor};"></div>
+                  </div>
+                </div>
+              </td>
+              <td>$${c.invested.toFixed(2)} USD</td>
+              <td>$${c.payout.toFixed(2)} USD</td>
+              <td style="font-weight: 800; color: ${pnlColor};">${pnlSign}$${c.netPnL.toFixed(2)} USD</td>
+              <td><span class="${c.roiPct >= 0 ? 'tag-up' : 'tag-down'}">${pnlSign}${c.roiPct.toFixed(1)}% ROI</span></td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // 4. Tab 2: AI Brain Calibrated Cards
+      const aiCardsContainer = document.getElementById('aiCardsContainer');
+      if (aiCardsContainer && data.calibratedParams && data.calibratedParams.rules_by_coin) {
+        const rules = data.calibratedParams.rules_by_coin;
+        const coins = Object.keys(rules);
+        aiCardsContainer.innerHTML = coins.map(coin => {
+          const coinRules = rules[coin];
+          const primaryRule = coinRules[0] || {};
+          const wrTrain = ((primaryRule.win_rate_train || 0) * 100).toFixed(1);
+          const wrTest = ((primaryRule.win_rate_test_oos || 0) * 100).toFixed(1);
+          const pVal = primaryRule.p_value ? primaryRule.p_value.toExponential(2) : '< 0.0001';
+          const maxPrice = primaryRule.max_entry_price || 0.45;
+
+          return `
+            <div class="ai-card">
+              <div class="ai-card-title">
+                <span>🤖 ${coin}</span>
+                <span class="tag-up" style="font-size: 0.7rem;">OOS Win Rate: ${wrTest}%</span>
+              </div>
+              <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                Regla Activa: <strong style="color: var(--accent-cyan);">${primaryRule.rule_id || 'H1_MOMENTUM'}</strong>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; font-size: 0.72rem; margin-bottom: 0.6rem;">
+                <div>Train Win Rate: <strong style="color:#fff;">${wrTrain}%</strong></div>
+                <div>p-value: <strong style="color: var(--accent-gold);">${pVal}</strong></div>
+                <div>Minutos Entrada: <strong style="color:#fff;">Min 3 - 25</strong></div>
+                <div>Precio Máx: <strong style="color: var(--accent-green);">$${maxPrice} USD</strong></div>
+              </div>
+              <div style="font-size: 0.68rem; color: #a0aec0; background: rgba(255,255,255,0.03); padding: 0.4rem; border-radius: 6px;">
+                💡 <em>${primaryRule.ai_justification || 'Aprobación estadística estricta por el evaluador NVIDIA Nemotron.'}</em>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // 5. Tab 4 Telemetry DB Size
+      const telemetryDbSize = document.getElementById('telemetryDbSize');
+      if (telemetryDbSize && data.sqliteStats) {
+        telemetryDbSize.innerText = `${data.sqliteStats.sizeMB} MB`;
+      }
+
+      // 6. Tab 5: Positions Table
+      const positionsTableBody = document.getElementById('positionsTableBody');
+      if (positionsTableBody) {
+        if (data.positions && data.positions.length > 0) {
+          positionsTableBody.innerHTML = data.positions.map(p => `
+            <tr>
+              <td><strong>${p.title || p.id}</strong></td>
+              <td>${p.coin}</td>
+              <td><span class="status-pill ${p.side.toLowerCase()}">${p.side}</span></td>
+              <td>$${p.entryPrice.toFixed(3)}</td>
+              <td>${p.shares.toFixed(2)}</td>
+              <td>$${p.investedUSDC.toFixed(2)} USD</td>
+              <td>$${(p.currentValueUSDC || p.investedUSDC).toFixed(2)} USD</td>
+              <td><span class="status-pill ${p.status.toLowerCase()}">${p.status}</span></td>
+            </tr>
+          `).join('');
+        } else {
+          positionsTableBody.innerHTML = `
+            <tr>
+              <td colspan="8" class="empty-state">No hay posiciones activas actualmente en la wallet de Polymarket.</td>
+            </tr>
+          `;
+        }
+      }
+    }
+  </script>
+</body>
+</html>

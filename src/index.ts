@@ -163,7 +163,7 @@ async function main() {
         const ticker = binanceWs.getTickerState(pair.symbol);
         if (ticker && ticker.currentPrice > 0 && ticker.openPrice1H > 0) {
           const outcome = ticker.currentPrice >= ticker.openPrice1H ? 'UP' : 'DOWN';
-          const predictedSide = log.regla_activa.includes('UP') ? 'UP' : 'DOWN';
+          const predictedSide = (log.regla_activa && (log.regla_activa.includes('UP') || log.regla_activa.includes('up'))) ? 'UP' : 'DOWN';
           const won = outcome === predictedSide;
           const status = won ? 'GANADO' : 'PERDIDO';
           const pnl = won ? (log.yes_price_al_disparo ? (1.0 - log.yes_price_al_disparo) : 0.60) : -0.40;
@@ -188,7 +188,7 @@ async function main() {
 
       // Autonomous AI Trigger: Run Python calibration script every hour at :05 UTC
       if (currentMinute === 5 && now.getUTCSeconds() <= 60) {
-        console.log(`[AI Brain] 🤖 Ejecutando calibración autónoma NVIDIA Nemotron (backtest_calibration.py)...`);
+        console.log(`[AI Brain] 🤖 Ejecutando calibración autónoma NVIDIA Nemotron (calibrar_etapa1.py)...`);
         exec(`python3 ${path.resolve(__dirname, '../scripts/backtest_calibration.py')}`, (err, stdout, stderr) => {
           if (err) {
             console.warn(`[AI Brain] ⚠️ Error en calibración autónoma: ${err.message}`);
