@@ -212,6 +212,26 @@ export class BinanceWebsocketEngine extends EventEmitter {
     }
   }
 
+  
+  public async fetch1mCandles(symbol: string, limit: number = 15): Promise<{ open: number; close: number; openTime: number }[]> {
+    try {
+      const resp = await fetch('https://api.binance.com/api/v3/klines?symbol=' + symbol.toUpperCase() + '&interval=1m&limit=' + limit);
+      if (resp.ok) {
+        const klines: any = await resp.json();
+        if (Array.isArray(klines)) {
+          return klines.map((k: any) => ({
+            openTime: k[0],
+            open: parseFloat(k[1]),
+            close: parseFloat(k[4])
+          }));
+        }
+      }
+    } catch (e: any) {
+      console.warn('[BinanceWS] Error fetching 1m candles for ' + symbol + ': ' + e.message);
+    }
+    return [];
+  }
+
   public getTickerState(symbol: string): BinanceTickerState | undefined {
     return this.tickerStates.get(symbol.toUpperCase());
   }
