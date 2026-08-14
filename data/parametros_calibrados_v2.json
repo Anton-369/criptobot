@@ -1,0 +1,355 @@
+{
+  "XRPUSDT": {
+    "min_5": {
+      "beta_0": 0.060998167010075766,
+      "beta_1_racha": 0.09821943747317706,
+      "beta_2_momentum": 0.559145545761427,
+      "normalizacion_media": [
+        0.8854166666666666,
+        -0.008070887739939546
+      ],
+      "normalizacion_std": [
+        1.2258556640149707,
+        0.2985819952573463
+      ],
+      "n_folds": 884,
+      "accuracy_oos": 0.608597,
+      "logloss_oos": 0.676576
+    },
+    "min_15": {
+      "beta_0": 0.0585999294244737,
+      "beta_1_racha": 0.10736665876177882,
+      "beta_2_momentum": 1.0629601682975436,
+      "normalizacion_media": [
+        0.8854166666666666,
+        -0.005593106106694572
+      ],
+      "normalizacion_std": [
+        1.2258556640149707,
+        0.4601468439862104
+      ],
+      "n_folds": 884,
+      "accuracy_oos": 0.659502,
+      "logloss_oos": 0.62974
+    },
+    "min_30": {
+      "beta_0": 0.07015094217722073,
+      "beta_1_racha": 0.09934431006721407,
+      "beta_2_momentum": 2.1954667176147757,
+      "normalizacion_media": [
+        0.8854166666666666,
+        0.0023209838168245117
+      ],
+      "normalizacion_std": [
+        1.2258556640149707,
+        0.6388226100966792
+      ],
+      "n_folds": 884,
+      "accuracy_oos": 0.738688,
+      "logloss_oos": 0.548304
+    }
+  },
+  "SOLUSDT": {
+    "min_5": {
+      "beta_0": 0.02530992059623455,
+      "beta_1_racha": 0.10569753240290894,
+      "beta_2_momentum": 0.48849081789916493,
+      "normalizacion_media": [
+        0.9155344202898551,
+        -0.00586321334571275
+      ],
+      "normalizacion_std": [
+        1.2647225682100725,
+        0.3464939197231167
+      ],
+      "n_folds": 884,
+      "accuracy_oos": 0.584842,
+      "logloss_oos": 0.688566
+    },
+    "min_15": {
+      "beta_0": 0.02512136081182092,
+      "beta_1_racha": 0.10354454729934601,
+      "beta_2_momentum": 0.9646837492881488,
+      "normalizacion_media": [
+        0.9155344202898551,
+        -0.004351438412905917
+      ],
+      "normalizacion_std": [
+        1.2647225682100725,
+        0.5607226241817193
+      ],
+      "n_folds": 884,
+      "accuracy_oos": 0.645928,
+      "logloss_oos": 0.638281
+    },
+    "min_30": {
+      "beta_0": 0.035412454683671726,
+      "beta_1_racha": 0.10569920318877407,
+      "beta_2_momentum": 1.8276092276807259,
+      "normalizacion_media": [
+        0.9155344202898551,
+        0.002841393375712177
+      ],
+      "normalizacion_std": [
+        1.2647225682100725,
+        0.7562972404986368
+      ],
+      "n_folds": 884,
+      "accuracy_oos": 0.730769,
+      "logloss_oos": 0.548523
+    }
+  },
+  "DOGEUSDT": {
+    "min_5": {
+      "beta_0": 0.007284670469850239,
+      "beta_1_racha": 0.08361226511793879,
+      "beta_2_momentum": 0.5061204367413326,
+      "normalizacion_media": [
+        0.9377264492753623,
+        -0.01274748194770336
+      ],
+      "normalizacion_std": [
+        1.3063282059619399,
+        0.430416950350942
+      ],
+      "n_folds": 884,
+      "accuracy_oos": 0.622172,
+      "logloss_oos": 0.667277
+    },
+    "min_15": {
+      "beta_0": 0.0073916808227332135,
+      "beta_1_racha": 0.09449907911889743,
+      "beta_2_momentum": 1.0513896958255025,
+      "normalizacion_media": [
+        0.9377264492753623,
+        -0.005521386881297995
+      ],
+      "normalizacion_std": [
+        1.3063282059619399,
+        0.6491875186386297
+      ],
+      "n_folds": 884,
+      "accuracy_oos": 0.680995,
+      "logloss_oos": 0.608373
+    },
+    "min_30": {
+      "beta_0": 0.0102348693334883,
+      "beta_1_racha": 0.0902580905838246,
+      "beta_2_momentum": 1.924150989427023,
+      "normalizacion_media": [
+        0.9377264492753623,
+        -0.006077351835193729
+      ],
+      "normalizacion_std": [
+        1.3063282059619399,
+        0.8847849843212301
+      ],
+      "n_folds": 884,
+      "accuracy_oos": 0.753394,
+      "logloss_oos": 0.532289
+    }
+  },
+  "BNBUSDT": {
+    "min_5": {
+      "beta_0": 0.1099374451076631,
+      "beta_1_racha": 0.11004453853261875,
+      "beta_2_momentum": 0.46844212190706364,
+      "normalizacion_media": [
+        0.8385416666666666,
+        -0.006984287414817031
+      ],
+      "normalizacion_std": [
+        1.1751002316497556,
+        0.21967904045462142
+      ],
+      "n_folds": 884,
+      "accuracy_oos": 0.579186,
+      "logloss_oos": 0.679069
+    },
+    "min_15": {
+      "beta_0": 0.1108799367967766,
+      "beta_1_racha": 0.1048964285973325,
+      "beta_2_momentum": 1.0420148644375777,
+      "normalizacion_media": [
+        0.8385416666666666,
+        -0.004516632554060489
+      ],
+      "normalizacion_std": [
+        1.1751002316497556,
+        0.37786990140823495
+      ],
+      "n_folds": 884,
+      "accuracy_oos": 0.683258,
+      "logloss_oos": 0.613012
+    },
+    "min_30": {
+      "beta_0": 0.13323796930982065,
+      "beta_1_racha": 0.11356465687166499,
+      "beta_2_momentum": 1.9863639954734176,
+      "normalizacion_media": [
+        0.8385416666666666,
+        -0.0009256854852223129
+      ],
+      "normalizacion_std": [
+        1.1751002316497556,
+        0.5203359629199974
+      ],
+      "n_folds": 884,
+      "accuracy_oos": 0.748869,
+      "logloss_oos": 0.51891
+    }
+  },
+  "ETHUSDT": {
+    "min_5": {
+      "beta_0": 0.006194117045336595,
+      "beta_1_racha": 0.1436089456683394,
+      "beta_2_momentum": 0.4901267475067988,
+      "normalizacion_media": [
+        0.9014945652173914,
+        -0.006881399903803614
+      ],
+      "normalizacion_std": [
+        1.2280823148600064,
+        0.21699076512745621
+      ],
+      "n_folds": 884,
+      "accuracy_oos": 0.607466,
+      "logloss_oos": 0.675282
+    },
+    "min_15": {
+      "beta_0": -0.0024166403891903387,
+      "beta_1_racha": 0.1546004238055756,
+      "beta_2_momentum": 1.101954699807407,
+      "normalizacion_media": [
+        0.9014945652173914,
+        -0.007685850883739015
+      ],
+      "normalizacion_std": [
+        1.2280823148600064,
+        0.3927992683204172
+      ],
+      "n_folds": 884,
+      "accuracy_oos": 0.654977,
+      "logloss_oos": 0.624607
+    },
+    "min_30": {
+      "beta_0": -0.0028912047075926334,
+      "beta_1_racha": 0.15276468812881017,
+      "beta_2_momentum": 2.0385179163864615,
+      "normalizacion_media": [
+        0.9014945652173914,
+        -0.001271693654949208
+      ],
+      "normalizacion_std": [
+        1.2280823148600064,
+        0.523563971771327
+      ],
+      "n_folds": 884,
+      "accuracy_oos": 0.723982,
+      "logloss_oos": 0.569002
+    }
+  },
+  "BTCUSDT": {
+    "min_5": {
+      "beta_0": 0.035478348915294215,
+      "beta_1_racha": 0.12145683045246722,
+      "beta_2_momentum": 0.41066669449427823,
+      "normalizacion_media": [
+        0.8903985507246377,
+        -0.0026895169304783856
+      ],
+      "normalizacion_std": [
+        1.2063908266662866,
+        0.18541421253432488
+      ],
+      "n_folds": 884,
+      "accuracy_oos": 0.585973,
+      "logloss_oos": 0.680765
+    },
+    "min_15": {
+      "beta_0": 0.030758420610106304,
+      "beta_1_racha": 0.10177962120707194,
+      "beta_2_momentum": 0.9386967663050043,
+      "normalizacion_media": [
+        0.8903985507246377,
+        -0.0049507543096748655
+      ],
+      "normalizacion_std": [
+        1.2063908266662866,
+        0.31412304631567706
+      ],
+      "n_folds": 884,
+      "accuracy_oos": 0.649321,
+      "logloss_oos": 0.63824
+    },
+    "min_30": {
+      "beta_0": 0.028343285943334164,
+      "beta_1_racha": 0.0941637155820957,
+      "beta_2_momentum": 1.8498381623576536,
+      "normalizacion_media": [
+        0.8903985507246377,
+        0.0028713666234861544
+      ],
+      "normalizacion_std": [
+        1.2063908266662866,
+        0.4269255860555197
+      ],
+      "n_folds": 884,
+      "accuracy_oos": 0.728507,
+      "logloss_oos": 0.555829
+    }
+  },
+  "HYPEUSDT": {
+    "min_5": {
+      "beta_0": 0.03993135746580692,
+      "beta_1_racha": 0.09302056786729566,
+      "beta_2_momentum": 0.0,
+      "normalizacion_media": [
+        0.9028227672373901,
+        0.0
+      ],
+      "normalizacion_std": [
+        1.2416482270815805,
+        1.0
+      ],
+      "n_folds": 433,
+      "accuracy_oos": 0.496536,
+      "logloss_oos": 0.695817,
+      "nota": "Restringido a racha_down por falta de microestructura 1m"
+    },
+    "min_15": {
+      "beta_0": 0.03993135746580692,
+      "beta_1_racha": 0.09302056786729566,
+      "beta_2_momentum": 0.0,
+      "normalizacion_media": [
+        0.9028227672373901,
+        0.0
+      ],
+      "normalizacion_std": [
+        1.2416482270815805,
+        1.0
+      ],
+      "n_folds": 433,
+      "accuracy_oos": 0.496536,
+      "logloss_oos": 0.695817,
+      "nota": "Restringido a racha_down por falta de microestructura 1m"
+    },
+    "min_30": {
+      "beta_0": 0.03993135746580692,
+      "beta_1_racha": 0.09302056786729566,
+      "beta_2_momentum": 0.0,
+      "normalizacion_media": [
+        0.9028227672373901,
+        0.0
+      ],
+      "normalizacion_std": [
+        1.2416482270815805,
+        1.0
+      ],
+      "n_folds": 433,
+      "accuracy_oos": 0.496536,
+      "logloss_oos": 0.695817,
+      "nota": "Restringido a racha_down por falta de microestructura 1m"
+    }
+  }
+}

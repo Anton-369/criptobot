@@ -47,7 +47,7 @@ export class MomentumDetector extends EventEmitter {
     this.polyWss = new PolymarketWebsocketConnector();
     this.polyWss.connect();
 
-    const paramsPath = path.resolve(__dirname, '../../data/parametros_calibrados.json');
+    const paramsPath = path.resolve(__dirname, '../../data/parametros_calibrados_v2.json');
     this.modelRegistry = new ModelRegistry(paramsPath);
     this.riskManager = new RiskManager();
 
@@ -59,7 +59,7 @@ export class MomentumDetector extends EventEmitter {
         // Sync RiskManager state from SQLite to survive process restarts
         await this.riskManager.syncFromDatabase(this.repository);
 
-        // Start active PositionMonitor loop for Early Exit (TP $0.92 / SL $0.35)
+        // Start active PositionMonitor loop for Early Exit (TP bash.92 / SL bash.35)
         this.positionMonitor = new PositionMonitor(this.polyClob, this.repository, this.riskManager);
         this.positionMonitor.start(5000);
       })
@@ -120,17 +120,18 @@ export class MomentumDetector extends EventEmitter {
         }
       }
 
-      // Only evaluate inside the firing window around :15:01.500
-      if (minute !== 15) return;
+      // Evaluate dynamic multi-minute cut windows: Minuto 5, Minuto 15, Minuto 30
+      if (![5, 15, 30].includes(minute)) return;
 
-      const coinsToEvaluate = ['XRPUSDT', 'SOLUSDT'];
+      const coinsToEvaluate = ['XRPUSDT', 'SOLUSDT', 'DOGEUSDT', 'BNBUSDT', 'ETHUSDT', 'BTCUSDT', 'HYPEUSDT'];
 
       for (const symbol of coinsToEvaluate) {
         const baseCoin = symbol.replace('USDT', '');
-        if (this.emittedThisWindow.has(baseCoin)) continue;
+        const emitKey = `${baseCoin}_${minute}`;
+        if (this.emittedThisWindow.has(emitKey)) continue;
 
-        // 1. Model Registry Check
-        const calib = this.modelRegistry.getCalibration(symbol);
+        // 1. Model Registry Check (fetches min_5, min_15, or min_30 calibration)
+        const calib = this.modelRegistry.getCalibration(symbol, minute);
         if (!calib) {
           continue;
         }
@@ -180,20 +181,20 @@ export class MomentumDetector extends EventEmitter {
           continue;
         }
 
-        // 4. Calculate Features (racha_down 1H, delta_15m, and HYPE velocity)
-        const candleState15m = await this.binanceWs.fetch1mCandles(symbol, 15);
-        const candleValidation = DataValidator.validateBinanceCandles(candleState15m);
+        // 4. Calculate Features (racha_down 1H, spot delta for current minute cut, and HYPE velocity)
+        const candleStateMinute = await this.binanceWs.fetch1mCandles(symbol, minute);
+        const candleValidation = DataValidator.validateBinanceCandles(candleStateMinute);
         if (!candleValidation.valid) {
-          console.warn(`[MomentumDetector] ⚠️ Binance 15m Candle Validation Failed for ${symbol}: ${candleValidation.reason}`);
+          console.warn(`[MomentumDetector] ⚠️ Binance ${minute}m Candle Validation Failed for ${symbol}: ${candleValidation.reason}`);
           continue;
         }
 
-        const openPriceMin1 = candleState15m[0].open || candleState15m[0].close;
-        const currentPrice = candleState15m[candleState15m.length - 1].close;
-        const deltaSpot15m = ((currentPrice - openPriceMin1) / openPriceMin1) * 100;
+        const openPriceMin1 = candleStateMinute[0].open || candleStateMinute[0].close;
+        const currentPrice = candleStateMinute[candleStateMinute.length - 1].close;
+        const deltaSpotMinute = ((currentPrice - openPriceMin1) / openPriceMin1) * 100;
 
         // Compute HYPE Micro-Momentum Velocity
-        const hype = HypeSignalEngine.calculateHype(candleState15m);
+        const hype = HypeSignalEngine.calculateHype(candleStateMinute);
 
         // Calculate 1H racha_down (consecutive previous completed 1H candles that closed DOWN)
         const candleState1H = await this.binanceWs.fetch1HCandles(symbol, 10);
@@ -208,10 +209,10 @@ export class MomentumDetector extends EventEmitter {
           }
         }
 
-        // 5. Edge Calculator (Net Edge over best_ask)
+        // 5. Edge Calculator (Net Edge over best_ask using exact cut calibration)
         const edge = EdgeCalculator.calculateEdge(
           rachaDown,
-          deltaSpot15m,
+          deltaSpotMinute,
           calib,
           odds.upBestAsk,
           odds.downBestAsk
@@ -226,7 +227,7 @@ export class MomentumDetector extends EventEmitter {
           targetAsk,
           targetBid,
           targetAskDepth,
-          1.0 // $1 USD order size
+          1.0 //  USD order size
         );
 
         // Fetch real active exposure and active position count for this coin directly from SQLite
@@ -259,9 +260,9 @@ export class MomentumDetector extends EventEmitter {
             hour_bucket: hourBucket,
             coin: baseCoin,
             market_token_id: edge.selected_side === 'YES' ? market.upTokenId : market.downTokenId,
-            model_id: `logit_v3_phase3_${dataSource.toLowerCase()}`,
+            model_id: `logit_v3_cut_${minute}m_${dataSource.toLowerCase()}`,
             x1_raw: rachaDown,
-            x2_raw: deltaSpot15m,
+            x2_raw: deltaSpotMinute,
             x1_norm: edge.x1_norm,
             x2_norm: edge.x2_norm,
             z: edge.z,
@@ -286,25 +287,25 @@ export class MomentumDetector extends EventEmitter {
 
         // 8. Emit Signal if Edge, Liquidity, and RiskManager are Approved
         if (isFullyApproved) {
-          this.emittedThisWindow.add(baseCoin);
+          this.emittedThisWindow.add(emitKey);
 
           const opportunity: OpportunitySignal = {
             coin: baseCoin,
-            strategy: 'LOGIT_V3_NET_EDGE_WSS',
+            strategy: `LOGIT_V3_CUT_${minute}M_WSS`,
             targetSide: edge.selected_side === 'YES' ? 'UP' : 'DOWN',
             targetTokenId: edge.selected_side === 'YES' ? market.upTokenId : market.downTokenId,
             targetPrice: targetAsk,
             bulletSizeUSDC: 1.0,
-            spotDeltaPct: deltaSpot15m,
+            spotDeltaPct: deltaSpotMinute,
             cycleMinute: minute,
-            reason: `P(IA)=${(edge.p_ia * 100).toFixed(1)}% | EdgeNet=${(edge.selected_edge_net * 100).toFixed(2)}% | HYPEScore=${hype.hype_score.toFixed(2)} (${hype.direction}) | Source=${dataSource} | Ask=$${targetAsk.toFixed(3)} | Depth=$${targetAskDepth.toFixed(1)}`,
+            reason: `P(IA)=${(edge.p_ia * 100).toFixed(1)}% | EdgeNet=${(edge.selected_edge_net * 100).toFixed(2)}% | Min=${minute}m | HYPEScore=${hype.hype_score.toFixed(2)} (${hype.direction}) | Source=${dataSource} | Ask=$${targetAsk.toFixed(3)} | Depth=$${targetAskDepth.toFixed(1)}`,
             timestamp: Date.now()
           };
 
-          console.log(`[MomentumDetector] 🎯 APPROVED SIGNAL FOR ${baseCoin}: ${opportunity.reason}`);
+          console.log(`[MomentumDetector] 🎯 APPROVED SIGNAL FOR ${baseCoin} (Min ${minute}): ${opportunity.reason}`);
           this.emit('opportunity', opportunity);
         } else {
-          console.log(`[MomentumDetector] ⏸️ REJECTED SIGNAL FOR ${baseCoin}: ${rejectReason}`);
+          console.log(`[MomentumDetector] ⏸️ REJECTED SIGNAL FOR ${baseCoin} (Min ${minute}): ${rejectReason}`);
         }
       }
     } finally {
