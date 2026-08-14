@@ -221,7 +221,7 @@ export class PolymarketClobConnector {
     return odds;
   }
 
-  public async validateOrderbookLiquidity(tokenId: string, requiredShares: number, maxPrice: number = 0.45): Promise<{ isValid: boolean; bestAsk: number; depth: number; reason: string }> {
+  public async validateOrderbookLiquidity(tokenId: string, requiredShares: number, maxPrice: number = 0.95): Promise<{ isValid: boolean; bestAsk: number; depth: number; reason: string }> {
     try {
       const url = `${CONFIG.CLOB_API_URL}/book?token_id=${tokenId}`;
       const resp = await fetch(url, { signal: AbortSignal.timeout(3000) });

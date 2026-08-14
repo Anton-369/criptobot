@@ -1,20 +1,35 @@
 {
-  "calibrated_at": "2026-08-13T23:06:01.260269",
+  "calibrated_at": "2026-08-14T04:05:50.659446",
   "train_split": 0.8,
   "methodology": "Strict 100% Real 1m Microstructure Backtest (No Historical Estimations)",
   "rules_by_coin": {
-    "BTC": [],
-    "ETH": [],
-    "XRP": [],
-    "SOL": [],
-    "DOGE": [],
-    "BNB": [
+    "BTC": [
+      {
+        "rule_id": "H1_MOMENTUM_CONTINUATION",
+        "evaluation_minute": 10,
+        "trigger_delta_pct": 0.1,
+        "win_rate_train": 1.0,
+        "win_rate_test_oos": 1.0,
+        "p_value": 0.03125,
+        "confidence_interval_95": [
+          0.5655,
+          1.0
+        ],
+        "expected_value_usd": 0.6,
+        "recommended_entry_window_min": [
+          10,
+          25
+        ],
+        "max_entry_price": 0.45
+      }
+    ],
+    "ETH": [
       {
         "rule_id": "H1_MOMENTUM_CONTINUATION",
         "evaluation_minute": 10,
         "trigger_delta_pct": 0.1,
         "win_rate_train": 0.875,
-        "win_rate_test_oos": 0.5,
+        "win_rate_test_oos": 1.0,
         "p_value": 0.03515625,
         "confidence_interval_95": [
           0.5291,
@@ -28,19 +43,23 @@
         "max_entry_price": 0.45
       }
     ],
+    "XRP": [],
+    "SOL": [],
+    "DOGE": [],
+    "BNB": [],
     "HYPE": [
       {
         "rule_id": "H1_MOMENTUM_CONTINUATION",
         "evaluation_minute": 10,
         "trigger_delta_pct": 0.1,
-        "win_rate_train": 0.9412,
+        "win_rate_train": 0.95,
         "win_rate_test_oos": 1.0,
-        "p_value": 0.0001373291015625,
+        "p_value": 2.002716064453125e-05,
         "confidence_interval_95": [
-          0.7302,
-          0.9895
+          0.7639,
+          0.9911
         ],
-        "expected_value_usd": 0.5412,
+        "expected_value_usd": 0.55,
         "recommended_entry_window_min": [
           10,
           25

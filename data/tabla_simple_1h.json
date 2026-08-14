@@ -1,5 +1,70 @@
 [
   {
+    "hour": 21,
+    "timestampISO": "2026-08-14T02:00:48.767Z",
+    "btc": "UP",
+    "eth": "UP",
+    "xrp": "UP",
+    "sol": "UP",
+    "doge": "UP",
+    "bnb": "UP",
+    "hype": "DOWN",
+    "swarmConsensus": "UP",
+    "btcAltDivergence": false
+  },
+  {
+    "hour": 20,
+    "timestampISO": "2026-08-14T01:00:48.601Z",
+    "btc": "DOWN",
+    "eth": "DOWN",
+    "xrp": "UP",
+    "sol": "DOWN",
+    "doge": "DOWN",
+    "bnb": "DOWN",
+    "hype": "UP",
+    "swarmConsensus": "MIXED",
+    "btcAltDivergence": false
+  },
+  {
+    "hour": 19,
+    "timestampISO": "2026-08-14T00:00:48.476Z",
+    "btc": "UP",
+    "eth": "UP",
+    "xrp": "UP",
+    "sol": "UP",
+    "doge": "UP",
+    "bnb": "UP",
+    "hype": "UP",
+    "swarmConsensus": "UP",
+    "btcAltDivergence": false
+  },
+  {
+    "hour": 18,
+    "timestampISO": "2026-08-13T23:00:48.219Z",
+    "btc": "UP",
+    "eth": "DOWN",
+    "xrp": "DOWN",
+    "sol": "DOWN",
+    "doge": "DOWN",
+    "bnb": "UP",
+    "hype": "UP",
+    "swarmConsensus": "MIXED",
+    "btcAltDivergence": false
+  },
+  {
+    "hour": 17,
+    "timestampISO": "2026-08-13T22:00:48.098Z",
+    "btc": "UP",
+    "eth": "UP",
+    "xrp": "DOWN",
+    "sol": "UP",
+    "doge": "UP",
+    "bnb": "UP",
+    "hype": "DOWN",
+    "swarmConsensus": "MIXED",
+    "btcAltDivergence": false
+  },
+  {
     "hour": 16,
     "timestampISO": "2026-08-13T21:00:59.360Z",
     "btc": "DOWN",
@@ -36,32 +101,6 @@
     "bnb": "UP",
     "hype": "UP",
     "swarmConsensus": "UP",
-    "btcAltDivergence": false
-  },
-  {
-    "hour": 13,
-    "timestampISO": "2026-08-13T18:00:58.852Z",
-    "btc": "DOWN",
-    "eth": "DOWN",
-    "xrp": "DOWN",
-    "sol": "DOWN",
-    "doge": "DOWN",
-    "bnb": "DOWN",
-    "hype": "DOWN",
-    "swarmConsensus": "DOWN",
-    "btcAltDivergence": false
-  },
-  {
-    "hour": 12,
-    "timestampISO": "2026-08-13T17:00:58.829Z",
-    "btc": "DOWN",
-    "eth": "DOWN",
-    "xrp": "UP",
-    "sol": "DOWN",
-    "doge": "UP",
-    "bnb": "UP",
-    "hype": "DOWN",
-    "swarmConsensus": "MIXED",
     "btcAltDivergence": false
   },
   {
