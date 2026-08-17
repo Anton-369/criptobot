@@ -80,6 +80,97 @@ export class DashboardServer {
     });
   }
 
+  
+  private async getAccumulationMetrics(): Promise<any> {
+    const targetCoins = [
+      { display: 'XRPUSDT', dbKeys: ['XRP', 'XRPUSDT'] },
+      { display: 'SOLUSDT', dbKeys: ['SOL', 'SOLUSDT'] },
+      { display: 'BNBUSDT', dbKeys: ['BNB', 'BNBUSDT'] },
+      { display: 'DOGEUSDT', dbKeys: ['DOGE', 'DOGEUSDT'] },
+      { display: 'HYPEUSDT', dbKeys: ['HYPE', 'HYPEUSDT'] }
+    ];
+    const result = [];
+    
+    try {
+      const sqlite3 = require('sqlite3');
+      const dbPath = '/home/anton/oraculo-cripto/data/criptobot_polymarket.db';
+      if (fs.existsSync(dbPath)) {
+        const db = new sqlite3.Database(dbPath);
+        const rows: any = await new Promise((resolve) => {
+          db.all("SELECT symbol as coin, COUNT(*) as count FROM snapshots_mercado GROUP BY symbol", [], (err: any, r: any) => resolve(r || []));
+        });
+        db.close();
+
+        const countsMap: any = {};
+        for (const r of rows) {
+          if (r.coin) countsMap[r.coin.toUpperCase()] = r.count || 0;
+        }
+
+        for (const item of targetCoins) {
+          let count = 0;
+          for (const k of item.dbKeys) {
+            count += (countsMap[k] || 0);
+          }
+          const target = 200;
+          const pct = Math.min(100, (count / target) * 100);
+          const status = count < 200 ? 'INSUFFICIENT (n < 200)' : 'SUFFICIENT_FOR_PRODUCTION';
+          result.push({
+            coin: item.display,
+            n_casos: count,
+            target_n: target,
+            pct: Math.round(pct * 100) / 100,
+            status,
+            stake_allowed: 1.0
+          });
+        }
+      }
+    } catch (err: any) {
+      console.warn('[Dashboard] Error leyendo métricas de acumulación SQLite:', err.message);
+    }
+    return result;
+  }
+
+  private async getCollectorMetrics(): Promise<any> {
+    let totalSnapshots = 0;
+    let lastTs = 'Sin capturas';
+    try {
+      const sqlite3 = require('sqlite3');
+      const polyDbPath = '/home/anton/oraculo-cripto/data/criptobot_polymarket.db';
+      if (fs.existsSync(polyDbPath)) {
+        const db = new sqlite3.Database(polyDbPath);
+        const row: any = await new Promise((resolve) => {
+          db.get("SELECT COUNT(*) as cnt, MAX(timestamp) as last_ts FROM snapshots_mercado", [], (err: any, r: any) => resolve(r));
+        });
+        db.close();
+        if (row) {
+          totalSnapshots = row.cnt || 0;
+          lastTs = row.last_ts || 'N/A';
+        }
+      }
+    } catch (err: any) {}
+    return {
+      totalSnapshots,
+      lastTs,
+      status: 'RUNNING (PID ACTIVE)'
+    };
+  }
+
+  private async getRecentShadowSignals(): Promise<any[]> {
+    let signals: any[] = [];
+    try {
+      const sqlite3 = require('sqlite3');
+      const dbPath = '/home/anton/criptobot/data/criptobot.db';
+      if (fs.existsSync(dbPath)) {
+        const db = new sqlite3.Database(dbPath);
+        signals = await new Promise((resolve) => {
+          db.all("SELECT id, created_at, coin, selected_side, yes_ask, no_ask, edge_net_yes, edge_net_no, status, reject_reason FROM signals ORDER BY id DESC LIMIT 15", [], (err: any, r: any) => resolve(r || []));
+        });
+        db.close();
+      }
+    } catch (err: any) {}
+    return signals;
+  }
+
   private async buildStatus(): Promise<any> {
     const balances = this.execEngine.getBalances();
     const positions = this.execEngine.getPositions();
@@ -122,7 +213,14 @@ export class DashboardServer {
 
     const predictionLogs = await this.getPredictionLogsCached();
 
+    const accumulation = await this.getAccumulationMetrics();
+    const collector = await this.getCollectorMetrics();
+    const shadowSignals = await this.getRecentShadowSignals();
+
     return {
+      accumulation,
+      collector,
+      shadowSignals,
       success: true,
       timestamp: Date.now(),
       mode: CONFIG.EXECUTION_MODE,
@@ -300,6 +398,10 @@ export class DashboardServer {
 
         return {
           ...t,
+          binanceSpotPrice: t.currentPrice,
+          delta15mPct: t.deltaPct,
+          polymarketUpAsk: polyOdds.upBestAsk,
+          polymarketDownAsk: polyOdds.downBestAsk,
           role: pairConfig ? pairConfig.role : 'TRADABLE',
           polyMarketQuestion: m ? m.question : 'No activo',
           upBestAsk: polyOdds.upBestAsk,

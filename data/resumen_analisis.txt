@@ -1,0 +1,67 @@
+======================================================================
+ANALISIS DE LEAD-LAG Y REVERSION -- muestra grande (no 68 filas)
+======================================================================
+
+######################################################################
+# HIPOTESIS A: reversion tras rachas (por moneda, standalone)
+######################################################################
+
+--- XRPUSDT: reversion tras rachas DOWN ---
+  Tras 1 DOWN seguidos: siguiente fue UP en 953/1864 (51.1%) -> p=0.3423 -> no significativo (ruido probable)
+  Tras 2 DOWN seguidos: siguiente fue UP en 470/911 (51.6%) -> p=0.3536 -> no significativo (ruido probable)
+  Tras 3 DOWN seguidos: siguiente fue UP en 250/441 (56.7%) -> p=0.0057 -> SIGNIFICATIVO (p<0.05)
+  Tras 4 DOWN seguidos: siguiente fue UP en 104/191 (54.5%) -> p=0.2469 -> no significativo (ruido probable)
+
+--- SOLUSDT: reversion tras rachas DOWN ---
+  Tras 1 DOWN seguidos: siguiente fue UP en 945/1816 (52.0%) -> p=0.0867 -> no significativo (ruido probable)
+  Tras 2 DOWN seguidos: siguiente fue UP en 474/871 (54.4%) -> p=0.0100 -> SIGNIFICATIVO (p<0.05)
+  Tras 3 DOWN seguidos: siguiente fue UP en 229/397 (57.7%) -> p=0.0026 -> SIGNIFICATIVO (p<0.05)
+  Tras 4 DOWN seguidos: siguiente fue UP en 101/168 (60.1%) -> p=0.0107 -> SIGNIFICATIVO (p<0.05)
+
+--- DOGEUSDT: reversion tras rachas DOWN ---
+  Tras 1 DOWN seguidos: siguiente fue UP en 948/1833 (51.7%) -> p=0.1476 -> no significativo (ruido probable)
+  Tras 2 DOWN seguidos: siguiente fue UP en 460/885 (52.0%) -> p=0.2531 -> no significativo (ruido probable)
+  Tras 3 DOWN seguidos: siguiente fue UP en 221/425 (52.0%) -> p=0.4377 -> no significativo (ruido probable)
+  Tras 4 DOWN seguidos: siguiente fue UP en 114/204 (55.9%) -> p=0.1071 -> no significativo (ruido probable)
+
+--- BNBUSDT: reversion tras rachas DOWN ---
+  Tras 1 DOWN seguidos: siguiente fue UP en 950/1777 (53.5%) -> p=0.0038 -> SIGNIFICATIVO (p<0.05)
+  Tras 2 DOWN seguidos: siguiente fue UP en 461/827 (55.7%) -> p=0.0011 -> SIGNIFICATIVO (p<0.05)
+  Tras 3 DOWN seguidos: siguiente fue UP en 206/366 (56.3%) -> p=0.0185 -> SIGNIFICATIVO (p<0.05)
+  Tras 4 DOWN seguidos: siguiente fue UP en 90/160 (56.2%) -> p=0.1328 -> no significativo (ruido probable)
+
+######################################################################
+# HIPOTESIS B: BTC/ETH lideran a las altcoins con retraso?
+######################################################################
+
+--- Lead-lag: BTCUSDT (primeros 15min) -> XRPUSDT (resultado de la hora) ---
+  BTCUSDT primeros15min=UP -> XRPUSDT termina igual en 1157/1842 (62.8%) -> p=0.0000 -> SIGNIFICATIVO (p<0.05)
+  BTCUSDT primeros15min=DOWN -> XRPUSDT termina igual en 1180/1830 (64.5%) -> p=0.0000 -> SIGNIFICATIVO (p<0.05)
+
+--- Lead-lag: BTCUSDT (primeros 15min) -> SOLUSDT (resultado de la hora) ---
+  BTCUSDT primeros15min=UP -> SOLUSDT termina igual en 1189/1842 (64.5%) -> p=0.0000 -> SIGNIFICATIVO (p<0.05)
+  BTCUSDT primeros15min=DOWN -> SOLUSDT termina igual en 1163/1830 (63.6%) -> p=0.0000 -> SIGNIFICATIVO (p<0.05)
+
+--- Lead-lag: BTCUSDT (primeros 15min) -> DOGEUSDT (resultado de la hora) ---
+  BTCUSDT primeros15min=UP -> DOGEUSDT termina igual en 1185/1842 (64.3%) -> p=0.0000 -> SIGNIFICATIVO (p<0.05)
+  BTCUSDT primeros15min=DOWN -> DOGEUSDT termina igual en 1176/1830 (64.3%) -> p=0.0000 -> SIGNIFICATIVO (p<0.05)
+
+--- Lead-lag: BTCUSDT (primeros 15min) -> BNBUSDT (resultado de la hora) ---
+  BTCUSDT primeros15min=UP -> BNBUSDT termina igual en 1200/1842 (65.1%) -> p=0.0000 -> SIGNIFICATIVO (p<0.05)
+  BTCUSDT primeros15min=DOWN -> BNBUSDT termina igual en 1135/1830 (62.0%) -> p=0.0000 -> SIGNIFICATIVO (p<0.05)
+
+--- Lead-lag: ETHUSDT (primeros 15min) -> XRPUSDT (resultado de la hora) ---
+  ETHUSDT primeros15min=UP -> XRPUSDT termina igual en 1167/1854 (62.9%) -> p=0.0000 -> SIGNIFICATIVO (p<0.05)
+  ETHUSDT primeros15min=DOWN -> XRPUSDT termina igual en 1178/1818 (64.8%) -> p=0.0000 -> SIGNIFICATIVO (p<0.05)
+
+--- Lead-lag: ETHUSDT (primeros 15min) -> SOLUSDT (resultado de la hora) ---
+  ETHUSDT primeros15min=UP -> SOLUSDT termina igual en 1214/1854 (65.5%) -> p=0.0000 -> SIGNIFICATIVO (p<0.05)
+  ETHUSDT primeros15min=DOWN -> SOLUSDT termina igual en 1176/1818 (64.7%) -> p=0.0000 -> SIGNIFICATIVO (p<0.05)
+
+--- Lead-lag: ETHUSDT (primeros 15min) -> DOGEUSDT (resultado de la hora) ---
+  ETHUSDT primeros15min=UP -> DOGEUSDT termina igual en 1208/1854 (65.2%) -> p=0.0000 -> SIGNIFICATIVO (p<0.05)
+  ETHUSDT primeros15min=DOWN -> DOGEUSDT termina igual en 1187/1818 (65.3%) -> p=0.0000 -> SIGNIFICATIVO (p<0.05)
+
+--- Lead-lag: ETHUSDT (primeros 15min) -> BNBUSDT (resultado de la hora) ---
+  ETHUSDT primeros15min=UP -> BNBUSDT termina igual en 1214/1854 (65.5%) -> p=0.0000 -> SIGNIFICATIVO (p<0.05)
+  ETHUSDT primeros15min=DOWN -> BNBUSDT termina igual en 1137/1818 (62.5%) -> p=0.0000 -> SIGNIFICATIVO (p<0.05)

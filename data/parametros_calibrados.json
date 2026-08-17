@@ -1,5 +1,5 @@
 {
-  "calibrated_at": "2026-08-14T04:05:50.659446",
+  "calibrated_at": "2026-08-17T21:05:04.230027",
   "train_split": 0.8,
   "methodology": "Strict 100% Real 1m Microstructure Backtest (No Historical Estimations)",
   "rules_by_coin": {
@@ -8,14 +8,14 @@
         "rule_id": "H1_MOMENTUM_CONTINUATION",
         "evaluation_minute": 10,
         "trigger_delta_pct": 0.1,
-        "win_rate_train": 1.0,
+        "win_rate_train": 0.9167,
         "win_rate_test_oos": 1.0,
-        "p_value": 0.03125,
+        "p_value": 0.003173828125,
         "confidence_interval_95": [
-          0.5655,
-          1.0
+          0.6461,
+          0.9851
         ],
-        "expected_value_usd": 0.6,
+        "expected_value_usd": 0.5167,
         "recommended_entry_window_min": [
           10,
           25
@@ -28,14 +28,14 @@
         "rule_id": "H1_MOMENTUM_CONTINUATION",
         "evaluation_minute": 10,
         "trigger_delta_pct": 0.1,
-        "win_rate_train": 0.875,
-        "win_rate_test_oos": 1.0,
-        "p_value": 0.03515625,
+        "win_rate_train": 0.9231,
+        "win_rate_test_oos": 0.0,
+        "p_value": 0.001708984375,
         "confidence_interval_95": [
-          0.5291,
-          0.9776
+          0.6669,
+          0.9863
         ],
-        "expected_value_usd": 0.475,
+        "expected_value_usd": 0.5231,
         "recommended_entry_window_min": [
           10,
           25
@@ -44,7 +44,26 @@
       }
     ],
     "XRP": [],
-    "SOL": [],
+    "SOL": [
+      {
+        "rule_id": "H1_MOMENTUM_CONTINUATION",
+        "evaluation_minute": 10,
+        "trigger_delta_pct": 0.1,
+        "win_rate_train": 0.7222,
+        "win_rate_test_oos": 1.0,
+        "p_value": 0.048126220703125,
+        "confidence_interval_95": [
+          0.4913,
+          0.875
+        ],
+        "expected_value_usd": 0.3222,
+        "recommended_entry_window_min": [
+          10,
+          25
+        ],
+        "max_entry_price": 0.45
+      }
+    ],
     "DOGE": [],
     "BNB": [],
     "HYPE": [
@@ -52,14 +71,14 @@
         "rule_id": "H1_MOMENTUM_CONTINUATION",
         "evaluation_minute": 10,
         "trigger_delta_pct": 0.1,
-        "win_rate_train": 0.95,
+        "win_rate_train": 0.8649,
         "win_rate_test_oos": 1.0,
-        "p_value": 2.002716064453125e-05,
+        "p_value": 3.7137651816010475e-06,
         "confidence_interval_95": [
-          0.7639,
-          0.9911
+          0.7202,
+          0.9409
         ],
-        "expected_value_usd": 0.55,
+        "expected_value_usd": 0.4649,
         "recommended_entry_window_min": [
           10,
           25

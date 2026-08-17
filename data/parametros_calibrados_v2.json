@@ -12,9 +12,9 @@
         1.2258556640149707,
         0.2985819952573463
       ],
-      "n_folds": 884,
-      "accuracy_oos": 0.608597,
-      "logloss_oos": 0.676576
+      "n_folds": 4316,
+      "accuracy_oos": 0.58874,
+      "logloss_oos": 0.672189
     },
     "min_15": {
       "beta_0": 0.0585999294244737,
@@ -28,9 +28,9 @@
         1.2258556640149707,
         0.4601468439862104
       ],
-      "n_folds": 884,
-      "accuracy_oos": 0.659502,
-      "logloss_oos": 0.62974
+      "n_folds": 4316,
+      "accuracy_oos": 0.661029,
+      "logloss_oos": 0.629372
     },
     "min_30": {
       "beta_0": 0.07015094217722073,
@@ -44,9 +44,9 @@
         1.2258556640149707,
         0.6388226100966792
       ],
-      "n_folds": 884,
-      "accuracy_oos": 0.738688,
-      "logloss_oos": 0.548304
+      "n_folds": 4316,
+      "accuracy_oos": 0.745366,
+      "logloss_oos": 0.536398
     }
   },
   "SOLUSDT": {
@@ -62,9 +62,9 @@
         1.2647225682100725,
         0.3464939197231167
       ],
-      "n_folds": 884,
-      "accuracy_oos": 0.584842,
-      "logloss_oos": 0.688566
+      "n_folds": 4316,
+      "accuracy_oos": 0.587813,
+      "logloss_oos": 0.672305
     },
     "min_15": {
       "beta_0": 0.02512136081182092,
@@ -78,9 +78,9 @@
         1.2647225682100725,
         0.5607226241817193
       ],
-      "n_folds": 884,
-      "accuracy_oos": 0.645928,
-      "logloss_oos": 0.638281
+      "n_folds": 4316,
+      "accuracy_oos": 0.658943,
+      "logloss_oos": 0.624469
     },
     "min_30": {
       "beta_0": 0.035412454683671726,
@@ -94,9 +94,9 @@
         1.2647225682100725,
         0.7562972404986368
       ],
-      "n_folds": 884,
-      "accuracy_oos": 0.730769,
-      "logloss_oos": 0.548523
+      "n_folds": 4316,
+      "accuracy_oos": 0.746756,
+      "logloss_oos": 0.530125
     }
   },
   "DOGEUSDT": {
@@ -112,9 +112,9 @@
         1.3063282059619399,
         0.430416950350942
       ],
-      "n_folds": 884,
-      "accuracy_oos": 0.622172,
-      "logloss_oos": 0.667277
+      "n_folds": 4316,
+      "accuracy_oos": 0.598934,
+      "logloss_oos": 0.672618
     },
     "min_15": {
       "beta_0": 0.0073916808227332135,
@@ -128,9 +128,9 @@
         1.3063282059619399,
         0.6491875186386297
       ],
-      "n_folds": 884,
-      "accuracy_oos": 0.680995,
-      "logloss_oos": 0.608373
+      "n_folds": 4316,
+      "accuracy_oos": 0.679101,
+      "logloss_oos": 0.620483
     },
     "min_30": {
       "beta_0": 0.0102348693334883,
@@ -144,9 +144,9 @@
         1.3063282059619399,
         0.8847849843212301
       ],
-      "n_folds": 884,
-      "accuracy_oos": 0.753394,
-      "logloss_oos": 0.532289
+      "n_folds": 4316,
+      "accuracy_oos": 0.747915,
+      "logloss_oos": 0.537977
     }
   },
   "BNBUSDT": {
@@ -162,9 +162,9 @@
         1.1751002316497556,
         0.21967904045462142
       ],
-      "n_folds": 884,
-      "accuracy_oos": 0.579186,
-      "logloss_oos": 0.679069
+      "n_folds": 4316,
+      "accuracy_oos": 0.589435,
+      "logloss_oos": 0.670568
     },
     "min_15": {
       "beta_0": 0.1108799367967766,
@@ -178,9 +178,9 @@
         1.1751002316497556,
         0.37786990140823495
       ],
-      "n_folds": 884,
-      "accuracy_oos": 0.683258,
-      "logloss_oos": 0.613012
+      "n_folds": 4316,
+      "accuracy_oos": 0.668675,
+      "logloss_oos": 0.619121
     },
     "min_30": {
       "beta_0": 0.13323796930982065,
@@ -194,109 +194,9 @@
         1.1751002316497556,
         0.5203359629199974
       ],
-      "n_folds": 884,
-      "accuracy_oos": 0.748869,
-      "logloss_oos": 0.51891
-    }
-  },
-  "ETHUSDT": {
-    "min_5": {
-      "beta_0": 0.006194117045336595,
-      "beta_1_racha": 0.1436089456683394,
-      "beta_2_momentum": 0.4901267475067988,
-      "normalizacion_media": [
-        0.9014945652173914,
-        -0.006881399903803614
-      ],
-      "normalizacion_std": [
-        1.2280823148600064,
-        0.21699076512745621
-      ],
-      "n_folds": 884,
-      "accuracy_oos": 0.607466,
-      "logloss_oos": 0.675282
-    },
-    "min_15": {
-      "beta_0": -0.0024166403891903387,
-      "beta_1_racha": 0.1546004238055756,
-      "beta_2_momentum": 1.101954699807407,
-      "normalizacion_media": [
-        0.9014945652173914,
-        -0.007685850883739015
-      ],
-      "normalizacion_std": [
-        1.2280823148600064,
-        0.3927992683204172
-      ],
-      "n_folds": 884,
-      "accuracy_oos": 0.654977,
-      "logloss_oos": 0.624607
-    },
-    "min_30": {
-      "beta_0": -0.0028912047075926334,
-      "beta_1_racha": 0.15276468812881017,
-      "beta_2_momentum": 2.0385179163864615,
-      "normalizacion_media": [
-        0.9014945652173914,
-        -0.001271693654949208
-      ],
-      "normalizacion_std": [
-        1.2280823148600064,
-        0.523563971771327
-      ],
-      "n_folds": 884,
-      "accuracy_oos": 0.723982,
-      "logloss_oos": 0.569002
-    }
-  },
-  "BTCUSDT": {
-    "min_5": {
-      "beta_0": 0.035478348915294215,
-      "beta_1_racha": 0.12145683045246722,
-      "beta_2_momentum": 0.41066669449427823,
-      "normalizacion_media": [
-        0.8903985507246377,
-        -0.0026895169304783856
-      ],
-      "normalizacion_std": [
-        1.2063908266662866,
-        0.18541421253432488
-      ],
-      "n_folds": 884,
-      "accuracy_oos": 0.585973,
-      "logloss_oos": 0.680765
-    },
-    "min_15": {
-      "beta_0": 0.030758420610106304,
-      "beta_1_racha": 0.10177962120707194,
-      "beta_2_momentum": 0.9386967663050043,
-      "normalizacion_media": [
-        0.8903985507246377,
-        -0.0049507543096748655
-      ],
-      "normalizacion_std": [
-        1.2063908266662866,
-        0.31412304631567706
-      ],
-      "n_folds": 884,
-      "accuracy_oos": 0.649321,
-      "logloss_oos": 0.63824
-    },
-    "min_30": {
-      "beta_0": 0.028343285943334164,
-      "beta_1_racha": 0.0941637155820957,
-      "beta_2_momentum": 1.8498381623576536,
-      "normalizacion_media": [
-        0.8903985507246377,
-        0.0028713666234861544
-      ],
-      "normalizacion_std": [
-        1.2063908266662866,
-        0.4269255860555197
-      ],
-      "n_folds": 884,
-      "accuracy_oos": 0.728507,
-      "logloss_oos": 0.555829
+      "n_folds": 4316,
+      "accuracy_oos": 0.743744,
+      "logloss_oos": 0.532886
     }
   },
   "HYPEUSDT": {
@@ -312,9 +212,9 @@
         1.2416482270815805,
         1.0
       ],
-      "n_folds": 433,
-      "accuracy_oos": 0.496536,
-      "logloss_oos": 0.695817,
+      "n_folds": 2061,
+      "accuracy_oos": 0.517225,
+      "logloss_oos": 0.693837,
       "nota": "Restringido a racha_down por falta de microestructura 1m"
     },
     "min_15": {
@@ -329,9 +229,9 @@
         1.2416482270815805,
         1.0
       ],
-      "n_folds": 433,
-      "accuracy_oos": 0.496536,
-      "logloss_oos": 0.695817,
+      "n_folds": 2061,
+      "accuracy_oos": 0.517225,
+      "logloss_oos": 0.693837,
       "nota": "Restringido a racha_down por falta de microestructura 1m"
     },
     "min_30": {
@@ -346,9 +246,9 @@
         1.2416482270815805,
         1.0
       ],
-      "n_folds": 433,
-      "accuracy_oos": 0.496536,
-      "logloss_oos": 0.695817,
+      "n_folds": 2061,
+      "accuracy_oos": 0.517225,
+      "logloss_oos": 0.693837,
       "nota": "Restringido a racha_down por falta de microestructura 1m"
     }
   }

@@ -268,7 +268,7 @@ async function main() {
   }, 10000);
 
   // 10. Start Real-time Web Control Dashboard
-  const dashboard = new DashboardServer(binanceWs, polyClob, execEngine, 8506, matrixCollector, detector);
+  const dashboard = new DashboardServer(binanceWs, polyClob, execEngine, 8588, matrixCollector, detector);
   dashboard.start();
 
   console.log("\n🚀 Criptobot v3.0 funcionando en segundo plano. Motor IA + Recolección SQLite 24/7 activos.");

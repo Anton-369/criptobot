@@ -18,7 +18,7 @@ export class ModelRegistry {
   private rawData: any = null;
   private isV2Manifest: boolean = false;
   private activeCoins: Set<string> = new Set([
-    'XRPUSDT', 'SOLUSDT', 'DOGEUSDT', 'BNBUSDT', 'ETHUSDT', 'BTCUSDT', 'HYPEUSDT'
+    'XRPUSDT', 'SOLUSDT', 'DOGEUSDT', 'BNBUSDT', 'HYPEUSDT'
   ]);
 
   constructor(private paramsPath: string) {

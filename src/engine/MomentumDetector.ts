@@ -123,7 +123,7 @@ export class MomentumDetector extends EventEmitter {
       // Evaluate dynamic multi-minute cut windows: Minuto 5, Minuto 15, Minuto 30
       if (![5, 15, 30].includes(minute)) return;
 
-      const coinsToEvaluate = ['XRPUSDT', 'SOLUSDT', 'DOGEUSDT', 'BNBUSDT', 'ETHUSDT', 'BTCUSDT', 'HYPEUSDT'];
+      const coinsToEvaluate = ['XRPUSDT', 'SOLUSDT', 'DOGEUSDT', 'BNBUSDT', 'HYPEUSDT'];
 
       for (const symbol of coinsToEvaluate) {
         const baseCoin = symbol.replace('USDT', '');

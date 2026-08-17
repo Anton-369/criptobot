@@ -1,0 +1,69 @@
+{
+  "XRPUSDT": {
+    "moneda": "XRP",
+    "ventana_inicio_minuto": 5,
+    "ventana_fin_minuto": 25,
+    "corte_primario": "min_15",
+    "min_net_edge": 0.03,
+    "max_spread_allowed": 0.035,
+    "rango_ask_optimo": [
+      0.15,
+      0.48
+    ],
+    "justificacion": "Alta liquidez temprana en minutos 5-25; captura de Rebote El\u00e1stico."
+  },
+  "SOLUSDT": {
+    "moneda": "SOL",
+    "ventana_inicio_minuto": 5,
+    "ventana_fin_minuto": 30,
+    "corte_primario": "min_15",
+    "corte_secundario": "min_30",
+    "min_net_edge": 0.03,
+    "max_spread_allowed": 0.035,
+    "rango_ask_optimo": [
+      0.15,
+      0.45
+    ],
+    "justificacion": "Inercia de alta beta en la primera media hora; \u00f3ptima respuesta a momentum."
+  },
+  "DOGEUSDT": {
+    "moneda": "DOGE",
+    "ventana_inicio_minuto": 15,
+    "ventana_fin_minuto": 35,
+    "corte_primario": "min_30",
+    "min_net_edge": 0.03,
+    "max_spread_allowed": 0.035,
+    "rango_ask_optimo": [
+      0.15,
+      0.45
+    ],
+    "justificacion": "Volatilidad meme acumulada desde el min 15; \u00f3ptimo acierto en min_30."
+  },
+  "BNBUSDT": {
+    "moneda": "BNB",
+    "ventana_inicio_minuto": 5,
+    "ventana_fin_minuto": 20,
+    "corte_primario": "min_15",
+    "min_net_edge": 0.03,
+    "max_spread_allowed": 0.035,
+    "rango_ask_optimo": [
+      0.15,
+      0.48
+    ],
+    "justificacion": "Apertura r\u00e1pida y spreads estrechos en minutos 5-20."
+  },
+  "HYPEUSDT": {
+    "moneda": "HYPE",
+    "ventana_inicio_minuto": 5,
+    "ventana_fin_minuto": 30,
+    "corte_primario": "min_15",
+    "corte_secundario": "min_30",
+    "min_net_edge": 0.03,
+    "max_spread_allowed": 0.035,
+    "rango_ask_optimo": [
+      0.15,
+      0.45
+    ],
+    "justificacion": "Arbitraje h\u00edbrido DEX/Polymarket en los cortes 15m y 30m."
+  }
+}

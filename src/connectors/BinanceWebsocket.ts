@@ -214,6 +214,34 @@ export class BinanceWebsocketEngine extends EventEmitter {
 
   
   public async fetch1mCandles(symbol: string, limit: number = 15): Promise<{ open: number; close: number; openTime: number }[]> {
+    if (symbol.toUpperCase().includes('HYPE')) {
+      try {
+        const nowMs = Date.now();
+        const startMs = nowMs - ((limit + 5) * 60 * 1000);
+        const resp = await fetch('https://api.hyperliquid.xyz/info', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'candleSnapshot',
+            req: { coin: 'HYPE', interval: '1m', startTime: startMs, endTime: nowMs }
+          })
+        });
+        if (resp.ok) {
+          const klines: any = await resp.json();
+          if (Array.isArray(klines)) {
+            const candles = klines.map((k: any) => ({
+              openTime: k.t,
+              open: parseFloat(k.o),
+              close: parseFloat(k.c)
+            }));
+            return candles.slice(-limit);
+          }
+        }
+      } catch (e: any) {
+        console.warn('[BinanceWS/HL] Error fetching 1m candles for HYPE: ' + e.message);
+      }
+      return [];
+    }
     try {
       const resp = await fetch('https://api.binance.com/api/v3/klines?symbol=' + symbol.toUpperCase() + '&interval=1m&limit=' + limit);
       if (resp.ok) {
@@ -234,6 +262,34 @@ export class BinanceWebsocketEngine extends EventEmitter {
 
   
   public async fetch1HCandles(symbol: string, limit: number = 10): Promise<{ open: number; close: number; openTime: number }[]> {
+    if (symbol.toUpperCase().includes('HYPE')) {
+      try {
+        const nowMs = Date.now();
+        const startMs = nowMs - ((limit + 2) * 3600 * 1000);
+        const resp = await fetch('https://api.hyperliquid.xyz/info', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'candleSnapshot',
+            req: { coin: 'HYPE', interval: '1h', startTime: startMs, endTime: nowMs }
+          })
+        });
+        if (resp.ok) {
+          const klines: any = await resp.json();
+          if (Array.isArray(klines)) {
+            const candles = klines.map((k: any) => ({
+              openTime: k.t,
+              open: parseFloat(k.o),
+              close: parseFloat(k.c)
+            }));
+            return candles.slice(-limit);
+          }
+        }
+      } catch (e: any) {
+        console.warn('[BinanceWS/HL] Error fetching 1h candles for HYPE: ' + e.message);
+      }
+      return [];
+    }
     try {
       const resp = await fetch('https://api.binance.com/api/v3/klines?symbol=' + symbol.toUpperCase() + '&interval=1h&limit=' + limit);
       if (resp.ok) {
