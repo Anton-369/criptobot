@@ -65,7 +65,7 @@ export class DashboardBridgeV4 {
       const askUP = HFTSharedState.getPolyAsk(coin, 'UP');
       const askDOWN = HFTSharedState.getPolyAsk(coin, 'DOWN');
 
-      const rules = CALIBRATED_RULES[coin];
+      const rules = (CALIBRATED_RULES as any)[coin];
 
       matrix[coin] = {
         spotPrice,

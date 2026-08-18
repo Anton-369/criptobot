@@ -1,5 +1,18 @@
 [
   {
+    "hour": 1,
+    "timestampISO": "2026-08-18T06:00:05.862Z",
+    "btc": "DOWN",
+    "eth": "DOWN",
+    "xrp": "UP",
+    "sol": "DOWN",
+    "doge": "DOWN",
+    "bnb": "UP",
+    "hype": "DOWN",
+    "swarmConsensus": "MIXED",
+    "btcAltDivergence": false
+  },
+  {
     "hour": 0,
     "timestampISO": "2026-08-18T05:00:02.357Z",
     "btc": "UP",
@@ -49,19 +62,6 @@
     "bnb": "UP",
     "hype": "DOWN",
     "swarmConsensus": "DOWN",
-    "btcAltDivergence": false
-  },
-  {
-    "hour": 1,
-    "timestampISO": "2026-08-18T06:00:05.862Z",
-    "btc": "DOWN",
-    "eth": "DOWN",
-    "xrp": "UP",
-    "sol": "DOWN",
-    "doge": "DOWN",
-    "bnb": "UP",
-    "hype": "DOWN",
-    "swarmConsensus": "MIXED",
     "btcAltDivergence": false
   },
   {
