@@ -30,36 +30,41 @@ export const APPROVED_V4_RULES: ApprovedRule[] = [
   // === 1. SOLANA (SOL) ===
   { id: 1,  coin: 'SOL', tf: '1H',  side: 'UP',   deltaTrigger: 0.80,  score: 0.596, takeProfit: 0.90, stopLoss: 0.45, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
   { id: 2,  coin: 'SOL', tf: '1H',  side: 'DOWN', deltaTrigger: -0.80, score: 0.614, takeProfit: 0.90, stopLoss: 0.45, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
-  { id: 11, coin: 'SOL', tf: '15M', side: 'UP',   deltaTrigger: 0.40,  score: 0.561, takeProfit: 0.82, stopLoss: 0.46, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
+  { id: 11, coin: 'SOL', tf: '15M', side: 'UP',   deltaTrigger: 0.28,  score: 0.561, takeProfit: 0.82, stopLoss: 0.46, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
   { id: 12, coin: 'SOL', tf: '15M', side: 'DOWN', deltaTrigger: -0.40, score: 0.604, takeProfit: 0.82, stopLoss: 0.46, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
-  { id: 21, coin: 'SOL', tf: '5M',  side: 'UP',   deltaTrigger: 0.20,  score: 0.556, takeProfit: 0.78, stopLoss: 0.47, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
+  { id: 21, coin: 'SOL', tf: '5M',  side: 'UP',   deltaTrigger: 0.14,  score: 0.556, takeProfit: 0.78, stopLoss: 0.47, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
   { id: 22, coin: 'SOL', tf: '5M',  side: 'DOWN', deltaTrigger: -0.20, score: 0.617, takeProfit: 0.78, stopLoss: 0.47, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
 
   // === 2. RIPPLE (XRP) ===
   { id: 3,  coin: 'XRP', tf: '1H',  side: 'UP',   deltaTrigger: 0.60,  score: 0.567, takeProfit: 0.88, stopLoss: 0.47, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
   { id: 4,  coin: 'XRP', tf: '1H',  side: 'DOWN', deltaTrigger: -0.60, score: 0.576, takeProfit: 0.88, stopLoss: 0.47, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
   { id: 13, coin: 'XRP', tf: '15M', side: 'UP',   deltaTrigger: 0.35,  score: 0.573, takeProfit: 0.80, stopLoss: 0.48, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
-  { id: 14, coin: 'XRP', tf: '15M', side: 'DOWN', deltaTrigger: -0.35, score: 0.564, takeProfit: 0.80, stopLoss: 0.48, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
-  { id: 23, coin: 'XRP', tf: '5M',  side: 'UP',   deltaTrigger: 0.18,  score: 0.557, takeProfit: 0.75, stopLoss: 0.48, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
+  { id: 14, coin: 'XRP', tf: '15M', side: 'DOWN', deltaTrigger: -0.25, score: 0.564, takeProfit: 0.80, stopLoss: 0.48, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
+  { id: 23, coin: 'XRP', tf: '5M',  side: 'UP',   deltaTrigger: 0.12,  score: 0.557, takeProfit: 0.75, stopLoss: 0.48, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
   { id: 24, coin: 'XRP', tf: '5M',  side: 'DOWN', deltaTrigger: -0.18, score: 0.561, takeProfit: 0.75, stopLoss: 0.48, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
 
   // === 3. DOGECOIN (DOGE) ===
+  { id: 5,  coin: 'DOGE', tf: '1H',  side: 'UP',   deltaTrigger: 1.00,  score: 0.580, takeProfit: 0.90, stopLoss: 0.45, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
   { id: 6,  coin: 'DOGE', tf: '1H',  side: 'DOWN', deltaTrigger: -1.00, score: 0.654, takeProfit: 0.92, stopLoss: 0.43, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
   { id: 15, coin: 'DOGE', tf: '15M', side: 'UP',   deltaTrigger: 0.50,  score: 0.586, takeProfit: 0.85, stopLoss: 0.45, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
-  { id: 25, coin: 'DOGE', tf: '5M',  side: 'UP',   deltaTrigger: 0.25,  score: 0.602, takeProfit: 0.80, stopLoss: 0.46, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
+  { id: 16, coin: 'DOGE', tf: '15M', side: 'DOWN', deltaTrigger: -0.50, score: 0.610, takeProfit: 0.85, stopLoss: 0.45, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
+  { id: 25, coin: 'DOGE', tf: '5M',  side: 'UP',   deltaTrigger: 0.16,  score: 0.602, takeProfit: 0.80, stopLoss: 0.46, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
   { id: 26, coin: 'DOGE', tf: '5M',  side: 'DOWN', deltaTrigger: -0.25, score: 0.624, takeProfit: 0.80, stopLoss: 0.46, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
 
   // === 4. BINANCE COIN (BNB) ===
   { id: 7,  coin: 'BNB', tf: '1H',  side: 'UP',   deltaTrigger: 0.50,  score: 0.567, takeProfit: 0.85, stopLoss: 0.48, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
   { id: 8,  coin: 'BNB', tf: '1H',  side: 'DOWN', deltaTrigger: -0.50, score: 0.583, takeProfit: 0.85, stopLoss: 0.48, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
+  { id: 17, coin: 'BNB', tf: '15M', side: 'UP',   deltaTrigger: 0.30,  score: 0.560, takeProfit: 0.78, stopLoss: 0.49, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
   { id: 18, coin: 'BNB', tf: '15M', side: 'DOWN', deltaTrigger: -0.30, score: 0.571, takeProfit: 0.78, stopLoss: 0.49, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
-  { id: 27, coin: 'BNB', tf: '5M',  side: 'UP',   deltaTrigger: 0.15,  score: 0.543, takeProfit: 0.72, stopLoss: 0.50, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
+  { id: 27, coin: 'BNB', tf: '5M',  side: 'UP',   deltaTrigger: 0.10,  score: 0.543, takeProfit: 0.72, stopLoss: 0.50, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
   { id: 28, coin: 'BNB', tf: '5M',  side: 'DOWN', deltaTrigger: -0.15, score: 0.553, takeProfit: 0.72, stopLoss: 0.50, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
 
   // === 5. HYPERLIQUID (HYPE) ===
   { id: 9,  coin: 'HYPE', tf: '1H',  side: 'UP',   deltaTrigger: 0.60,  score: 0.650, takeProfit: 0.88, stopLoss: 0.45, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
   { id: 10, coin: 'HYPE', tf: '1H',  side: 'DOWN', deltaTrigger: -0.80, score: 0.658, takeProfit: 0.88, stopLoss: 0.45, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
-  { id: 20, coin: 'HYPE', tf: '15M', side: 'DOWN', deltaTrigger: -0.50, score: 0.644, takeProfit: 0.82, stopLoss: 0.46, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
+  { id: 19, coin: 'HYPE', tf: '15M', side: 'UP',   deltaTrigger: 0.40,  score: 0.630, takeProfit: 0.82, stopLoss: 0.46, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
+  { id: 20, coin: 'HYPE', tf: '15M', side: 'DOWN', deltaTrigger: -0.45, score: 0.644, takeProfit: 0.82, stopLoss: 0.46, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
+  { id: 29, coin: 'HYPE', tf: '5M',  side: 'UP',   deltaTrigger: 0.20,  score: 0.620, takeProfit: 0.80, stopLoss: 0.46, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 },
   { id: 30, coin: 'HYPE', tf: '5M',  side: 'DOWN', deltaTrigger: -0.30, score: 0.631, takeProfit: 0.80, stopLoss: 0.46, minAsk: 0.50, maxAsk: 0.65, min5MFilter: 0.00, tradeCount: 0, winsCount: 0 }
 ];
 
