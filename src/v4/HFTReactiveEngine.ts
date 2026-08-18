@@ -8,35 +8,50 @@ export interface ApprovedRule {
   tf: '1H' | '15M' | '5M';
   side: 'UP' | 'DOWN';
   deltaTrigger: number;
-  score: number;        // Probabilidad Win Rate Out-of-Sample (Score)
-  takeProfit: number;   // Escalado por volatilidad
-  stopLoss: number;     // Escalado por volatilidad
-  min5MFilter: number;  // Filtro de aceleracion 5M
+  score: number;        // Win Rate Out-of-Sample con TP/SL por Mercado
+  takeProfit: number;   // TP especifico por Mercado
+  stopLoss: number;     // SL especifico por Mercado
+  min5MFilter: number;  // Filtro 5M
 }
 
 /**
- * 🏆 LAS 12 REGLAS DE ORO RE-AUDITADAS CON CRITERIO UNIFORME DE UNA COLA (Z >= 1.645, N >= 30)
+ * 🏆 LAS 25 REGLAS APROBADAS POR MERCADO (5M, 15M, 1H) AUDITADAS CON Z >= 1.645 Y N >= 30
  */
 export const APPROVED_V4_RULES: ApprovedRule[] = [
   // 1. SOL
   { id: 1,  coin: 'SOL', tf: '1H',  side: 'UP',   deltaTrigger: 0.80,  score: 0.596, takeProfit: 0.90, stopLoss: 0.45, min5MFilter: 0.00 },
   { id: 2,  coin: 'SOL', tf: '1H',  side: 'DOWN', deltaTrigger: -0.80, score: 0.614, takeProfit: 0.90, stopLoss: 0.45, min5MFilter: 0.00 },
-  { id: 12, coin: 'SOL', tf: '15M', side: 'DOWN', deltaTrigger: -0.40, score: 0.588, takeProfit: 0.90, stopLoss: 0.45, min5MFilter: -0.10 },
-  { id: 22, coin: 'SOL', tf: '5M',  side: 'DOWN', deltaTrigger: -0.20, score: 0.590, takeProfit: 0.90, stopLoss: 0.45, min5MFilter: -0.20 },
+  { id: 11, coin: 'SOL', tf: '15M', side: 'UP',   deltaTrigger: 0.40,  score: 0.561, takeProfit: 0.82, stopLoss: 0.46, min5MFilter: 0.10 },
+  { id: 12, coin: 'SOL', tf: '15M', side: 'DOWN', deltaTrigger: -0.40, score: 0.604, takeProfit: 0.82, stopLoss: 0.46, min5MFilter: -0.10 },
+  { id: 21, coin: 'SOL', tf: '5M',  side: 'UP',   deltaTrigger: 0.20,  score: 0.556, takeProfit: 0.78, stopLoss: 0.47, min5MFilter: 0.20 },
+  { id: 22, coin: 'SOL', tf: '5M',  side: 'DOWN', deltaTrigger: -0.20, score: 0.617, takeProfit: 0.78, stopLoss: 0.47, min5MFilter: -0.20 },
 
   // 2. XRP
   { id: 3,  coin: 'XRP', tf: '1H',  side: 'UP',   deltaTrigger: 0.60,  score: 0.567, takeProfit: 0.88, stopLoss: 0.47, min5MFilter: 0.00 },
   { id: 4,  coin: 'XRP', tf: '1H',  side: 'DOWN', deltaTrigger: -0.60, score: 0.576, takeProfit: 0.88, stopLoss: 0.47, min5MFilter: 0.00 },
+  { id: 13, coin: 'XRP', tf: '15M', side: 'UP',   deltaTrigger: 0.35,  score: 0.573, takeProfit: 0.80, stopLoss: 0.48, min5MFilter: 0.10 },
+  { id: 14, coin: 'XRP', tf: '15M', side: 'DOWN', deltaTrigger: -0.35, score: 0.564, takeProfit: 0.80, stopLoss: 0.48, min5MFilter: -0.10 },
+  { id: 23, coin: 'XRP', tf: '5M',  side: 'UP',   deltaTrigger: 0.18,  score: 0.557, takeProfit: 0.75, stopLoss: 0.48, min5MFilter: 0.18 },
+  { id: 24, coin: 'XRP', tf: '5M',  side: 'DOWN', deltaTrigger: -0.18, score: 0.561, takeProfit: 0.75, stopLoss: 0.48, min5MFilter: -0.18 },
 
   // 3. DOGE
   { id: 6,  coin: 'DOGE', tf: '1H',  side: 'DOWN', deltaTrigger: -1.00, score: 0.654, takeProfit: 0.92, stopLoss: 0.43, min5MFilter: 0.00 },
-  { id: 15, coin: 'DOGE', tf: '15M', side: 'UP',   deltaTrigger: 0.50,  score: 0.571, takeProfit: 0.92, stopLoss: 0.43, min5MFilter: 0.10 },
-  { id: 25, coin: 'DOGE', tf: '5M',  side: 'UP',   deltaTrigger: 0.25,  score: 0.583, takeProfit: 0.92, stopLoss: 0.43, min5MFilter: 0.25 },
-  { id: 26, coin: 'DOGE', tf: '5M',  side: 'DOWN', deltaTrigger: -0.25, score: 0.600, takeProfit: 0.92, stopLoss: 0.43, min5MFilter: -0.25 },
+  { id: 15, coin: 'DOGE', tf: '15M', side: 'UP',   deltaTrigger: 0.50,  score: 0.586, takeProfit: 0.85, stopLoss: 0.45, min5MFilter: 0.10 },
+  { id: 25, coin: 'DOGE', tf: '5M',  side: 'UP',   deltaTrigger: 0.25,  score: 0.602, takeProfit: 0.80, stopLoss: 0.46, min5MFilter: 0.25 },
+  { id: 26, coin: 'DOGE', tf: '5M',  side: 'DOWN', deltaTrigger: -0.25, score: 0.624, takeProfit: 0.80, stopLoss: 0.46, min5MFilter: -0.25 },
 
   // 4. BNB
   { id: 7,  coin: 'BNB', tf: '1H',  side: 'UP',   deltaTrigger: 0.50,  score: 0.567, takeProfit: 0.85, stopLoss: 0.48, min5MFilter: 0.00 },
-  { id: 8,  coin: 'BNB', tf: '1H',  side: 'DOWN', deltaTrigger: -0.50, score: 0.583, takeProfit: 0.85, stopLoss: 0.48, min5MFilter: 0.00 }
+  { id: 8,  coin: 'BNB', tf: '1H',  side: 'DOWN', deltaTrigger: -0.50, score: 0.583, takeProfit: 0.85, stopLoss: 0.48, min5MFilter: 0.00 },
+  { id: 18, coin: 'BNB', tf: '15M', side: 'DOWN', deltaTrigger: -0.30, score: 0.571, takeProfit: 0.78, stopLoss: 0.49, min5MFilter: -0.10 },
+  { id: 27, coin: 'BNB', tf: '5M',  side: 'UP',   deltaTrigger: 0.15,  score: 0.543, takeProfit: 0.72, stopLoss: 0.50, min5MFilter: 0.15 },
+  { id: 28, coin: 'BNB', tf: '5M',  side: 'DOWN', deltaTrigger: -0.15, score: 0.553, takeProfit: 0.72, stopLoss: 0.50, min5MFilter: -0.15 },
+
+  // 5. HYPE
+  { id: 9,  coin: 'HYPE', tf: '1H',  side: 'UP',   deltaTrigger: 0.60,  score: 0.650, takeProfit: 0.88, stopLoss: 0.45, min5MFilter: 0.00 },
+  { id: 10, coin: 'HYPE', tf: '1H',  side: 'DOWN', deltaTrigger: -0.80, score: 0.658, takeProfit: 0.88, stopLoss: 0.45, min5MFilter: 0.00 },
+  { id: 20, coin: 'HYPE', tf: '15M', side: 'DOWN', deltaTrigger: -0.50, score: 0.644, takeProfit: 0.82, stopLoss: 0.46, min5MFilter: -0.10 },
+  { id: 30, coin: 'HYPE', tf: '5M',  side: 'DOWN', deltaTrigger: -0.30, score: 0.631, takeProfit: 0.80, stopLoss: 0.46, min5MFilter: -0.20 }
 ];
 
 export const CALIBRATED_RULES = APPROVED_V4_RULES;
@@ -49,7 +64,7 @@ export class HFTReactiveEngine {
 
   constructor(private orderbook: LocalOrderbookManager) {
     this.signer = new PolymarketFastSigner();
-    console.log('[HFTEngine] 🚀 Motor V4 inicializado con 12 Reglas de Oro y Filtro de Edge Real (Score - Price >= 0.04).');
+    console.log('[HFTEngine] 🚀 Motor V4 inicializado con 25 REGLAS APROBADAS POR MERCADO y Filtro Net Edge (Score - Ask >= 0.04).');
   }
 
   public evaluateTick(coin: string): void {
@@ -78,12 +93,8 @@ export class HFTReactiveEngine {
       if (delta5M >= rule.min5MFilter) {
         const askUP = HFTSharedState.getPolyAsk(coin, 'UP');
         if (askUP > 0 && askUP <= 0.60) {
-          // 🎯 FILTRO 2: EDGE REAL (Score - Precio Pagado >= 0.04)
           const netEdge = rule.score - askUP;
-          if (netEdge < this.minNetEdge) {
-            // Edge insuficiente frente al ask de Polymarket
-            return;
-          }
+          if (netEdge < this.minNetEdge) return;
 
           this.lastTriggerTimes.set(key, now);
           console.log('[HFTEngine] ⚡ DISPARO FOK (EDGE VALIDAD0): ' + coin + ' ' + rule.tf + ' UP | Delta: ' + currentDelta.toFixed(2) + '% | Score: ' + (rule.score*100).toFixed(1) + '% | Ask: $' + askUP.toFixed(3) + ' | Net Edge: +' + (netEdge*100).toFixed(1) + '% | TP: $' + rule.takeProfit + ' | SL: $' + rule.stopLoss);
@@ -101,12 +112,8 @@ export class HFTReactiveEngine {
       if (delta5M <= rule.min5MFilter) {
         const askDOWN = HFTSharedState.getPolyAsk(coin, 'DOWN');
         if (askDOWN > 0 && askDOWN <= 0.60) {
-          // 🎯 FILTRO 2: EDGE REAL (Score - Precio Pagado >= 0.04)
           const netEdge = rule.score - askDOWN;
-          if (netEdge < this.minNetEdge) {
-            // Edge insuficiente frente al ask de Polymarket
-            return;
-          }
+          if (netEdge < this.minNetEdge) return;
 
           this.lastTriggerTimes.set(key, now);
           console.log('[HFTEngine] ⚡ DISPARO FOK (EDGE VALIDAD0): ' + coin + ' ' + rule.tf + ' DOWN | Delta: ' + currentDelta.toFixed(2) + '% | Score: ' + (rule.score*100).toFixed(1) + '% | Ask: $' + askDOWN.toFixed(3) + ' | Net Edge: +' + (netEdge*100).toFixed(1) + '% | TP: $' + rule.takeProfit + ' | SL: $' + rule.stopLoss);
