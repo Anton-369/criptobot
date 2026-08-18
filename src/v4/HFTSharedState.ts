@@ -1,25 +1,10 @@
-/**
- * ⚡ HFT SHARED STATE MANAGER (ZERO-GC TYPED ARRAYS)
- * Arquitectura Híbrida V4 - Memoria Contigua en RAM con compilación JIT O(1)
- * 
- * Sin alias 'self' ni variables intermedias. Acceso estático directo a la RAM.
- */
 
-export const ASSET_MAP: Record<string, number> = {
-  'SOL': 0,
-  'XRP': 1,
-  'DOGE': 2,
-  'BNB': 3,
-  'HYPE': 4
-};
 
 export const REVERSE_ASSET_MAP: string[] = ['SOL', 'XRP', 'DOGE', 'BNB', 'HYPE'];
+export const ASSET_MAP: Record<string, number> = { 'SOL': 0, 'XRP': 1, 'DOGE': 2, 'BNB': 3, 'HYPE': 4 };
 
 const NUM_ASSETS = 5;
-
-// Buffer de memoria contigua en RAM
-// Layout: Prices (0..4), Opens1H (5..9), Opens15M (10..14), Opens5M (15..19), AsksUP (20..24), AsksDOWN (25..29)
-const TOTAL_SLOTS = 6;
+const TOTAL_SLOTS = 10; // Prices, Opens(1H,15M,5M), Asks(1H_UP,1H_DN,15M_UP,15M_DN,5M_UP,5M_DN)
 const memoryBuffer = new ArrayBuffer(NUM_ASSETS * TOTAL_SLOTS * Float64Array.BYTES_PER_ELEMENT);
 
 export class HFTSharedState {
@@ -27,10 +12,15 @@ export class HFTSharedState {
   private static opens1H = new Float64Array(memoryBuffer, NUM_ASSETS * 8, NUM_ASSETS);
   private static opens15M = new Float64Array(memoryBuffer, NUM_ASSETS * 16, NUM_ASSETS);
   private static opens5M = new Float64Array(memoryBuffer, NUM_ASSETS * 24, NUM_ASSETS);
-  private static polyAsksUP = new Float64Array(memoryBuffer, NUM_ASSETS * 32, NUM_ASSETS);
-  private static polyAsksDOWN = new Float64Array(memoryBuffer, NUM_ASSETS * 40, NUM_ASSETS);
 
-  // Actualización instantánea con Klines nativas de Binance
+  // Dedicated Ask prices per timeframe (1H, 15M, 5M) to prevent memory corruption
+  private static asks1H_UP = new Float64Array(memoryBuffer, NUM_ASSETS * 32, NUM_ASSETS);
+  private static asks1H_DN = new Float64Array(memoryBuffer, NUM_ASSETS * 40, NUM_ASSETS);
+  private static asks15M_UP = new Float64Array(memoryBuffer, NUM_ASSETS * 48, NUM_ASSETS);
+  private static asks15M_DN = new Float64Array(memoryBuffer, NUM_ASSETS * 56, NUM_ASSETS);
+  private static asks5M_UP = new Float64Array(memoryBuffer, NUM_ASSETS * 64, NUM_ASSETS);
+  private static asks5M_DN = new Float64Array(memoryBuffer, NUM_ASSETS * 72, NUM_ASSETS);
+
   public static updateNativeKline(coin: string, interval: string, openPrice: number, currentPrice: number): void {
     const idx = ASSET_MAP[coin];
     if (idx === undefined) return;
@@ -46,19 +36,22 @@ export class HFTSharedState {
     }
   }
 
-  // Actualizar precio Ask de Polymarket en RAM
-  public static updatePolyAsk(coin: string, side: 'UP' | 'DOWN', askPrice: number): void {
+  public static updatePolyAsk(coin: string, side: 'UP' | 'DOWN', timeframe: '1H' | '15M' | '5M', askPrice: number): void {
     const idx = ASSET_MAP[coin];
     if (idx === undefined) return;
 
-    if (side === 'UP') {
-      HFTSharedState.polyAsksUP[idx] = askPrice;
-    } else {
-      HFTSharedState.polyAsksDOWN[idx] = askPrice;
+    if (timeframe === '1H') {
+      if (side === 'UP') HFTSharedState.asks1H_UP[idx] = askPrice;
+      else HFTSharedState.asks1H_DN[idx] = askPrice;
+    } else if (timeframe === '15M') {
+      if (side === 'UP') HFTSharedState.asks15M_UP[idx] = askPrice;
+      else HFTSharedState.asks15M_DN[idx] = askPrice;
+    } else if (timeframe === '5M') {
+      if (side === 'UP') HFTSharedState.asks5M_UP[idx] = askPrice;
+      else HFTSharedState.asks5M_DN[idx] = askPrice;
     }
   }
 
-  // Lectura directa en nanosegundos (Sin instanciación)
   public static getSpotPrice(coin: string): number {
     const idx = ASSET_MAP[coin];
     return idx !== undefined ? HFTSharedState.prices[idx] : 0;
@@ -88,9 +81,12 @@ export class HFTSharedState {
     return open > 0 ? ((curr - open) / open) * 100.0 : 0;
   }
 
-  public static getPolyAsk(coin: string, side: 'UP' | 'DOWN'): number {
+  public static getPolyAsk(coin: string, side: 'UP' | 'DOWN', timeframe: '1H' | '15M' | '5M' = '15M'): number {
     const idx = ASSET_MAP[coin];
     if (idx === undefined) return 0;
-    return side === 'UP' ? HFTSharedState.polyAsksUP[idx] : HFTSharedState.polyAsksDOWN[idx];
+    if (timeframe === '1H') return side === 'UP' ? HFTSharedState.asks1H_UP[idx] : HFTSharedState.asks1H_DN[idx];
+    if (timeframe === '15M') return side === 'UP' ? HFTSharedState.asks15M_UP[idx] : HFTSharedState.asks15M_DN[idx];
+    if (timeframe === '5M') return side === 'UP' ? HFTSharedState.asks5M_UP[idx] : HFTSharedState.asks5M_DN[idx];
+    return 0;
   }
 }

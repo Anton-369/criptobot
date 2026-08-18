@@ -1,5 +1,5 @@
 {
-  "calibrated_at": "2026-08-18T16:05:58.550150",
+  "calibrated_at": "2026-08-19T00:05:06.011224",
   "train_split": 0.8,
   "methodology": "Strict 100% Real 1m Microstructure Backtest (No Historical Estimations)",
   "rules_by_coin": {
@@ -28,14 +28,14 @@
         "rule_id": "H1_MOMENTUM_CONTINUATION",
         "evaluation_minute": 10,
         "trigger_delta_pct": 0.1,
-        "win_rate_train": 0.9231,
-        "win_rate_test_oos": 0.3333,
-        "p_value": 0.001708984375,
+        "win_rate_train": 0.8571,
+        "win_rate_test_oos": 0.6667,
+        "p_value": 0.0064697265625,
         "confidence_interval_95": [
-          0.6669,
-          0.9863
+          0.6006,
+          0.9599
         ],
-        "expected_value_usd": 0.5231,
+        "expected_value_usd": 0.4571,
         "recommended_entry_window_min": [
           10,
           25
@@ -49,14 +49,14 @@
         "rule_id": "H1_MOMENTUM_CONTINUATION",
         "evaluation_minute": 10,
         "trigger_delta_pct": 0.1,
-        "win_rate_train": 0.7368,
+        "win_rate_train": 0.75,
         "win_rate_test_oos": 1.0,
-        "p_value": 0.0317840576171875,
+        "p_value": 0.020694732666015625,
         "confidence_interval_95": [
-          0.5121,
-          0.8819
+          0.5313,
+          0.8881
         ],
-        "expected_value_usd": 0.3368,
+        "expected_value_usd": 0.35,
         "recommended_entry_window_min": [
           10,
           25
@@ -71,14 +71,14 @@
         "rule_id": "H1_MOMENTUM_CONTINUATION",
         "evaluation_minute": 10,
         "trigger_delta_pct": 0.1,
-        "win_rate_train": 0.875,
-        "win_rate_test_oos": 0.8571,
-        "p_value": 6.91306013322901e-07,
+        "win_rate_train": 0.878,
+        "win_rate_test_oos": 0.7143,
+        "p_value": 3.920786184608005e-07,
         "confidence_interval_95": [
-          0.7389,
-          0.9454
+          0.7446,
+          0.9468
         ],
-        "expected_value_usd": 0.475,
+        "expected_value_usd": 0.478,
         "recommended_entry_window_min": [
           10,
           25

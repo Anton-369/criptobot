@@ -85,8 +85,12 @@ export class DashboardServer {
         const delta1H = HFTSharedState.getDelta1H(coin);
         const delta15M = HFTSharedState.getDelta15M(coin);
         const delta5M = HFTSharedState.getDelta5M(coin);
-        const askUP = HFTSharedState.getPolyAsk(coin, 'UP');
-        const askDOWN = HFTSharedState.getPolyAsk(coin, 'DOWN');
+        const askUP_15M = HFTSharedState.getPolyAsk(coin, 'UP', '15M');
+        const askDOWN_15M = HFTSharedState.getPolyAsk(coin, 'DOWN', '15M');
+        const askUP_1H = HFTSharedState.getPolyAsk(coin, 'UP', '1H');
+        const askDOWN_1H = HFTSharedState.getPolyAsk(coin, 'DOWN', '1H');
+        const askUP_5M = HFTSharedState.getPolyAsk(coin, 'UP', '5M');
+        const askDOWN_5M = HFTSharedState.getPolyAsk(coin, 'DOWN', '5M');
         const rules = (CALIBRATED_RULES as any)[coin];
 
         matrix[coin] = {
@@ -94,8 +98,8 @@ export class DashboardServer {
           delta1H: delta1H.toFixed(2),
           delta15M: delta15M.toFixed(2),
           delta5M: delta5M.toFixed(2),
-          askUP: askUP > 0 ? askUP.toFixed(3) : 'N/A',
-          askDOWN: askDOWN > 0 ? askDOWN.toFixed(3) : 'N/A',
+          askUP: askUP_15M > 0 ? askUP_15M.toFixed(3) : (askUP_1H > 0 ? askUP_1H.toFixed(3) : 'N/A'),
+          askDOWN: askDOWN_15M > 0 ? askDOWN_15M.toFixed(3) : (askDOWN_1H > 0 ? askDOWN_1H.toFixed(3) : 'N/A'),
           rule1H_UP_Triggered: rules && rules['1H'] ? delta1H >= rules['1H'].deltaUpTrigger : false,
           rule1H_DOWN_Triggered: rules && rules['1H'] ? delta1H <= rules['1H'].deltaDownTrigger : false,
           rule15M_UP_Triggered: rules && rules['15M'] ? delta15M >= rules['15M'].deltaUpTrigger : false,

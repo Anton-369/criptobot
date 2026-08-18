@@ -1,3 +1,4 @@
+import { TokenMapping } from '../v4/LocalOrderbook';
 import { ClobClient, Chain } from '@polymarket/clob-client';
 import { Wallet } from 'ethers';
 import axios from 'axios';
@@ -276,5 +277,77 @@ export class PolymarketClobConnector {
 
   public getClobClient(): ClobClient | null {
     return this.clobClient;
+  }
+
+    public async fetchActiveAllMarkets(): Promise<TokenMapping[]> {
+    const mappings: TokenMapping[] = [];
+    const targetCoins = ['SOL', 'XRP', 'DOGE', 'BNB', 'HYPE'];
+    const timeframes: ('5M' | '15M' | '1H')[] = ['5M', '15M', '1H'];
+    const headers = { 'User-Agent': 'Mozilla/5.0' };
+    const nowMs = Date.now();
+
+    for (const tf of timeframes) {
+      try {
+        const slugTf = tf.toLowerCase();
+        const url = `https://gamma-api.polymarket.com/events?tag_slug=${slugTf}&closed=false&order=endDate&ascending=true&limit=100`;
+        const resp = await fetch(url, { headers, signal: AbortSignal.timeout(5000) });
+        if (resp.ok) {
+          const events: any = await resp.json();
+          if (Array.isArray(events)) {
+            for (const coin of targetCoins) {
+              let bestEv: any = null;
+              let minDiff = Infinity;
+
+              for (const ev of events) {
+                const slug = (ev.slug || '').toLowerCase();
+                const title = (ev.title || '').toLowerCase();
+
+                if (slug.includes('bitcoin') || slug.includes('btc') || slug.includes('ethereum') || slug.includes('eth-')) continue;
+
+                let match = false;
+                if (coin === 'SOL' && (slug.includes('sol') || title.includes('solana'))) match = true;
+                else if (coin === 'XRP' && (slug.includes('xrp') || title.includes('xrp'))) match = true;
+                else if (coin === 'DOGE' && (slug.includes('doge') || title.includes('dogecoin'))) match = true;
+                else if (coin === 'BNB' && (slug.includes('bnb') || title.includes('bnb'))) match = true;
+                else if (coin === 'HYPE' && (slug.includes('hype') || title.includes('hyperliquid'))) match = true;
+
+                if (match && ev.markets && ev.markets.length > 0) {
+                  const endIso = ev.endDate || ev.markets[0].endDateIso || ev.markets[0].endDate;
+                  if (endIso) {
+                    try {
+                      const endMs = new Date(endIso).getTime();
+                      const diffMs = endMs - nowMs;
+                      if (diffMs > 0 && diffMs < minDiff) {
+                        minDiff = diffMs;
+                        bestEv = ev;
+                      }
+                    } catch (e) {}
+                  }
+                }
+              }
+
+              if (bestEv && bestEv.markets && bestEv.markets.length > 0) {
+                const m = bestEv.markets[0];
+                const clobIds = typeof m.clobTokenIds === 'string' ? JSON.parse(m.clobTokenIds) : m.clobTokenIds;
+                if (Array.isArray(clobIds) && clobIds.length >= 2) {
+                  let upTokenId = clobIds[0];
+                  let downTokenId = clobIds[1];
+                  if (m.outcomes && Array.isArray(m.outcomes)) {
+                    for (let oi = 0; oi < m.outcomes.length && oi < clobIds.length; oi++) {
+                      const label = (m.outcomes[oi] || '').toUpperCase();
+                      if (label === 'YES' || label === 'UP') upTokenId = clobIds[oi];
+                      if (label === 'NO' || label === 'DOWN') downTokenId = clobIds[oi];
+                    }
+                  }
+                  mappings.push({ coin, timeframe: tf, side: 'UP', tokenId: upTokenId });
+                  mappings.push({ coin, timeframe: tf, side: 'DOWN', tokenId: downTokenId });
+                }
+              }
+            }
+          }
+        }
+      } catch (e: any) {}
+    }
+    return mappings;
   }
 }

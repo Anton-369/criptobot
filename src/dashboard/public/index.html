@@ -303,7 +303,35 @@
     </div>
 
 
-  <!-- Métricas de Balance -->
+  
+  <!-- HISTORIAL DE DISPAROS V4 -->
+  <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.2rem; margin-bottom: 1.5rem;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
+      <h3 style="font-size: 1.1rem; color: var(--accent-cyan); display:flex; align-items:center; gap:0.5rem;">
+        🎯 DISPAROS EN VIVO V4 (criptobot_v4.sqlite)
+      </h3>
+      <span class="badge badge-live" style="background: rgba(0, 230, 118, 0.2); border: 1px solid #00e676; color: #00e676;">SQLITE V4</span>
+    </div>
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+      <thead>
+        <tr style="color: #8b9bb4; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left;">
+          <th style="padding: 8px;">HORA (ET)</th>
+          <th style="padding: 8px;">ACTIVO</th>
+          <th style="padding: 8px;">TIMEFRAME</th>
+          <th style="padding: 8px;">LADO</th>
+          <th style="padding: 8px;">DELTA TRIGGER</th>
+          <th style="padding: 8px;">PRECIO POLY</th>
+          <th style="padding: 8px;">BALA (USD)</th>
+          <th style="padding: 8px;">ESTADO</th>
+        </tr>
+      </thead>
+      <tbody id="v4DisparosTableBody">
+        <tr><td colspan="8" style="text-align: center; padding: 12px; color: #8b9bb4;">Cargando disparos V4...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<!-- Métricas de Balance -->
   <div class="grid-container">
     <div class="metric-card">
       <div class="metric-title">Balance USDC Polygon</div>
@@ -875,7 +903,35 @@
     </div>
 
 
-  <!-- Métricas de Balance -->
+  
+  <!-- HISTORIAL DE DISPAROS V4 -->
+  <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.2rem; margin-bottom: 1.5rem;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
+      <h3 style="font-size: 1.1rem; color: var(--accent-cyan); display:flex; align-items:center; gap:0.5rem;">
+        🎯 DISPAROS EN VIVO V4 (criptobot_v4.sqlite)
+      </h3>
+      <span class="badge badge-live" style="background: rgba(0, 230, 118, 0.2); border: 1px solid #00e676; color: #00e676;">SQLITE V4</span>
+    </div>
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+      <thead>
+        <tr style="color: #8b9bb4; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left;">
+          <th style="padding: 8px;">HORA (ET)</th>
+          <th style="padding: 8px;">ACTIVO</th>
+          <th style="padding: 8px;">TIMEFRAME</th>
+          <th style="padding: 8px;">LADO</th>
+          <th style="padding: 8px;">DELTA TRIGGER</th>
+          <th style="padding: 8px;">PRECIO POLY</th>
+          <th style="padding: 8px;">BALA (USD)</th>
+          <th style="padding: 8px;">ESTADO</th>
+        </tr>
+      </thead>
+      <tbody id="v4DisparosTableBody">
+        <tr><td colspan="8" style="text-align: center; padding: 12px; color: #8b9bb4;">Cargando disparos V4...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<!-- Métricas de Balance -->
   <div class="grid-container">
     <div class="metric-card">
       <div class="metric-title">Balance USDC Polygon</div>
@@ -1139,6 +1195,41 @@
       } catch(e) {}
     }
     setInterval(updateV4Dashboard, 1000);
+
+
+    async function updateV4Disparos() {
+      try {
+        const res = await fetch('/api/v4/disparos');
+        const data = await res.json();
+        if (!data || !data.disparos) return;
+
+        const tbody = document.getElementById('v4DisparosTableBody');
+        if (!tbody) return;
+
+        if (data.disparos.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:12px; color:var(--text-muted);">Sin disparos registrados aún en v4_disparos_log.</td></tr>';
+          return;
+        }
+
+        let html = '';
+        for (const d of data.disparos) {
+          const sideColor = d.side === 'UP' ? '#00e676' : '#ff1744';
+          html += `<tr>
+            <td style="padding:8px;">${d.timestamp_et || d.created_at}</td>
+            <td style="padding:8px;"><strong>${d.coin}</strong></td>
+            <td style="padding:8px;">${d.timeframe}</td>
+            <td style="padding:8px; color:${sideColor}; font-weight:bold;">${d.side}</td>
+            <td style="padding:8px;">${d.delta_trigger}%</td>
+            <td style="padding:8px;">$${parseFloat(d.price_entry).toFixed(3)}</td>
+            <td style="padding:8px;">$${parseFloat(d.bullet_size).toFixed(2)}</td>
+            <td style="padding:8px;"><span style="color:#00e5ff; font-weight:bold;">${d.status}</span></td>
+          </tr>`;
+        }
+        tbody.innerHTML = html;
+      } catch(e) {}
+    }
+    setInterval(updateV4Disparos, 1000);
+    updateV4Disparos();
 
 </script>
 </body>

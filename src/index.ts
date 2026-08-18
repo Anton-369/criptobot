@@ -1,305 +1,107 @@
-import './logger'; // Timestamps on all console output
-import { BinanceWebsocketEngine } from './connectors/BinanceWebsocket';
-import { PolymarketClobConnector } from './connectors/PolymarketClob';
-import { MomentumDetector, OpportunitySignal } from './engine/MomentumDetector';
-import { ExecutionEngine } from './engine/ExecutionEngine';
-import { DashboardServer } from './dashboard/server';
-import { MatrixCollector } from './analytics/MatrixCollector';
+import express from 'express';
+import http from 'http';
+import path from 'path';
+import sqlite3 from 'sqlite3';
 import { CONFIG } from './config/environment';
-import { PatternEngine, CoinPrediction } from './engine/PatternEngine';
-import { DatabaseManager } from './storage/DatabaseManager';
-import { PolymarketCollector } from './connectors/PolymarketCollector';
-import * as path from 'path';
-import { exec } from 'child_process';
+import { LocalOrderbookManager } from './v4/LocalOrderbook';
+import { HFTReactiveEngine } from './v4/HFTReactiveEngine';
+import { BinanceMultiFrameWS } from './v4/BinanceMultiFrameWS';
+import { PolymarketClobConnector } from './connectors/PolymarketClob';
+import { HFTSharedState } from './v4/HFTSharedState';
 
-async function main() {
-  console.log("=================================================================");
-  console.log("⚡ CRIPTOBOT v3.0 - ULTRA-FAST LATENCY SNIPER BOT ENGINE");
-  console.log(`📌 Modo de Ejecución: ${CONFIG.EXECUTION_MODE}`);
-  console.log("=================================================================\n");
+async function startV4Engine() {
+  console.log('=================================================================');
+  console.log('⚡ CRIPTOBOT v4.0 - HYBRID HFT REACTIVE ENGINE (EXCLUSIVO V4)');
+  console.log(`📌 Modo de Ejecución: ${CONFIG.EXECUTION_MODE} (100% SEGURO)`);
+  console.log(`🔐 Wallet Proxy: ${CONFIG.PROXY_WALLET}`);
+  console.log('=================================================================\n');
 
-  // 0. Initialize SQLite Database & Polymarket 24/7 Collector
-  const dbManager = new DatabaseManager();
-
-  // 1. Initialize Polymarket CLOB Connector
+  // 1. Discovery Dinámico de Tokens Reales de Polymarket (1H, 15M, 5M)
   const polyClob = new PolymarketClobConnector();
-  console.log("[Main] Consultando mercados de 1 Hora activos en Polymarket...");
-  const activeMarkets = await polyClob.fetchActive1HMarkets();
-  console.log(`[Main] ✅ Mercados cripto activos vinculados: ${activeMarkets.size}`);
-  for (const [coin, m] of activeMarkets.entries()) {
-    console.log(`   - ${coin}: ${m.question}`);
-  }
+  console.log('[Main V4] 🔍 Obteniendo Token IDs reales desde Polymarket...');
+  const tokenMappings = await polyClob.fetchActiveAllMarkets();
+  console.log(`[Main V4] ✅ Mapeados ${tokenMappings.length} Token IDs reales dinámicos.`);
 
-  // 2. Initialize Binance Spot Stream Engine
-  const binanceWs = new BinanceWebsocketEngine();
-  binanceWs.start();
+  // 2. Inicializar Reconstructor del Libro Local
+  const orderbook = new LocalOrderbookManager();
+  orderbook.registerTokens(tokenMappings);
+  orderbook.start();
 
-  // 3. Start 24/7 Polymarket Collector (Discovery bursts at :00 + 1-min snapshots + Spot prices + Klines)
-  const polyCollector = new PolymarketCollector(polyClob, dbManager, binanceWs);
-  await polyCollector.start();
+  // 3. Inicializar Motor Reactivo en RAM (25 Reglas Aprobadas)
+  const engine = new HFTReactiveEngine(orderbook);
 
-  // 4. Initialize Execution Engine & Wallet Reconciliation
-  const execEngine = new ExecutionEngine(polyClob);
-  await execEngine.initialize();
+  // 4. Conectar Streams Nativos Multiplexados de Binance (1H, 15M, 5M)
+  const binanceMultiWs = new BinanceMultiFrameWS();
+  await binanceMultiWs.start();
 
-  // 5. Initialize Pattern Engine (Oracle — predicts direction from historical cycles)
-  const patternEngine = new PatternEngine(path.resolve(__dirname, '../data'));
-  let currentOracle: CoinPrediction[] = [];
-
-  // 6. Initialize Matrix Analytics Collector (Simple & Deep Matrices for 7 coins)
-  const matrixCollector = new MatrixCollector();
-  binanceWs.on('ticker', (t) => {
-    matrixCollector.processTick(t);
-  });
-
-  // 7. Initialize Momentum Detector & Signal Handler
-  const detector = new MomentumDetector(binanceWs, polyClob);
-  
-  detector.on('opportunity', async (sig: OpportunitySignal) => {
-    console.log(`\n🎯 [GATILLO DE LATENCIA] Señal recibida para ${sig.coin} (${sig.strategy})`);
-    console.log(`   Razón: ${sig.reason}`);
-
-    // LOG PREDICTION TO SQLITE (FIX CRÍTICO: predicciones_log estaba vacía)
-    const now = new Date();
-    const etOffsetMs = 4 * 60 * 60 * 1000;
-    const etDate = new Date(now.getTime() - etOffsetMs);
-    const timestampET = etDate.toISOString().replace('T', ' ').slice(0, 19);
-    try {
-      await dbManager.logPrediction({
-        timestampET,
-        utcHour: now.getUTCHours(),
-        coin: sig.coin,
-        pUpEstimado: sig.targetSide === 'UP' ? (1.0 - sig.targetPrice) : sig.targetPrice,
-        reglaActiva: sig.strategy,
-        yesPriceAlDisparo: sig.targetPrice,
-        disparoRealizado: true,
-        pnlResultado: undefined,
-        status: 'EJECUTADO'
-      });
-      console.log(`   📝 Predicción registrada en SQLite (predicciones_log).`);
-    } catch (e: any) {
-      console.warn(`   ⚠️ Error registrando predicción: ${e.message}`);
+  // 5. Bucle de Evaluación HFT cada 100ms para las 25 Reglas
+  setInterval(() => {
+    for (const coin of ['SOL', 'XRP', 'DOGE', 'BNB', 'HYPE']) {
+      engine.evaluateTick(coin);
     }
-    
-    // Execute FOK Order (Shadow or Live)
-    const success = await execEngine.executeSignal(sig);
-    if (success) {
-      console.log(`   ✅ Ejecución completada exitosamente.`);
-    }
-  });
+  }, 100);
 
-  detector.start(2000);
-
-  // Initial Oracle Prediction Log to SQLite on startup (5s after WS stream connects)
-  setTimeout(async () => {
-    try {
-      const tickerStates = binanceWs.getAllTickerStates();
-      if (tickerStates.length > 0) {
-        const currentState = new Map<string, 'UP' | 'DOWN'>();
-        for (const ts of tickerStates) {
-          const dir = ts.deltaPct >= 0 ? 'UP' as const : 'DOWN' as const;
-          currentState.set(ts.coin, dir);
-        }
-        currentOracle = patternEngine.predictAll(currentState);
-        detector.setOracle(currentOracle);
-        console.log(`[Oracle] 🔮 Predicciones iniciales de Oráculo cargadas y registradas en SQLite:`);
-        console.log(patternEngine.summary(currentOracle));
-
-        const now = new Date();
-        const etOffsetMs = 4 * 60 * 60 * 1000;
-        const etDate = new Date(now.getTime() - etOffsetMs);
-        const timestampET = etDate.toISOString().replace('T', ' ').slice(0, 19);
-
-        for (const pred of currentOracle) {
-          if (pred.predictedSide !== 'NEUTRAL') {
-            await dbManager.logPrediction({
-              timestampET,
-              utcHour: now.getUTCHours(),
-              coin: pred.coin,
-              pUpEstimado: pred.predictedSide === 'UP' ? (pred.confidencePct / 100) : (1.0 - pred.confidencePct / 100),
-              reglaActiva: `ORACLE_${pred.predictedSide}_CONF_${pred.confidencePct}%`,
-              disparoRealizado: false,
-              status: 'PENDIENTE'
-            });
-          }
-        }
-      }
-    } catch (e: any) {
-      console.warn(`[Main] Error en predicciones iniciales: ${e.message}`);
-    }
-  }, 5000);
-
-  // Event-Driven Market Binding & Open Price Retry Loop (runs at top of hour until confirmed)
-  async function bindNewCycleMarketsWithRetry(maxAttempts: number = 6, delayMs: number = 5000): Promise<void> {
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        console.log(`[Main] 🔄 Vinculando mercados 1H e iniciando reintento de precios (${attempt}/${maxAttempts})...`);
-        const activeMarkets = await polyClob.fetchActive1HMarkets();
-        await binanceWs.fetch1HOpenPrices();
-        if (activeMarkets.size >= 5) {
-          console.log(`[Main] ✅ Reintento exitoso: ${activeMarkets.size} mercados cripto 1H vinculados en intento ${attempt}.`);
-          break;
-        }
-      } catch (e: any) {
-        console.warn(`[Main] ⚠️ Intento ${attempt} fallido vinculando mercados: ${e.message}`);
-      }
-      if (attempt < maxAttempts) {
-        await new Promise(r => setTimeout(r, delayMs));
-      }
-    }
-  }
-
-  // Event-Driven Prediction PnL Reconciliation (liquidates completed cycle predictions)
-  async function reconcileCompletedCycleOutcomes(): Promise<void> {
-    try {
-      const logs = await dbManager.getPredictionLogs(50);
-      const pendingLogs = logs.filter((l: any) => l.status === 'PENDIENTE' || l.status === 'EJECUTADO');
-      if (pendingLogs.length === 0) return;
-
-      console.log(`[Main] ⚖️ Reconciliando PnL/Resultados para ${pendingLogs.length} predicciones pendientes...`);
-      for (const log of pendingLogs) {
-        const pair = CONFIG.PAIRS.find((p: any) => p.coin === log.coin);
-        if (!pair) continue;
-        const ticker = binanceWs.getTickerState(pair.symbol);
-        if (ticker && ticker.currentPrice > 0 && ticker.openPrice1H > 0) {
-          const outcome = ticker.currentPrice >= ticker.openPrice1H ? 'UP' : 'DOWN';
-          const predictedSide = (log.regla_activa && (log.regla_activa.includes('UP') || log.regla_activa.includes('up'))) ? 'UP' : 'DOWN';
-          const won = outcome === predictedSide;
-          const status = won ? 'GANADO' : 'PERDIDO';
-          const pnl = won ? (log.yes_price_al_disparo ? (1.0 - log.yes_price_al_disparo) : 0.60) : -0.40;
-          await dbManager.updatePredictionStatus(log.id, status, pnl);
-          console.log(`   ⚖️ Predicción #${log.id} (${log.coin}): ${status} (PnL Est: $${pnl.toFixed(2)})`);
-        }
-      }
-    } catch (e: any) {
-      console.warn(`[Main] Error reconciliando predicciones: ${e.message}`);
-    }
-  }
-
-  // 8. Periodic refresh loop with Event-Driven logic
-  let lastHour = new Date().getUTCHours();
-  let hasBoundThisHour = false;
-
+  // 6. Auto-rotación HFT automática de tokens cada 3s (1H, 15M, 5M)
   setInterval(async () => {
     try {
-      const now = new Date();
-      const currentHour = now.getUTCHours();
-      const currentMinute = now.getUTCMinutes();
+      const freshMappings = await polyClob.fetchActiveAllMarkets();
+      orderbook.registerAndSubscribeTokens(freshMappings);
+    } catch (e: any) {}
+  }, 3000);
 
-      // Autonomous AI Trigger: Run Python calibration script every hour at :05 UTC
-      if (currentMinute === 5 && now.getUTCSeconds() <= 60) {
-        console.log(`[AI Brain] 🤖 Ejecutando calibración autónoma NVIDIA Nemotron (calibrar_etapa1.py)...`);
-        exec(`python3 ${path.resolve(__dirname, '../scripts/backtest_calibration.py')}`, (err, stdout, stderr) => {
-          if (err) {
-            console.warn(`[AI Brain] ⚠️ Error en calibración autónoma: ${err.message}`);
-          } else {
-            console.log(`[AI Brain] ✅ Calibración autónoma completada exitosamente.`);
-          }
-        });
-      }
+  // 7. Servidor HTTP Dashboard V4 en Puerto 8506
+  const app = express();
+  const server = http.createServer(app);
+  const dbPath = path.resolve(__dirname, '../data/criptobot_v4.sqlite');
+  const db = new sqlite3.Database(dbPath);
 
-      // Event-driven UTC Hour Transition
-      if (currentHour !== lastHour) {
-        console.log(`[Main] ⏰ Cambio de ciclo UTC (${lastHour}:00 -> ${currentHour}:00).`);
-        detector.recordHourOutcomes();
-        matrixCollector.finalizeHourCycle(binanceWs.getAllTickerStates());
-        hasBoundThisHour = false;
+  const publicPath = path.resolve(__dirname, 'dashboard/public');
+  app.use(express.static(publicPath));
 
-        // Reconcile completed hour predictions
-        await reconcileCompletedCycleOutcomes();
+  app.get('/api/v4/state', (req, res) => {
+    const coins = ['SOL', 'XRP', 'DOGE', 'BNB', 'HYPE'];
+    const matrix: Record<string, any> = {};
 
-        // Reload pattern engine with fresh data, then predict
-        patternEngine.reload(path.resolve(__dirname, '../data'));
-        const tickerStates = binanceWs.getAllTickerStates();
-        const currentState = new Map<string, 'UP' | 'DOWN'>();
-        for (const ts of tickerStates) {
-          const dir = ts.deltaPct >= 0 ? 'UP' as const : 'DOWN' as const;
-          currentState.set(ts.coin, dir);
-        }
-        currentOracle = patternEngine.predictAll(currentState);
-        detector.setOracle(currentOracle);
-        console.log(`[Oracle] 🔮 Predicciones para ciclo ${currentHour}:00 UTC:`);
-        console.log(patternEngine.summary(currentOracle));
+    for (const coin of coins) {
+      const spot = HFTSharedState.getSpotPrice(coin);
+      const d1H = HFTSharedState.getDelta1H(coin);
+      const d15M = HFTSharedState.getDelta15M(coin);
+      const d5M = HFTSharedState.getDelta5M(coin);
 
-        // Log Oracle predictions to SQLite predicciones_log table
-        const etOffsetMs = 4 * 60 * 60 * 1000;
-        const etDate = new Date(now.getTime() - etOffsetMs);
-        const timestampET = etDate.toISOString().replace('T', ' ').slice(0, 19);
+      const realUpToken = orderbook.getRealTokenId(coin, 'UP', '5M') || orderbook.getRealTokenId(coin, 'UP', '15M') || orderbook.getRealTokenId(coin, 'UP', '1H');
+      const realDnToken = orderbook.getRealTokenId(coin, 'DOWN', '5M') || orderbook.getRealTokenId(coin, 'DOWN', '15M') || orderbook.getRealTokenId(coin, 'DOWN', '1H');
 
-        for (const pred of currentOracle) {
-          if (pred.predictedSide !== 'NEUTRAL') {
-            try {
-              await dbManager.logPrediction({
-                timestampET,
-                utcHour: currentHour,
-                coin: pred.coin,
-                pUpEstimado: pred.predictedSide === 'UP' ? (pred.confidencePct / 100) : (1.0 - pred.confidencePct / 100),
-                reglaActiva: `ORACLE_${pred.predictedSide}_CONF_${pred.confidencePct}%`,
-                disparoRealizado: false,
-                status: 'PENDIENTE'
-              });
-            } catch (e: any) {
-              console.warn(`[Main] ⚠️ Error logueando predicción de Oráculo: ${e.message}`);
-            }
-          }
-        }
+      const askUP = realUpToken ? orderbook.getBestAsk(realUpToken) : HFTSharedState.getPolyAsk(coin, 'UP');
+      const askDOWN = realDnToken ? orderbook.getBestAsk(realDnToken) : HFTSharedState.getPolyAsk(coin, 'DOWN');
 
-        lastHour = currentHour;
-      }
-
-      // Smart Event-Driven Market Binding: retry during minutes 0-2 until bound, then stop REST spam
-      if (!hasBoundThisHour && currentMinute <= 2) {
-        await bindNewCycleMarketsWithRetry(3, 3000);
-        hasBoundThisHour = true;
-      }
-
-    } catch (e: any) {
-      console.error(`[Main] Error en ciclo de refresco: ${e.message}`);
+      matrix[coin] = {
+        spotPrice: spot.toFixed(2),
+        delta1H: d1H.toFixed(2),
+        delta15M: d15M.toFixed(2),
+        delta5M: d5M.toFixed(2),
+        filter5MState: d5M > 0.05 ? 'BULLISH' : d5M < -0.05 ? 'BEARISH' : 'NEUTRAL',
+        askUP: askUP.toFixed(3),
+        askDOWN: askDOWN.toFixed(3)
+      };
     }
-  }, 60000);
+    res.json({ success: true, timestamp: Date.now(), mode: CONFIG.EXECUTION_MODE, matrix });
+  });
 
-  // 9. Periodic 10-second wallet reconciliation loop
-  setInterval(async () => {
-    try {
-      await execEngine.refreshWalletBalances();
-    } catch (e: any) {
-      // Soft ignore RPC errors
-    }
-  }, 10000);
+  app.get('/api/v4/disparos', (req, res) => {
+    db.all('SELECT * FROM v4_disparos_log ORDER BY id DESC LIMIT 50;', [], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: true, disparos: rows || [] });
+    });
+  });
 
-  // 10. Start Real-time Web Control Dashboard
-  const dashboard = new DashboardServer(binanceWs, polyClob, execEngine, 8506, matrixCollector, detector);
-  dashboard.start();
+  const PORT = 8506;
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`[Main V4] 🌐 Dashboard V4 Activo en http://0.0.0.0:${PORT}`);
+  });
 
-  // 11. Inicializar Motores Nativo HFT V4 y Streams Multiplexados Binance (1H, 15M, 5M)
-  try {
-    const { BinanceMultiFrameWS } = require('./v4/BinanceMultiFrameWS');
-    const { LocalOrderbookManager } = require('./v4/LocalOrderbook');
-    const { HFTReactiveEngine } = require('./v4/HFTReactiveEngine');
-    
-    const activeMarkets = await polyClob.fetchActive1HMarkets();
-    const tokenMappings = [];
-    for (const [coin, market] of activeMarkets.entries()) {
-      if (market.upTokenId) tokenMappings.push({ tokenId: market.upTokenId, coin, side: 'UP', timeframe: '1H' });
-      if (market.downTokenId) tokenMappings.push({ tokenId: market.downTokenId, coin, side: 'DOWN', timeframe: '1H' });
-    }
-    const orderbookV4 = new LocalOrderbookManager();
-    orderbookV4.registerTokens(tokenMappings);
-    orderbookV4.start();
-
-    const engineV4 = new HFTReactiveEngine(orderbookV4);
-    const binanceMultiWs = new BinanceMultiFrameWS();
-    binanceMultiWs.start();
-    console.log('[Main V4] ⚡ Engine HFT V4 alimentando RAM en vivo para el Dashboard.');
-  } catch (err: any) {
-    console.error('[Main V4] Error inicializando V4:', err.message);
-  }
-
-
-  console.log("\n🚀 Criptobot v3.0 funcionando en segundo plano. Motor IA + Recolección SQLite 24/7 activos.");
+  console.log('[Main V4] 🚀 Motor V4 HFT en RAM e Interfaz Web iniciados exitosamente. (Puerto 8506 Activo)');
 }
 
-main().catch(err => {
-  console.error("❌ Error crítico en inicio de Criptobot v3.0:", err);
+startV4Engine().catch((err) => {
+  console.error('[Main V4] ❌ Error crítico iniciando V4:', err);
 });
-
