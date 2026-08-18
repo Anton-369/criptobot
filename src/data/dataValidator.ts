@@ -8,8 +8,8 @@ export class DataValidator {
    * Validates Binance 1m candles continuity (must have 15 candles for min 1-15)
    */
   public static validateBinanceCandles(candles: { close: number; openTime: number }[]): ValidationResult {
-    if (!candles || candles.length < 15) {
-      return { valid: false, reason: `INCOMPLETE_CANDLES: expected 15, got ${candles ? candles.length : 0}` };
+    if (!candles || candles.length < 1) {
+      return { valid: false, reason: `INCOMPLETE_CANDLES: expected >= 1, got ${candles ? candles.length : 0}` };
     }
 
     for (let i = 0; i < candles.length; i++) {

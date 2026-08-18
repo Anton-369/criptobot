@@ -121,7 +121,7 @@ export class MomentumDetector extends EventEmitter {
       }
 
       // Evaluate dynamic multi-minute cut windows: Minuto 5, Minuto 15, Minuto 30
-      if (![5, 15, 30].includes(minute)) return;
+      if (minute < 1 || minute > 45) return;
 
       const coinsToEvaluate = ['XRPUSDT', 'SOLUSDT', 'DOGEUSDT', 'BNBUSDT', 'HYPEUSDT'];
 
@@ -210,6 +210,7 @@ export class MomentumDetector extends EventEmitter {
         }
 
         // 5. Edge Calculator (Net Edge over best_ask using exact cut calibration)
+        console.log(`[Prices] ${symbol}: upAsk=${odds.upBestAsk}, downAsk=${odds.downBestAsk}`);
         const edge = EdgeCalculator.calculateEdge(
           rachaDown,
           deltaSpotMinute,

@@ -24,6 +24,7 @@ export interface PositionRecord {
 }
 
 export class ExecutionEngine extends EventEmitter {
+  private tradedCoinsThisHour: Set<string> = new Set<string>();
   private polyClob: PolymarketClobConnector;
   private mode: 'SHADOW' | 'LIVE';
   private positions: PositionRecord[] = [];
@@ -42,6 +43,11 @@ export class ExecutionEngine extends EventEmitter {
     this.polyClob = polyClob;
     this.mode = CONFIG.EXECUTION_MODE;
     this.stateManager = new StateManager(path.resolve(__dirname, '../../data'));
+  }
+
+  public resetCycleLock(): void {
+    this.tradedCoinsThisHour.clear();
+    console.log("[ExecutionEngine] 🔄 Cerrojo de ciclo reiniciado para la nueva hora.");
   }
 
   public async initialize(): Promise<void> {
@@ -136,6 +142,11 @@ export class ExecutionEngine extends EventEmitter {
 
   public async executeSignal(sig: OpportunitySignal): Promise<boolean> {
     if (this.isExecutingSignal) return false;
+    if (this.tradedCoinsThisHour.has(sig.coin)) {
+        console.warn();
+        return false;
+      }
+      this.tradedCoinsThisHour.add(sig.coin);
     this.isExecutingSignal = true;
 
     try {

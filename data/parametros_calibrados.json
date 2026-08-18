@@ -1,5 +1,5 @@
 {
-  "calibrated_at": "2026-08-17T21:05:04.230027",
+  "calibrated_at": "2026-08-18T08:05:07.778662",
   "train_split": 0.8,
   "methodology": "Strict 100% Real 1m Microstructure Backtest (No Historical Estimations)",
   "rules_by_coin": {
@@ -29,7 +29,7 @@
         "evaluation_minute": 10,
         "trigger_delta_pct": 0.1,
         "win_rate_train": 0.9231,
-        "win_rate_test_oos": 0.0,
+        "win_rate_test_oos": 0.3333,
         "p_value": 0.001708984375,
         "confidence_interval_95": [
           0.6669,
@@ -71,14 +71,14 @@
         "rule_id": "H1_MOMENTUM_CONTINUATION",
         "evaluation_minute": 10,
         "trigger_delta_pct": 0.1,
-        "win_rate_train": 0.8649,
-        "win_rate_test_oos": 1.0,
-        "p_value": 3.7137651816010475e-06,
+        "win_rate_train": 0.8718,
+        "win_rate_test_oos": 0.875,
+        "p_value": 1.2149539543315768e-06,
         "confidence_interval_95": [
-          0.7202,
-          0.9409
+          0.7329,
+          0.944
         ],
-        "expected_value_usd": 0.4649,
+        "expected_value_usd": 0.4718,
         "recommended_entry_window_min": [
           10,
           25

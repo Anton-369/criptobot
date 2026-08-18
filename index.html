@@ -276,6 +276,33 @@
     </div>
   </header>
 
+    <!-- ⚡ PANEL MATRIZ HFT ARQUITECTURA HÍBRIDA V4 -->
+    <div class="card card-wide" style="border: 2px solid #00e5ff; background: rgba(0, 229, 255, 0.08); margin: 20px 20px; padding: 15px; border-radius: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 style="color: #00e5ff; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
+          ⚡ MATRIZ HFT V4 — 30 PARÁMETROS EN MEMORIA RAM (ZERO-GC)
+        </h3>
+        <span class="badge badge-live" style="background: rgba(0, 230, 118, 0.2); border: 1px solid #00e676; color: #00e676;" id="v4ModeBadge">⚡ RAM V4 ENGINE ACTIVE</span>
+      </div>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="color: #8b9bb4; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left;">
+            <th style="padding: 8px;">ACTIVO</th>
+            <th style="padding: 8px;">PRECIO SPOT</th>
+            <th style="padding: 8px;">DELTA 1H</th>
+            <th style="padding: 8px;">DELTA 15M</th>
+            <th style="padding: 8px;">DELTA 5M (ACELERADOR)</th>
+            <th style="padding: 8px;">ASK POLYMARKET</th>
+            <th style="padding: 8px;">ESTADO DISPARO V4</th>
+          </tr>
+        </thead>
+        <tbody id="v4MatrixTableBody">
+          <tr><td colspan="7" style="text-align: center; padding: 12px; color: #8b9bb4;">Cargando telemetría de memoria RAM V4...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+
   <!-- Métricas de Balance -->
   <div class="grid-container">
     <div class="metric-card">
@@ -508,6 +535,612 @@
     setInterval(updateCountdown, 1000);
     updateDashboard();
     updateCountdown();
-  </script>
+  
+    async function updateV4Dashboard() {
+      try {
+        const res = await fetch('/api/v4/state');
+        const data = await res.json();
+        if (!data || !data.matrix) return;
+
+        const tbody = document.getElementById('v4MatrixTableBody');
+        if (!tbody) return;
+
+        let html = '';
+        for (const [coin, info] of Object.entries(data.matrix)) {
+          const upBadge = info.rule1H_UP_Triggered || info.rule15M_UP_Triggered ? '<span style="color:#00e676;font-weight:bold;">🎯 DISPARO UP</span>' : '';
+          const downBadge = info.rule1H_DOWN_Triggered || info.rule15M_DOWN_Triggered ? '<span style="color:#ff1744;font-weight:bold;">🎯 DISPARO DOWN</span>' : '';
+          const status = upBadge || downBadge || '<span style="color:#8b9bb4;">EN OBSERVACIÓN</span>';
+
+          const filter5MColor = info.filter5MState === 'BULLISH' ? '#00e676' : info.filter5MState === 'BEARISH' ? '#ff1744' : '#8b9bb4';
+
+          html += `<tr>
+            <td><strong>${coin}</strong></td>
+            <td>$${info.spotPrice}</td>
+            <td style="color:${parseFloat(info.delta1H) >= 0 ? '#00e676':'#ff1744'};">${info.delta1H}%</td>
+            <td style="color:${parseFloat(info.delta15M) >= 0 ? '#00e676':'#ff1744'};">${info.delta15M}%</td>
+            <td style="color:${filter5MColor};font-weight:bold;">${info.delta5M}% (${info.filter5MState})</td>
+            <td>UP: $${info.askUP} | DOWN: $${info.askDOWN}</td>
+            <td>${status}</td>
+          </tr>`;
+        }
+        tbody.innerHTML = html;
+      } catch(e) {}
+    }
+    setInterval(updateV4Dashboard, 1000);
+
+</script>
+</body>
+</html>TYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Criptobot v3.0 — Panel de Control y Monitoreo 1H</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #060911;
+      --card-bg: rgba(13, 18, 30, 0.85);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --accent-green: #00e676;
+      --accent-red: #ff1744;
+      --accent-cyan: #00e5ff;
+      --accent-gold: #ffd600;
+      --accent-purple: #b388ff;
+      --text-main: #f0f4f8;
+      --text-muted: #8b9bb4;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 1.5rem;
+      background-image: 
+        radial-gradient(circle at 10% 10%, rgba(0, 229, 255, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 90% 90%, rgba(0, 230, 118, 0.05) 0%, transparent 40%);
+    }
+
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1.5rem;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .brand h1 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #ffffff 0%, var(--accent-cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .status-tags {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      padding: 0.35rem 0.85rem;
+      border-radius: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .badge-live {
+      background: rgba(0, 230, 118, 0.15);
+      color: var(--accent-green);
+      border: 1px solid rgba(0, 230, 118, 0.3);
+    }
+
+    .badge-wss {
+      background: rgba(0, 229, 255, 0.15);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(0, 229, 255, 0.3);
+    }
+
+    .badge-risk {
+      background: rgba(255, 214, 0, 0.15);
+      color: var(--accent-gold);
+      border: 1px solid rgba(255, 214, 0, 0.3);
+    }
+
+    .badge-monitor {
+      background: rgba(179, 136, 255, 0.15);
+      color: var(--accent-purple);
+      border: 1px solid rgba(179, 136, 255, 0.3);
+    }
+
+    .firing-banner {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.2rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(12px);
+    }
+
+    .banner-info h3 {
+      font-size: 1.1rem;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .banner-info p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .banner-timer {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--accent-cyan);
+      background: rgba(0, 0, 0, 0.4);
+      padding: 0.4rem 1.2rem;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 229, 255, 0.2);
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .metric-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.2rem;
+      backdrop-filter: blur(12px);
+    }
+
+    .metric-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .metric-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.6rem;
+      font-weight: 800;
+    }
+
+    .card-section {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      backdrop-filter: blur(12px);
+    }
+
+    .section-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.88rem;
+    }
+
+    th {
+      padding: 10px 12px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .progress-bar-bg {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      height: 8px;
+      width: 100%;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .progress-bar-fill {
+      background: linear-gradient(90deg, #ffd600, #00e5ff);
+      height: 100%;
+      transition: width 0.4s ease;
+    }
+
+    .badge-insufficient {
+      background: rgba(255, 214, 0, 0.15);
+      color: var(--accent-gold);
+      border: 1px solid rgba(255, 214, 0, 0.3);
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="top-bar">
+      <div class="brand">
+        <span style="font-size: 1.8rem;">⚡</span>
+        <h1>CRIPTOBOT v3.0</h1>
+      </div>
+      <div class="status-tags">
+        <div class="badge badge-live" id="modeBadge">🔴 LIVE MODE (REAL)</div>
+        <div class="badge badge-wss">⚡ POLY CLOB (1H)</div>
+        <div class="badge badge-risk">🛡️ RISK GUARD (SQLITE)</div>
+        <div class="badge badge-monitor">🎯 MONITOR 1H AUTÓNOMO</div>
+      </div>
+    </div>
+
+    <div class="firing-banner">
+      <div class="banner-info">
+        <h3>🎯 Monitoreo de Mercado 1H en Vivo (Polymarket CLOB & Binance Spot)</h3>
+        <p id="subBannerStatus">Captura activa de snapshots de mercados 1H en curso en SQLite.</p>
+      </div>
+      <div class="banner-timer" id="nextFiringTimer">00:00</div>
+    </div>
+  </header>
+
+    <!-- ⚡ PANEL MATRIZ HFT ARQUITECTURA HÍBRIDA V4 -->
+    <div class="card card-wide" style="border: 2px solid #00e5ff; background: rgba(0, 229, 255, 0.08); margin: 20px 20px; padding: 15px; border-radius: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 style="color: #00e5ff; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
+          ⚡ MATRIZ HFT V4 — 30 PARÁMETROS EN MEMORIA RAM (ZERO-GC)
+        </h3>
+        <span class="badge badge-live" style="background: rgba(0, 230, 118, 0.2); border: 1px solid #00e676; color: #00e676;" id="v4ModeBadge">⚡ RAM V4 ENGINE ACTIVE</span>
+      </div>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="color: #8b9bb4; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left;">
+            <th style="padding: 8px;">ACTIVO</th>
+            <th style="padding: 8px;">PRECIO SPOT</th>
+            <th style="padding: 8px;">DELTA 1H</th>
+            <th style="padding: 8px;">DELTA 15M</th>
+            <th style="padding: 8px;">DELTA 5M (ACELERADOR)</th>
+            <th style="padding: 8px;">ASK POLYMARKET</th>
+            <th style="padding: 8px;">ESTADO DISPARO V4</th>
+          </tr>
+        </thead>
+        <tbody id="v4MatrixTableBody">
+          <tr><td colspan="7" style="text-align: center; padding: 12px; color: #8b9bb4;">Cargando telemetría de memoria RAM V4...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+
+  <!-- Métricas de Balance -->
+  <div class="grid-container">
+    <div class="metric-card">
+      <div class="metric-title">Balance USDC Polygon</div>
+      <div class="metric-value" style="color: var(--accent-green);" id="totalUsdc">$46.66</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title">Exposición Activa SQL</div>
+      <div class="metric-value" style="color: var(--accent-cyan);">$0.00</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title">Límite Máximo Cap</div>
+      <div class="metric-value" style="color: var(--accent-gold);">$10.00</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title">Kill Switch PnL Diario</div>
+      <div class="metric-value" style="color: var(--text-main);">$0.00</div>
+    </div>
+  </div>
+
+  <!-- Progreso de Acumulación Regla #4 -->
+  <div class="card-section">
+    <div class="section-title">
+      <span>📊 Progreso de Acumulación Out-of-Sample (n / 200 Folds) — Regla #4</span>
+      <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">
+        📡 Colector 1H: <strong id="collectorSnapshots" style="color: var(--accent-cyan);">0</strong> snapshots | Último: <span id="collectorLastTs">—</span>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>MONEDA</th>
+          <th>CASOS EVALUADOS (N)</th>
+          <th>META REGLA #4</th>
+          <th>PROGRESO MUESTRA</th>
+          <th>ESTADO MATEMÁTICO</th>
+          <th>APUESTA MÁX. PERMITIDA</th>
+        </tr>
+      </thead>
+      <tbody id="accumulationTableBody">
+        <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Cargando métricas de acumulación...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Precios Binance Spot y Polymarket Odds -->
+  <div class="card-section">
+    <div class="section-title">📈 Precios Spot Binance & Cuotas Polymarket en Tiempo Real</div>
+    <table>
+      <thead>
+        <tr>
+          <th>MONEDA</th>
+          <th>SPOT PRICE</th>
+          <th>DELTA 1H %</th>
+          <th>POLYMARKET UP ASK</th>
+          <th>POLYMARKET DOWN ASK</th>
+          <th>ESTADO MODELO</th>
+        </tr>
+      </thead>
+      <tbody id="tickersTableBody">
+        <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Cargando tickers en tiempo real...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Historial SHADOW Signals -->
+  <div class="card-section">
+    <div class="section-title">👻 Historial de Señales Evaluadas en Modo SHADOW (SQLite)</div>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>HORA UTC</th>
+          <th>MONEDA</th>
+          <th>LADO</th>
+          <th>YES ASK</th>
+          <th>NO ASK</th>
+          <th>EDGE NETO</th>
+          <th>ESTADO DE RIESGO</th>
+        </tr>
+      </thead>
+      <tbody id="shadowSignalsTableBody">
+        <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Cargando historial de señales...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Posiciones Abiertas -->
+  <div class="card-section">
+    <div class="section-title">💼 Posiciones Abiertas Monitoreadas en Vivo (TP $0.92 / SL $0.35)</div>
+    <table>
+      <thead>
+        <tr>
+          <th>MONEDA</th>
+          <th>LADO</th>
+          <th>PRECIO ENTRADA</th>
+          <th>VALOR INVERTIDO</th>
+          <th>ACCIONES</th>
+          <th>ESTADO</th>
+        </tr>
+      </thead>
+      <tbody id="positionsTableBody">
+        <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1rem;">Sin posiciones abiertas activas en este ciclo.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    function updateCountdown() {
+      const now = new Date();
+      const nextHour = new Date(now);
+      nextHour.setUTCHours(now.getUTCHours() + 1, 0, 0, 0);
+      const diffSec = Math.max(0, Math.floor((nextHour - now) / 1000));
+      const mins = Math.floor(diffSec / 60);
+      const secs = diffSec % 60;
+      const timerEl = document.getElementById('nextFiringTimer');
+      if (timerEl) {
+        timerEl.innerText = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+      }
+    }
+
+    async function updateDashboard() {
+      try {
+        const res = await fetch('/api/status?t=' + Date.now());
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // Update Balances
+        if (data.balances) {
+          const totalEl = document.getElementById('totalUsdc');
+          if (totalEl) totalEl.innerText = '$' + (data.balances.total || 46.66).toFixed(2);
+        }
+
+        // Populate Accumulation Table
+        if (data.accumulation && Array.isArray(data.accumulation)) {
+          const accBody = document.getElementById('accumulationTableBody');
+          if (accBody) {
+            accBody.innerHTML = data.accumulation.map(a => `
+              <tr>
+                <td><strong>${a.coin}</strong></td>
+                <td><strong>${a.n_casos}</strong> / 200</td>
+                <td>200 Folds OOS</td>
+                <td style="width: 180px;">
+                  <div>${a.pct}%</div>
+                  <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${a.pct}%;"></div></div>
+                </td>
+                <td><span class="badge-insufficient">${a.status}</span></td>
+                <td style="color: var(--accent-gold);">$${(a.stake_allowed || 1.0).toFixed(2)} USD</td>
+              </tr>
+            `).join('');
+          }
+        }
+
+        // Populate Collector Status
+        if (data.collector) {
+          const cntEl = document.getElementById('collectorSnapshots');
+          const tsEl = document.getElementById('collectorLastTs');
+          if (cntEl) cntEl.innerText = data.collector.totalSnapshots || 0;
+          if (tsEl) tsEl.innerText = data.collector.lastTs ? data.collector.lastTs.substring(0, 19).replace('T', ' ') : '—';
+        }
+
+        // Populate Tickers Table with fallback to currentPrice or binanceSpotPrice
+        if (data.tickers && Array.isArray(data.tickers)) {
+          const tickBody = document.getElementById('tickersTableBody');
+          if (tickBody) {
+            tickBody.innerHTML = data.tickers.map(t => {
+              const spot = t.currentPrice || t.binanceSpotPrice || 0;
+              const delta = t.deltaPct || t.delta15mPct || 0;
+              const upAsk = t.upBestAsk || t.polymarketUpAsk || 0;
+              const downAsk = t.downBestAsk || t.polymarketDownAsk || 0;
+              return `
+                <tr>
+                  <td><strong>${t.coin || t.symbol}</strong></td>
+                  <td>$${spot > 0 ? spot.toFixed(4) : 'Cargando...'}</td>
+                  <td style="color: ${delta >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">${delta.toFixed(2)}%</td>
+                  <td style="color: var(--accent-green)">$${upAsk > 0 ? upAsk.toFixed(3) : '—'}</td>
+                  <td style="color: var(--accent-red)">$${downAsk > 0 ? downAsk.toFixed(3) : '—'}</td>
+                  <td><span class="badge badge-wss">LOGIT V3 ACTIVE</span></td>
+                </tr>
+              `;
+            }).join('');
+          }
+        }
+
+        // Populate Shadow Signals
+        if (data.shadowSignals && Array.isArray(data.shadowSignals)) {
+          const shadowBody = document.getElementById('shadowSignalsTableBody');
+          if (shadowBody) {
+            shadowBody.innerHTML = data.shadowSignals.map(s => `
+              <tr>
+                <td>#${s.id}</td>
+                <td>${s.created_at ? s.created_at.substring(11, 19) : '—'}</td>
+                <td><strong>${s.coin}</strong></td>
+                <td style="color: ${s.selected_side === 'YES' ? 'var(--accent-green)' : 'var(--accent-red)'}">${s.selected_side}</td>
+                <td>$${(s.yes_ask || 0).toFixed(3)}</td>
+                <td>$${(s.no_ask || 0).toFixed(3)}</td>
+                <td style="color: var(--accent-cyan);">$${((s.selected_side === 'YES' ? s.edge_net_yes : s.edge_net_no) || 0).toFixed(4)}</td>
+                <td><span class="badge" style="background: ${s.status === 'APPROVED' ? 'rgba(0,229,255,0.15)' : 'rgba(255,23,68,0.15)'}; color: ${s.status === 'APPROVED' ? '#00e5ff' : '#ff1744'}">${s.status}</span></td>
+              </tr>
+            `).join('');
+          }
+        }
+
+        // Update Positions
+        const posBody = document.getElementById('positionsTableBody');
+        if (posBody) {
+          if (data.positions && data.positions.length > 0) {
+            posBody.innerHTML = data.positions.map(p => `
+              <tr>
+                <td><strong>${p.coin}</strong></td>
+                <td style="color: ${p.side === 'UP' || p.side === 'YES' ? 'var(--accent-green)' : 'var(--accent-red)'}">${p.side}</td>
+                <td>$${(p.entryPrice || 0).toFixed(3)}</td>
+                <td>$${(p.entryUSD || 0).toFixed(2)}</td>
+                <td>${p.status}</td>
+                <td>${p.openedAt ? p.openedAt.substring(11, 19) : '—'}</td>
+              </tr>
+            `).join('');
+          } else {
+            posBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:1rem; color:var(--text-muted);">Sin posiciones abiertas activas en este ciclo.</td></tr>';
+          }
+        }
+
+      } catch (err) {
+        console.error('Error actualizando dashboard:', err);
+      }
+    }
+
+    setInterval(updateDashboard, 3000);
+    setInterval(updateCountdown, 1000);
+    updateDashboard();
+    updateCountdown();
+  
+    async function updateV4Dashboard() {
+      try {
+        const res = await fetch('/api/v4/state');
+        const data = await res.json();
+        if (!data || !data.matrix) return;
+
+        const tbody = document.getElementById('v4MatrixTableBody');
+        if (!tbody) return;
+
+        let html = '';
+        for (const [coin, info] of Object.entries(data.matrix)) {
+          const upBadge = info.rule1H_UP_Triggered || info.rule15M_UP_Triggered ? '<span style="color:#00e676;font-weight:bold;">🎯 DISPARO UP</span>' : '';
+          const downBadge = info.rule1H_DOWN_Triggered || info.rule15M_DOWN_Triggered ? '<span style="color:#ff1744;font-weight:bold;">🎯 DISPARO DOWN</span>' : '';
+          const status = upBadge || downBadge || '<span style="color:#8b9bb4;">EN OBSERVACIÓN</span>';
+
+          const filter5MColor = info.filter5MState === 'BULLISH' ? '#00e676' : info.filter5MState === 'BEARISH' ? '#ff1744' : '#8b9bb4';
+
+          html += `<tr>
+            <td><strong>${coin}</strong></td>
+            <td>$${info.spotPrice}</td>
+            <td style="color:${parseFloat(info.delta1H) >= 0 ? '#00e676':'#ff1744'};">${info.delta1H}%</td>
+            <td style="color:${parseFloat(info.delta15M) >= 0 ? '#00e676':'#ff1744'};">${info.delta15M}%</td>
+            <td style="color:${filter5MColor};font-weight:bold;">${info.delta5M}% (${info.filter5MState})</td>
+            <td>UP: $${info.askUP} | DOWN: $${info.askDOWN}</td>
+            <td>${status}</td>
+          </tr>`;
+        }
+        tbody.innerHTML = html;
+      } catch(e) {}
+    }
+    setInterval(updateV4Dashboard, 1000);
+
+</script>
 </body>
 </html>
+

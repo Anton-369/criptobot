@@ -1,3 +1,5 @@
+import { HFTSharedState, REVERSE_ASSET_MAP } from '../v4/HFTSharedState';
+import { CALIBRATED_RULES } from '../v4/HFTReactiveEngine';
 import express from 'express';
 import http from 'http';
 import WebSocket from 'ws';
@@ -29,7 +31,7 @@ export class DashboardServer {
     binanceWs: BinanceWebsocketEngine,
     polyClob: PolymarketClobConnector,
     execEngine: ExecutionEngine,
-    port: number = 8505,
+    port: number = 8506,
     matrixCollector?: MatrixCollector,
     detector?: MomentumDetector
   ) {
@@ -74,6 +76,40 @@ export class DashboardServer {
         res.set('Expires', '0');
       }
     }));
+
+    
+    this.app.get('/api/v4/state', (req, res) => {
+      const matrix: Record<string, any> = {};
+      for (const coin of REVERSE_ASSET_MAP) {
+        const spotPrice = HFTSharedState.getSpotPrice(coin);
+        const delta1H = HFTSharedState.getDelta1H(coin);
+        const delta15M = HFTSharedState.getDelta15M(coin);
+        const delta5M = HFTSharedState.getDelta5M(coin);
+        const askUP = HFTSharedState.getPolyAsk(coin, 'UP');
+        const askDOWN = HFTSharedState.getPolyAsk(coin, 'DOWN');
+        const rules = CALIBRATED_RULES[coin];
+
+        matrix[coin] = {
+          spotPrice,
+          delta1H: delta1H.toFixed(2),
+          delta15M: delta15M.toFixed(2),
+          delta5M: delta5M.toFixed(2),
+          askUP: askUP > 0 ? askUP.toFixed(3) : 'N/A',
+          askDOWN: askDOWN > 0 ? askDOWN.toFixed(3) : 'N/A',
+          rule1H_UP_Triggered: rules && rules['1H'] ? delta1H >= rules['1H'].deltaUpTrigger : false,
+          rule1H_DOWN_Triggered: rules && rules['1H'] ? delta1H <= rules['1H'].deltaDownTrigger : false,
+          rule15M_UP_Triggered: rules && rules['15M'] ? delta15M >= rules['15M'].deltaUpTrigger : false,
+          rule15M_DOWN_Triggered: rules && rules['15M'] ? delta15M <= rules['15M'].deltaDownTrigger : false,
+          filter5MState: delta5M > 0 ? 'BULLISH' : delta5M < 0 ? 'BEARISH' : 'NEUTRAL'
+        };
+      }
+      res.json({
+        timestamp: Date.now(),
+        executionMode: CONFIG.EXECUTION_MODE,
+        proxyWallet: CONFIG.PROXY_WALLET,
+        matrix
+      });
+    });
 
     this.app.get('/api/status', async (req, res) => {
       res.json(await this.buildStatus());

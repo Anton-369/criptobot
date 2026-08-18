@@ -18,7 +18,7 @@ export interface EdgeResult {
 
 export class EdgeCalculator {
   private static readonly ESTIMATED_COSTS = 0.015; // 1.5% buffer (fees + slippage + latency)
-  private static readonly MIN_NET_EDGE = 0.03;      // Minimum +3% Net Edge required
+  private static readonly MIN_NET_EDGE = 0.04;      // Minimum +3% Net Edge required
 
   /**
    * Calculates Sigmoid Logit Probability and Net Edge against best_ask
@@ -55,11 +55,11 @@ export class EdgeCalculator {
     let target_ask_price = 0;
 
     // Evaluate best side
-    if (edge_net_yes >= this.MIN_NET_EDGE && edge_net_yes >= edge_net_no) {
+    if (edge_net_yes >= this.MIN_NET_EDGE && edge_net_yes >= edge_net_no && bestAskYes >= 0.55 && bestAskYes <= 0.60) {
       selected_side = 'YES';
       selected_edge_net = edge_net_yes;
       target_ask_price = bestAskYes;
-    } else if (edge_net_no >= this.MIN_NET_EDGE && edge_net_no > edge_net_yes) {
+    } else if (edge_net_no >= this.MIN_NET_EDGE && edge_net_no > edge_net_yes && bestAskNo >= 0.55 && bestAskNo <= 0.60) {
       selected_side = 'NO';
       selected_edge_net = edge_net_no;
       target_ask_price = bestAskNo;

@@ -268,8 +268,33 @@ async function main() {
   }, 10000);
 
   // 10. Start Real-time Web Control Dashboard
-  const dashboard = new DashboardServer(binanceWs, polyClob, execEngine, 8588, matrixCollector, detector);
+  const dashboard = new DashboardServer(binanceWs, polyClob, execEngine, 8506, matrixCollector, detector);
   dashboard.start();
+
+  // 11. Inicializar Motores Nativo HFT V4 y Streams Multiplexados Binance (1H, 15M, 5M)
+  try {
+    const { BinanceMultiFrameWS } = require('./v4/BinanceMultiFrameWS');
+    const { LocalOrderbookManager } = require('./v4/LocalOrderbook');
+    const { HFTReactiveEngine } = require('./v4/HFTReactiveEngine');
+    
+    const activeMarkets = await polyClob.fetchActive1HMarkets();
+    const tokenMappings = [];
+    for (const [coin, market] of activeMarkets.entries()) {
+      if (market.upTokenId) tokenMappings.push({ tokenId: market.upTokenId, coin, side: 'UP', timeframe: '1H' });
+      if (market.downTokenId) tokenMappings.push({ tokenId: market.downTokenId, coin, side: 'DOWN', timeframe: '1H' });
+    }
+    const orderbookV4 = new LocalOrderbookManager();
+    orderbookV4.registerTokens(tokenMappings);
+    orderbookV4.start();
+
+    const engineV4 = new HFTReactiveEngine(orderbookV4);
+    const binanceMultiWs = new BinanceMultiFrameWS();
+    binanceMultiWs.start();
+    console.log('[Main V4] ⚡ Engine HFT V4 alimentando RAM en vivo para el Dashboard.');
+  } catch (err: any) {
+    console.error('[Main V4] Error inicializando V4:', err.message);
+  }
+
 
   console.log("\n🚀 Criptobot v3.0 funcionando en segundo plano. Motor IA + Recolección SQLite 24/7 activos.");
 }
