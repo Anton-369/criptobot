@@ -1,5 +1,5 @@
 {
-  "calibrated_at": "2026-08-18T15:05:35.286249",
+  "calibrated_at": "2026-08-18T16:05:58.550150",
   "train_split": 0.8,
   "methodology": "Strict 100% Real 1m Microstructure Backtest (No Historical Estimations)",
   "rules_by_coin": {
@@ -8,14 +8,14 @@
         "rule_id": "H1_MOMENTUM_CONTINUATION",
         "evaluation_minute": 10,
         "trigger_delta_pct": 0.1,
-        "win_rate_train": 0.9167,
+        "win_rate_train": 0.9231,
         "win_rate_test_oos": 1.0,
-        "p_value": 0.003173828125,
+        "p_value": 0.001708984375,
         "confidence_interval_95": [
-          0.6461,
-          0.9851
+          0.6669,
+          0.9863
         ],
-        "expected_value_usd": 0.5167,
+        "expected_value_usd": 0.5231,
         "recommended_entry_window_min": [
           10,
           25
@@ -49,14 +49,14 @@
         "rule_id": "H1_MOMENTUM_CONTINUATION",
         "evaluation_minute": 10,
         "trigger_delta_pct": 0.1,
-        "win_rate_train": 0.7222,
+        "win_rate_train": 0.7368,
         "win_rate_test_oos": 1.0,
-        "p_value": 0.048126220703125,
+        "p_value": 0.0317840576171875,
         "confidence_interval_95": [
-          0.4913,
-          0.875
+          0.5121,
+          0.8819
         ],
-        "expected_value_usd": 0.3222,
+        "expected_value_usd": 0.3368,
         "recommended_entry_window_min": [
           10,
           25
@@ -71,14 +71,14 @@
         "rule_id": "H1_MOMENTUM_CONTINUATION",
         "evaluation_minute": 10,
         "trigger_delta_pct": 0.1,
-        "win_rate_train": 0.8718,
-        "win_rate_test_oos": 0.875,
-        "p_value": 1.2149539543315768e-06,
+        "win_rate_train": 0.875,
+        "win_rate_test_oos": 0.8571,
+        "p_value": 6.91306013322901e-07,
         "confidence_interval_95": [
-          0.7329,
-          0.944
+          0.7389,
+          0.9454
         ],
-        "expected_value_usd": 0.4718,
+        "expected_value_usd": 0.475,
         "recommended_entry_window_min": [
           10,
           25
