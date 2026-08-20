@@ -1,5 +1,5 @@
 {
-  "calibrated_at": "2026-08-19T00:05:06.011224",
+  "calibrated_at": "2026-08-21T00:05:09.293898",
   "train_split": 0.8,
   "methodology": "Strict 100% Real 1m Microstructure Backtest (No Historical Estimations)",
   "rules_by_coin": {

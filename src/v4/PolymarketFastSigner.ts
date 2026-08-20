@@ -1,11 +1,11 @@
 /**
  * 🔐 POLYMARKET FAST SIGNER & OFFICIAL CLOB CLIENT CONNECTOR
- * Arquitectura Híbrida V4 - Ejecución de Órdenes FOK usando @polymarket/clob-client
+ * Arquitectura Híbrida V4 - Ejecución de Órdenes FOK usando execute_live_order.js (ClobClient v2 + SOCKS5)
  */
 
 import { CONFIG } from '../config/environment';
 import { PolymarketClobConnector } from '../connectors/PolymarketClob';
-import { Side, OrderType } from '@polymarket/clob-client';
+import { execSync } from 'child_process';
 
 export interface FOKOrderParams {
   tokenId: string;
@@ -23,7 +23,7 @@ export class PolymarketFastSigner {
   }
 
   /**
-   * Ejecutar Orden FOK usando el cliente oficial EIP-712 de Polymarket
+   * Ejecutar Orden FOK usando el conector probado execute_live_order.js
    */
   public async executeFOKOrder(params: FOKOrderParams): Promise<{ success: boolean; orderId?: string; error?: string }> {
     const startTime = Date.now();
@@ -35,31 +35,27 @@ export class PolymarketFastSigner {
     }
 
     try {
-      const client = this.clobConnector.getClobClient();
-      if (!client) {
-        console.error('[FastSigner] ❌ Cliente CLOB no autenticado. Verifique PK / Credenciales en environment.');
-        return { success: false, error: 'CLOB_CLIENT_NOT_AUTHENTICATED' };
-      }
+      console.log(`[FastSigner] ⚡ ENVIANDO ORDEN FOK REAL EN VIVO: ${params.coin} ${params.side} ${shares} acc @ $${params.price} ($${params.amountUsdc} USDC)...`);
 
-      console.log(`[FastSigner] ⚡ ENVIANDO ORDEN FOK REAL: ${params.coin} ${params.side} ${shares} acc @ $${params.price} ($${params.amountUsdc} USDC)...`);
-
-      const unsignedOrder = await client.createOrder({
-        tokenID: params.tokenId,
-        price: params.price,
-        side: params.side === 'BUY' ? Side.BUY : Side.SELL,
-        size: shares,
-        feeRateBps: 0
-      });
-
-      const resp: any = await client.postOrder(unsignedOrder, OrderType.FOK);
+      const cmd = `NODE_PATH=/home/anton/criptobot/node_modules node /home/anton/oraculo-cripto/execute_live_order.js '${params.tokenId}' ${params.price} ${params.amountUsdc}`;
+      const rawRes = execSync(cmd, { encoding: 'utf-8', timeout: 12000 });
       const latency = Date.now() - startTime;
 
-      if (resp && (resp.success || resp.orderID || resp.orderId)) {
-        const orderId = resp.orderID || resp.orderId || `FOK_${Date.now()}`;
-        console.log(`[FastSigner] ⚡ ✅ ORDEN FOK REAL EJECUTADA EN ${latency}ms | OrderID: ${orderId}`);
+      console.log(`[FastSigner] 💥 Respuesta Raw Exec: ${rawRes.trim()}`);
+
+      let parsed: any;
+      try {
+        parsed = JSON.parse(rawRes.trim());
+      } catch (e) {
+        parsed = { success: false, error: rawRes };
+      }
+
+      if (parsed && parsed.success) {
+        const orderId = parsed.response?.orderID || parsed.response?.orderId || `FOK_${Date.now()}`;
+        console.log(`[FastSigner] ⚡ ✅ ORDEN FOK REAL MATCHED EN POLYMARKET EN ${latency}ms | OrderID: ${orderId}`);
         return { success: true, orderId };
       } else {
-        const errorMsg = JSON.stringify(resp);
+        const errorMsg = parsed.error || JSON.stringify(parsed);
         console.error(`[FastSigner] ❌ Rechazo CLOB en ${latency}ms: ${errorMsg}`);
         return { success: false, error: errorMsg };
       }

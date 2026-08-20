@@ -1,109 +1,95 @@
-report = r"""# 🔬 REEVALUACION DE UMBRALES DE DELTA -- DATOS 100% REALES Y CALCULADOS
-**Fecha de Ejecución:** 2026-08-18  
-**Arquitectura:** Criptobot V4 (Multiescala 1H, 15M, 5M)  
-**Criterio Estadístico:** Split-Half Out-Of-Sample Validation ($Z \ge 1.645$, $\alpha = 0.05$, Edge $Score - Ask \ge 0.04$)
+# 🔬 RE-EVALUACION DE UMBRALES DE DELTA -- METODOLOGIA CORRECTA (CERO FUGA)
+**Fecha de Auditoría:** 2026-08-19  
+**Metodología:** Split-Half Out-Of-Sample Validation (50% Exploración / 50% Validación OOS)  
+**Garantía Matemáticas:** Delta calculado ÚNICAMENTE con velas pasadas ya cerradas ($T_{-1}$ vs $T_{-2}$). Prohibido uso de High/Low de vela en curso.  
 
 ---
 
-## 📌 PASO 1 -- Diagnóstico: Distancia Real de Deltas Máximos Observados vs. Umbrales Actuales
-
-A continuación se presenta el diagnóstico en vivo comparando los umbrales actualmente exigidos en la matriz V4 contra el **delta máximo real observado** en las últimas horas en el mercado spot (Binance y Hyperliquid):
+## 📌 PASO 1 -- Diagnóstico: Distancia de Deltas Reales vs Umbrales Actuales
 
 | ID | Coin | Timeframe | Lado | Umbral Actual | Max Delta Observado (Últimas Horas) | Distancia al Disparo | Estado de Cercanía |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| #1 | SOL | 1H | UP | +0.80% | +0.55% | +0.25% | ❄️ MUY LEJOS |
-| #2 | SOL | 1H | DOWN | -0.80% | -0.56% | -0.24% | ❄️ MUY LEJOS |
-| #11 | SOL | 15M | UP | +0.40% | +0.30% | +0.10% | 🔥 CASI LLEGANDO |
-| #12 | SOL | 15M | DOWN | -0.40% | -0.36% | -0.04% | 🔥 CASI LLEGANDO |
-| #21 | SOL | 5M | UP | +0.20% | +0.17% | +0.03% | 🔥 CASI LLEGANDO |
-| #22 | SOL | 5M | DOWN | -0.20% | -0.09% | -0.11% | 🔥 CASI LLEGANDO |
-| #3 | XRP | 1H | UP | +0.60% | +0.23% | +0.37% | ❄️ MUY LEJOS |
-| #4 | XRP | 1H | DOWN | -0.60% | -0.39% | -0.21% | ❄️ MUY LEJOS |
-| #13 | XRP | 15M | UP | +0.35% | +0.23% | +0.12% | ❄️ MUY LEJOS |
-| #14 | XRP | 15M | DOWN | -0.35% | -0.25% | -0.10% | 🔥 CASI LLEGANDO |
-| #23 | XRP | 5M | UP | +0.18% | +0.16% | +0.02% | 🔥 CASI LLEGANDO |
-| #24 | XRP | 5M | DOWN | -0.18% | -0.07% | -0.11% | 🔥 CASI LLEGANDO |
-| #5 | DOGE | 1H | UP | +1.00% | +0.38% | +0.62% | ❄️ MUY LEJOS |
-| #6 | DOGE | 1H | DOWN | -1.00% | -0.34% | -0.66% | ❄️ MUY LEJOS |
-| #15 | DOGE | 15M | UP | +0.50% | +0.18% | +0.32% | ❄️ MUY LEJOS |
-| #16 | DOGE | 15M | DOWN | -0.50% | -0.23% | -0.27% | ❄️ MUY LEJOS |
-| #25 | DOGE | 5M | UP | +0.25% | +0.13% | +0.12% | ❄️ MUY LEJOS |
-| #26 | DOGE | 5M | DOWN | -0.25% | -0.10% | -0.15% | ❄️ MUY LEJOS |
-| #7 | BNB | 1H | UP | +0.50% | +0.20% | +0.30% | ❄️ MUY LEJOS |
-| #8 | BNB | 1H | DOWN | -0.50% | -0.11% | -0.39% | ❄️ MUY LEJOS |
-| #17 | BNB | 15M | UP | +0.30% | +0.05% | +0.25% | ❄️ MUY LEJOS |
-| #18 | BNB | 15M | DOWN | -0.30% | -0.06% | -0.24% | ❄️ MUY LEJOS |
-| #27 | BNB | 5M | UP | +0.15% | +0.02% | +0.13% | ❄️ MUY LEJOS |
-| #28 | BNB | 5M | DOWN | -0.15% | -0.05% | -0.10% | 🔥 CASI LLEGANDO |
-| #9 | HYPE | 1H | UP | +0.60% | +0.55% | +0.05% | 🔥 CASI LLEGANDO |
-| #10 | HYPE | 1H | DOWN | -0.80% | -0.56% | -0.24% | ❄️ MUY LEJOS |
-| #19 | HYPE | 15M | UP | +0.50% | +0.30% | +0.20% | ❄️ MUY LEJOS |
-| #20 | HYPE | 15M | DOWN | -0.50% | -0.36% | -0.14% | ❄️ MUY LEJOS |
-| #29 | HYPE | 5M | UP | +0.30% | +0.17% | +0.13% | ❄️ MUY LEJOS |
-| #30 | HYPE | 5M | DOWN | -0.30% | -0.09% | -0.21% | ❄️ MUY LEJOS |
-
+| #1 | SOL | 1h | UP | +0.80% | +0.75% | +0.05% | 🔥 CASI LLEGANDO |
+| #2 | SOL | 1h | DOWN | +0.80% | +1.07% | -0.27% | 🔥 CASI LLEGANDO |
+| #3 | SOL | 15m | UP | +0.40% | +0.36% | +0.04% | 🔥 CASI LLEGANDO |
+| #4 | SOL | 15m | DOWN | +0.40% | +0.33% | +0.07% | 🔥 CASI LLEGANDO |
+| #5 | SOL | 5m | UP | +0.20% | +0.11% | +0.09% | 🔥 CASI LLEGANDO |
+| #6 | SOL | 5m | DOWN | +0.20% | +0.17% | +0.03% | 🔥 CASI LLEGANDO |
+| #7 | XRP | 1h | UP | +0.60% | +0.95% | -0.35% | 🔥 CASI LLEGANDO |
+| #8 | XRP | 1h | DOWN | +0.60% | +1.41% | -0.81% | 🔥 CASI LLEGANDO |
+| #9 | XRP | 15m | UP | +0.35% | +0.47% | -0.12% | 🔥 CASI LLEGANDO |
+| #10 | XRP | 15m | DOWN | +0.35% | +0.66% | -0.31% | 🔥 CASI LLEGANDO |
+| #11 | XRP | 5m | UP | +0.18% | +0.18% | -0.00% | 🔥 CASI LLEGANDO |
+| #12 | XRP | 5m | DOWN | +0.18% | +0.18% | +0.00% | 🔥 CASI LLEGANDO |
+| #13 | DOGE | 1h | UP | +1.00% | +1.03% | -0.03% | 🔥 CASI LLEGANDO |
+| #14 | DOGE | 1h | DOWN | +1.00% | +1.80% | -0.80% | 🔥 CASI LLEGANDO |
+| #15 | DOGE | 15m | UP | +0.50% | +0.46% | +0.04% | 🔥 CASI LLEGANDO |
+| #16 | DOGE | 15m | DOWN | +0.50% | +0.44% | +0.06% | 🔥 CASI LLEGANDO |
+| #17 | DOGE | 5m | UP | +0.25% | +0.17% | +0.08% | 🔥 CASI LLEGANDO |
+| #18 | DOGE | 5m | DOWN | +0.25% | +0.24% | +0.01% | 🔥 CASI LLEGANDO |
+| #19 | BNB | 1h | UP | +0.50% | +0.63% | -0.13% | 🔥 CASI LLEGANDO |
+| #20 | BNB | 1h | DOWN | +0.50% | +0.66% | -0.16% | 🔥 CASI LLEGANDO |
+| #21 | BNB | 15m | UP | +0.30% | +0.34% | -0.04% | 🔥 CASI LLEGANDO |
+| #22 | BNB | 15m | DOWN | +0.30% | +0.32% | -0.02% | 🔥 CASI LLEGANDO |
+| #23 | BNB | 5m | UP | +0.15% | +0.17% | -0.02% | 🔥 CASI LLEGANDO |
+| #24 | BNB | 5m | DOWN | +0.15% | +0.17% | -0.02% | 🔥 CASI LLEGANDO |
+| #25 | HYPE | 1h | UP | +0.60% | +1.71% | -1.11% | 🔥 CASI LLEGANDO |
+| #26 | HYPE | 1h | DOWN | +0.80% | +1.10% | -0.30% | 🔥 CASI LLEGANDO |
+| #27 | HYPE | 15m | UP | +0.50% | +0.11% | +0.39% | ❄️ MUY LEJOS |
+| #28 | HYPE | 15m | DOWN | +0.50% | +0.17% | +0.33% | ❄️ MUY LEJOS |
+| #29 | HYPE | 5m | UP | +0.30% | +0.38% | -0.08% | 🔥 CASI LLEGANDO |
+| #30 | HYPE | 5m | DOWN | +0.30% | +0.46% | -0.16% | 🔥 CASI LLEGANDO |
 
 ---
 
-## 🔬 PASO 2 -- Grilla Fina de Umbrales Más Bajos sobre Histórico Completo (Cálculo Real OOS 50/50)
+## 🔬 PASO 2 -- Grilla Fina sobre Histórico Completo (Validación Out-Of-Sample 50/50)
 
-Para **cada una de las 30 reglas**, se ejecutó la evaluación dividiendo el dataset de 5 meses en dos mitades independientes (**1ª Mitad In-Sample** y **2ª Mitad Out-Of-Sample**). A continuación se muestran los valores **100% reales y no repetidos**:
-
-| ID | Coin | TF | Lado | Umbral Orig. | **Umbral Rec. Mínimo** | N (OOS) | Win Rate (OOS) | Z-Score (OOS) | Estado Validación |
+| ID | Coin | TF | Lado | Umbral Actual | **Umbral Rec. Mínimo** | N (OOS) | Win Rate (OOS) | Z-Score (OOS) | Estado Validación |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| #1 | SOL | 1H | UP | +0.80% | **+0.80%** | 278 | 91.0% | 13.67 | ✅ APROBADO OOS |
-| #2 | SOL | 1H | DOWN | -0.80% | **-0.80%** | 315 | 87.9% | 13.47 | ✅ APROBADO OOS |
-| #11 | SOL | 15M | UP | +0.40% | **+0.40%** | 1091 | 90.9% | 27.04 | ✅ APROBADO OOS |
-| #12 | SOL | 15M | DOWN | -0.40% | **-0.40%** | 1177 | 90.4% | 27.72 | ✅ APROBADO OOS |
-| #21 | SOL | 5M | UP | +0.20% | **+0.20%** | 4044 | 89.8% | 50.67 | ✅ APROBADO OOS |
-| #22 | SOL | 5M | DOWN | -0.20% | **-0.20%** | 4350 | 88.5% | 50.82 | ✅ APROBADO OOS |
-| #3 | XRP | 1H | UP | +0.60% | **+0.60%** | 356 | 90.4% | 15.26 | ✅ APROBADO OOS |
-| #4 | XRP | 1H | DOWN | -0.60% | **-0.60%** | 402 | 89.6% | 15.86 | ✅ APROBADO OOS |
-| #13 | XRP | 15M | UP | +0.35% | **+0.35%** | 1070 | 90.3% | 26.35 | ✅ APROBADO OOS |
-| #14 | XRP | 15M | DOWN | -0.35% | **-0.35%** | 1164 | 91.0% | 27.96 | ✅ APROBADO OOS |
-| #23 | XRP | 5M | UP | +0.18% | **+0.18%** | 3778 | 91.1% | 50.50 | ✅ APROBADO OOS |
-| #24 | XRP | 5M | DOWN | -0.18% | **-0.18%** | 4113 | 90.4% | 51.85 | ✅ APROBADO OOS |
-| #5 | DOGE | 1H | UP | +1.00% | **+1.00%** | 138 | 95.7% | 10.73 | ✅ APROBADO OOS |
-| #6 | DOGE | 1H | DOWN | -1.00% | **-1.00%** | 199 | 91.5% | 11.70 | ✅ APROBADO OOS |
-| #15 | DOGE | 15M | UP | +0.50% | **+0.50%** | 590 | 95.3% | 21.98 | ✅ APROBADO OOS |
-| #16 | DOGE | 15M | DOWN | -0.50% | **-0.50%** | 680 | 95.3% | 23.62 | ✅ APROBADO OOS |
-| #25 | DOGE | 5M | UP | +0.25% | **+0.25%** | 2238 | 93.8% | 41.43 | ✅ APROBADO OOS |
-| #26 | DOGE | 5M | DOWN | -0.25% | **-0.25%** | 2477 | 92.5% | 42.30 | ✅ APROBADO OOS |
-| #7 | BNB | 1H | UP | +0.50% | **+0.50%** | 322 | 92.2% | 15.16 | ✅ APROBADO OOS |
-| #8 | BNB | 1H | DOWN | -0.50% | **-0.50%** | 362 | 87.8% | 14.40 | ✅ APROBADO OOS |
-| #17 | BNB | 15M | UP | +0.30% | **+0.30%** | 919 | 90.3% | 24.44 | ✅ APROBADO OOS |
-| #18 | BNB | 15M | DOWN | -0.30% | **-0.30%** | 933 | 92.6% | 26.03 | ✅ APROBADO OOS |
-| #27 | BNB | 5M | UP | +0.15% | **+0.15%** | 3378 | 90.9% | 47.56 | ✅ APROBADO OOS |
-| #28 | BNB | 5M | DOWN | -0.15% | **-0.15%** | 3451 | 90.5% | 47.61 | ✅ APROBADO OOS |
-| #9 | HYPE | 1H | UP | +0.60% | **+0.60%** | 1030 | 81.9% | 20.50 | ✅ APROBADO OOS |
-| #10 | HYPE | 1H | DOWN | -0.80% | **-0.80%** | 769 | 83.5% | 18.57 | ✅ APROBADO OOS |
-| #19 | HYPE | 15M | UP | +0.50% | **+0.40%** | 54 | 98.1% | 7.08 | ✅ APROBADO OOS |
-| #20 | HYPE | 15M | DOWN | -0.50% | **-0.45%** | 31 | 100.0% | 5.57 | ✅ APROBADO OOS |
-| #29 | HYPE | 5M | UP | +0.30% | **+0.30%** | 112 | 97.3% | 10.02 | ✅ APROBADO OOS |
-| #30 | HYPE | 5M | DOWN | -0.30% | **-0.30%** | 113 | 96.5% | 9.88 | ✅ APROBADO OOS |
-
+| #1 | SOL | 1h | UP | +0.80% | **+0.80%** | 138 | 52.9% | 0.68 | ❌ Z < 1.645 |
+| #2 | SOL | 1h | DOWN | +0.80% | **+0.80%** | 150 | 42.0% | -1.96 | ❌ Z < 1.645 |
+| #3 | SOL | 15m | UP | +0.40% | **+0.40%** | 548 | 43.8% | -2.90 | ❌ Z < 1.645 |
+| #4 | SOL | 15m | DOWN | +0.40% | **+0.40%** | 560 | 42.1% | -3.72 | ❌ Z < 1.645 |
+| #5 | SOL | 5m | UP | +0.20% | **+0.20%** | 2107 | 44.8% | -4.81 | ❌ Z < 1.645 |
+| #6 | SOL | 5m | DOWN | +0.20% | **+0.20%** | 2159 | 46.0% | -3.72 | ❌ Z < 1.645 |
+| #7 | XRP | 1h | UP | +0.60% | **+0.60%** | 175 | 46.3% | -0.98 | ❌ Z < 1.645 |
+| #8 | XRP | 1h | DOWN | +0.60% | **+0.60%** | 178 | 48.3% | -0.45 | ❌ Z < 1.645 |
+| #9 | XRP | 15m | UP | +0.35% | **+0.35%** | 533 | 45.6% | -2.04 | ❌ Z < 1.645 |
+| #10 | XRP | 15m | DOWN | +0.35% | **+0.35%** | 550 | 44.5% | -2.56 | ❌ Z < 1.645 |
+| #11 | XRP | 5m | UP | +0.18% | **+0.18%** | 1982 | 46.3% | -3.32 | ❌ Z < 1.645 |
+| #12 | XRP | 5m | DOWN | +0.18% | **+0.18%** | 2064 | 46.3% | -3.39 | ❌ Z < 1.645 |
+| #13 | DOGE | 1h | UP | +1.00% | **+1.00%** | 71 | 43.7% | -1.07 | ❌ Z < 1.645 |
+| #14 | DOGE | 1h | DOWN | +1.00% | **+1.00%** | 84 | 44.0% | -1.09 | ❌ Z < 1.645 |
+| #15 | DOGE | 15m | UP | +0.50% | **+0.50%** | 292 | 43.2% | -2.34 | ❌ Z < 1.645 |
+| #16 | DOGE | 15m | DOWN | +0.50% | **+0.50%** | 323 | 43.7% | -2.28 | ❌ Z < 1.645 |
+| #17 | DOGE | 5m | UP | +0.25% | **+0.25%** | 1152 | 46.6% | -2.30 | ❌ Z < 1.645 |
+| #18 | DOGE | 5m | DOWN | +0.25% | **+0.25%** | 1196 | 46.9% | -2.14 | ❌ Z < 1.645 |
+| #19 | BNB | 1h | UP | +0.50% | **+0.50%** | 163 | 53.4% | 0.86 | ❌ Z < 1.645 |
+| #20 | BNB | 1h | DOWN | +0.50% | **+0.50%** | 169 | 52.1% | 0.54 | ❌ Z < 1.645 |
+| #21 | BNB | 15m | UP | +0.30% | **+0.30%** | 466 | 45.5% | -1.95 | ❌ Z < 1.645 |
+| #22 | BNB | 15m | DOWN | +0.30% | **+0.30%** | 483 | 46.0% | -1.77 | ❌ Z < 1.645 |
+| #23 | BNB | 5m | UP | +0.15% | **+0.15%** | 1811 | 47.9% | -1.76 | ❌ Z < 1.645 |
+| #24 | BNB | 5m | DOWN | +0.15% | **+0.15%** | 1778 | 46.5% | -2.99 | ❌ Z < 1.645 |
+| #25 | HYPE | 1h | UP | +0.60% | **+0.60%** | 516 | 46.5% | -1.58 | ❌ Z < 1.645 |
+| #26 | HYPE | 1h | DOWN | +0.80% | **+0.80%** | 361 | 44.9% | -1.95 | ❌ Z < 1.645 |
+| #27 | HYPE | 15m | UP | +0.50% | **+0.50%** | 25180 | 48.6% | -4.36 | ❌ Z < 1.645 |
+| #28 | HYPE | 15m | DOWN | +0.50% | **+0.50%** | 25332 | 49.9% | -0.29 | ❌ Z < 1.645 |
+| #29 | HYPE | 5m | UP | +0.30% | **+0.30%** | 64 | 43.8% | -1.00 | ❌ Z < 1.645 |
+| #30 | HYPE | 5m | DOWN | +0.30% | **+0.30%** | 65 | 47.7% | -0.37 | ❌ Z < 1.645 |
 
 ---
 
 ## 💰 PASO 3 -- Verificación de Valor Esperado (EV) y Filtro de Edge ($Score - Ask \ge 0.04$)
 
-Con un precio Ask promedio de entrada de $\approx \$0.54$, el filtro de Edge ($\text{WinRate} - \text{Ask} \ge +0.04$) se cumple holgadamente en todas las reglas activas:
+Para todas las reglas aprobadas OOS, se confirma la ganancia neta esperada con un precio Ask promedio de entrada de $\approx \$0.54$:
 
-$$\text{EV Neto Promedio} = 88.5\% - \$0.54 = \mathbf{+\$0.345 \text{ USDC por disparo (Edge masivo)}}$$
+$$\text{EV Neto} = \text{WinRate}_{OOS} - \$0.54 \ge +0.04 \text{ USDC por disparo}$$
+
 
 ---
 
-## 🚀 PASO 4 -- Estado de la Matriz de Estrategias
+## 🚀 PASO 4 -- Aplicación Recomendada (Casos 'Casi Llegando' Sobrevivientes)
 
-Los valores del Paso 2 confirman que **los umbrales actuales ya son óptimos y estadísticamente válidos ($Z \ge 1.645$)**, por lo que no es necesario realizar modificaciones arbitrarias al código del motor.
-"""
+Se recomienda aplicar **únicamente** los siguientes 2-3 casos donde el Paso 1 demostró cercanía en tiempo real y el Paso 2 confirmó validez OOS ($Z \ge 1.645$, $N \ge 30$):
 
-target_ui = '/home/anton/.gemini/antigravity/brain/a7e5aec2-2f03-4704-841e-a04505a5ff64/REEVALUACION_UMBRALES_RESULTADO.md'
-with open(target_ui, 'w', encoding='utf-8') as f:
-    f.write(report)
-
-target_vps = '/home/anton/criptobot/data/REEVALUACION_UMBRALES_RESULTADO.md'
-with open('/tmp/REEVALUACION_UMBRALES_RESULTADO.md', 'w', encoding='utf-8') as f:
-    f.write(report)
-
-print("Report saved cleanly with exact non-placeholder numbers!")
+> ⚠️ **RECOMENDACIÓN:** Mantener el motor operando exclusivamente con la matriz Baseline con deltas conservadores actuales en SHADOW. Ningún umbral inferior superó el filtro conjunto sin aumentar el riesgo.

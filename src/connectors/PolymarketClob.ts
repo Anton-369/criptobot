@@ -317,7 +317,9 @@ export class PolymarketClobConnector {
                     try {
                       const endMs = new Date(endIso).getTime();
                       const diffMs = endMs - nowMs;
-                      if (diffMs > 0 && diffMs < minDiff) {
+                      // Exigir al menos 60s (1 min) antes del vencimiento para evitar rotar a contratos expirados a $1.00
+                      const minRemainingMs = tf === '5M' ? 60000 : (tf === '15M' ? 120000 : 300000);
+                      if (diffMs > minRemainingMs && diffMs < minDiff) {
                         minDiff = diffMs;
                         bestEv = ev;
                       }

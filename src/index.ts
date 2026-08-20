@@ -68,11 +68,27 @@ async function startV4Engine() {
       const d15M = HFTSharedState.getDelta15M(coin);
       const d5M = HFTSharedState.getDelta5M(coin);
 
-      const realUpToken = orderbook.getRealTokenId(coin, 'UP', '5M') || orderbook.getRealTokenId(coin, 'UP', '15M') || orderbook.getRealTokenId(coin, 'UP', '1H');
-      const realDnToken = orderbook.getRealTokenId(coin, 'DOWN', '5M') || orderbook.getRealTokenId(coin, 'DOWN', '15M') || orderbook.getRealTokenId(coin, 'DOWN', '1H');
+      const getAskPrice = (c: string, side: 'UP' | 'DOWN', tf: '1H' | '15M' | '5M'): number => {
+        const tok = orderbook.getRealTokenId(c, side, tf);
+        const obAsk = tok ? orderbook.getBestAsk(tok) : 0;
+        if (obAsk > 0) return obAsk;
 
-      const askUP = realUpToken ? orderbook.getBestAsk(realUpToken) : HFTSharedState.getPolyAsk(coin, 'UP');
-      const askDOWN = realDnToken ? orderbook.getBestAsk(realDnToken) : HFTSharedState.getPolyAsk(coin, 'DOWN');
+        const sharedSpecific = HFTSharedState.getPolyAsk(c, side, tf);
+        if (sharedSpecific > 0) return sharedSpecific;
+
+        // Fallback across timeframes if orderbook for specific tf hasn't ticked yet
+        const sharedAny = HFTSharedState.getPolyAsk(c, side, '15M') || HFTSharedState.getPolyAsk(c, side, '1H') || HFTSharedState.getPolyAsk(c, side, '5M');
+        return sharedAny > 0 ? sharedAny : 0;
+      };
+
+      const ask5M_UP = getAskPrice(coin, 'UP', '5M');
+      const ask5M_DN = getAskPrice(coin, 'DOWN', '5M');
+
+      const ask15M_UP = getAskPrice(coin, 'UP', '15M');
+      const ask15M_DN = getAskPrice(coin, 'DOWN', '15M');
+
+      const ask1H_UP = getAskPrice(coin, 'UP', '1H');
+      const ask1H_DN = getAskPrice(coin, 'DOWN', '1H');
 
       matrix[coin] = {
         spotPrice: spot.toFixed(2),
@@ -80,8 +96,9 @@ async function startV4Engine() {
         delta15M: d15M.toFixed(2),
         delta5M: d5M.toFixed(2),
         filter5MState: d5M > 0.05 ? 'BULLISH' : d5M < -0.05 ? 'BEARISH' : 'NEUTRAL',
-        askUP: askUP.toFixed(3),
-        askDOWN: askDOWN.toFixed(3)
+        ask5M: (ask5M_UP > 0 ? ask5M_UP.toFixed(3) : '—') + ' | ' + (ask5M_DN > 0 ? ask5M_DN.toFixed(3) : '—'),
+        ask15M: (ask15M_UP > 0 ? ask15M_UP.toFixed(3) : '—') + ' | ' + (ask15M_DN > 0 ? ask15M_DN.toFixed(3) : '—'),
+        ask1H: (ask1H_UP > 0 ? ask1H_UP.toFixed(3) : '—') + ' | ' + (ask1H_DN > 0 ? ask1H_DN.toFixed(3) : '—')
       };
     }
     res.json({ success: true, timestamp: Date.now(), mode: CONFIG.EXECUTION_MODE, matrix });
@@ -91,6 +108,13 @@ async function startV4Engine() {
     db.all('SELECT * FROM v4_disparos_log ORDER BY id DESC LIMIT 50;', [], (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ success: true, disparos: rows || [] });
+    });
+  });
+
+  app.get('/api/v4/positions', (req, res) => {
+    db.all('SELECT * FROM v4_positions ORDER BY id DESC LIMIT 50;', [], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: true, positions: rows || [] });
     });
   });
 

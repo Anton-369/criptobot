@@ -17,6 +17,7 @@ export class LocalOrderbookManager {
   private ws: any = null;
   private tokenMap: Map<string, TokenMapping> = new Map();
   private bestAsks: Map<string, number> = new Map();
+  private bestBids: Map<string, number> = new Map();
   private dynamicLookup: Map<string, string> = new Map();
 
   constructor(private wsUrl: string = 'wss://ws-subscriptions-clob.polymarket.com/ws/market') {}
@@ -102,29 +103,64 @@ export class LocalOrderbookManager {
       const events = Array.isArray(data) ? data : [data];
 
       for (const event of events) {
-        const tokenId = event.asset_id || event.market;
-        if (!tokenId) continue;
+        // Polymarket CLOB WebSocket envía price_changes
+        if (event.price_changes && Array.isArray(event.price_changes)) {
+          for (const ch of event.price_changes) {
+            const assetId = ch.asset_id;
+            if (!assetId) continue;
+            const mapping = this.tokenMap.get(assetId);
+            if (!mapping) continue;
 
-        const mapping = this.tokenMap.get(tokenId);
-        if (!mapping) continue;
+            // Extraer best_ask y best_bid directos del payload CLOB nativo
+            if (ch.best_ask) {
+              const bAsk = parseFloat(ch.best_ask);
+              if (!isNaN(bAsk) && bAsk > 0) {
+                this.bestAsks.set(assetId, bAsk);
+                HFTSharedState.updatePolyAsk(mapping.coin, mapping.side, mapping.timeframe, bAsk);
+              }
+            } else if (ch.side === 'SELL' || ch.side === 'ASK') {
+              const price = parseFloat(ch.price);
+              if (!isNaN(price) && price > 0) {
+                this.bestAsks.set(assetId, price);
+                HFTSharedState.updatePolyAsk(mapping.coin, mapping.side, mapping.timeframe, price);
+              }
+            }
 
-        let bestAsk = 0;
-        if (event.asks && event.asks.length > 0) {
-          bestAsk = parseFloat(event.asks[0].price);
-        } else if (event.price) {
-          bestAsk = parseFloat(event.price);
-        } else if (event.changes && Array.isArray(event.changes)) {
-          for (const ch of event.changes) {
-            if (ch.side === 'SELL' || ch.side === 'ASK') {
-              bestAsk = parseFloat(ch.price);
-              break;
+            if (ch.best_bid) {
+              const bBid = parseFloat(ch.best_bid);
+              if (!isNaN(bBid) && bBid > 0) {
+                this.bestBids.set(assetId, bBid);
+                HFTSharedState.updatePolyBid(mapping.coin, mapping.side, mapping.timeframe, bBid);
+              }
+            } else if (ch.side === 'BUY' || ch.side === 'BID') {
+              const price = parseFloat(ch.price);
+              if (!isNaN(price) && price > 0) {
+                this.bestBids.set(assetId, price);
+                HFTSharedState.updatePolyBid(mapping.coin, mapping.side, mapping.timeframe, price);
+              }
             }
           }
         }
 
-        if (bestAsk > 0) {
-          this.bestAsks.set(tokenId, bestAsk);
-          HFTSharedState.updatePolyAsk(mapping.coin, mapping.side, mapping.timeframe, bestAsk);
+        const tokenId = event.asset_id || event.market;
+        if (tokenId) {
+          const mapping = this.tokenMap.get(tokenId);
+          if (mapping) {
+            let bestAsk = 0;
+            let bestBid = 0;
+            if (event.asks && event.asks.length > 0) bestAsk = parseFloat(event.asks[0].price);
+            if (event.bids && event.bids.length > 0) bestBid = parseFloat(event.bids[0].price);
+            if (event.price && bestAsk === 0) bestAsk = parseFloat(event.price);
+
+            if (bestAsk > 0) {
+              this.bestAsks.set(tokenId, bestAsk);
+              HFTSharedState.updatePolyAsk(mapping.coin, mapping.side, mapping.timeframe, bestAsk);
+            }
+            if (bestBid > 0) {
+              this.bestBids.set(tokenId, bestBid);
+              HFTSharedState.updatePolyBid(mapping.coin, mapping.side, mapping.timeframe, bestBid);
+            }
+          }
         }
       }
     } catch (e) {
@@ -134,5 +170,9 @@ export class LocalOrderbookManager {
 
   public getBestAsk(tokenId: string): number {
     return this.bestAsks.get(tokenId) || 0;
+  }
+
+  public getBestBid(tokenId: string): number {
+    return this.bestBids.get(tokenId) || 0;
   }
 }

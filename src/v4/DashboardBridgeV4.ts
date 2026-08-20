@@ -62,8 +62,15 @@ export class DashboardBridgeV4 {
       const delta1H = HFTSharedState.getDelta1H(coin);
       const delta15M = HFTSharedState.getDelta15M(coin);
       const delta5M = HFTSharedState.getDelta5M(coin);
-      const askUP = HFTSharedState.getPolyAsk(coin, 'UP');
-      const askDOWN = HFTSharedState.getPolyAsk(coin, 'DOWN');
+      const askUP_15 = HFTSharedState.getPolyAsk(coin, 'UP', '15M');
+      const askUP_1H = HFTSharedState.getPolyAsk(coin, 'UP', '1H');
+      const askUP_5M = HFTSharedState.getPolyAsk(coin, 'UP', '5M');
+      const askUP = askUP_15 > 0 ? askUP_15 : (askUP_1H > 0 ? askUP_1H : askUP_5M);
+
+      const askDN_15 = HFTSharedState.getPolyAsk(coin, 'DOWN', '15M');
+      const askDN_1H = HFTSharedState.getPolyAsk(coin, 'DOWN', '1H');
+      const askDN_5M = HFTSharedState.getPolyAsk(coin, 'DOWN', '5M');
+      const askDOWN = askDN_15 > 0 ? askDN_15 : (askDN_1H > 0 ? askDN_1H : askDN_5M);
 
       const rules = (CALIBRATED_RULES as any)[coin];
 

@@ -60,7 +60,7 @@ export class DatabaseManager {
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
     }
-    this.dbPath = path.join(dataDir, 'criptobot_v3.sqlite');
+    this.dbPath = path.join(dataDir, 'criptobot_v4.sqlite');
     this.db = new sqlite3.Database(this.dbPath);
     this.initTables();
   }
@@ -121,9 +121,9 @@ export class DatabaseManager {
         ON precios_subyacente (coin, timestamp_et);
       `);
 
-      // Table 3: predicciones_log (Layer 5 logging of Oracle predictions and executions)
+      // Table 3: v4_disparos_log (Layer 5 logging of Oracle predictions and executions)
       this.db.run(`
-        CREATE TABLE IF NOT EXISTS predicciones_log (
+        CREATE TABLE IF NOT EXISTS v4_disparos_log (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           timestamp_et TEXT NOT NULL,
           utc_hour INTEGER NOT NULL,
@@ -222,7 +222,7 @@ export class DatabaseManager {
   public logPrediction(rec: PredictionLogRecord): Promise<number> {
     return new Promise((resolve, reject) => {
       const sql = `
-        INSERT INTO predicciones_log (
+        INSERT INTO v4_disparos_log (
           timestamp_et, utc_hour, coin, p_up_estimado, regla_activa,
           yes_price_al_disparo, disparo_realizado, pnl_resultado, status
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -240,7 +240,7 @@ export class DatabaseManager {
   public updatePredictionStatus(id: number, status: 'GANADO' | 'PERDIDO' | 'CANCELADO', pnlResultado: number): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `
-        UPDATE predicciones_log
+        UPDATE v4_disparos_log
         SET status = ?, pnl_resultado = ?
         WHERE id = ?
       `;
@@ -269,7 +269,7 @@ export class DatabaseManager {
   public getPredictionLogs(limit: number = 50): Promise<any[]> {
     return new Promise((resolve, reject) => {
       const sql = `
-        SELECT * FROM predicciones_log 
+        SELECT * FROM v4_disparos_log 
         ORDER BY id DESC 
         LIMIT ?
       `;
@@ -302,7 +302,7 @@ export class DatabaseManager {
         if (!err && r1) snapshotsCount = r1.cnt || 0;
         this.db.get(`SELECT COUNT(*) as cnt FROM precios_subyacente`, (err2, r2: any) => {
           if (!err2 && r2) spotCount = r2.cnt || 0;
-          this.db.get(`SELECT COUNT(*) as cnt FROM predicciones_log`, (err3, r3: any) => {
+          this.db.get(`SELECT COUNT(*) as cnt FROM v4_disparos_log`, (err3, r3: any) => {
             if (!err3 && r3) predictionsCount = r3.cnt || 0;
             resolve({ snapshotsCount, spotCount, predictionsCount, dbSizeBytes });
           });

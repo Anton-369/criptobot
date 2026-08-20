@@ -213,7 +213,7 @@ export class DashboardServer {
 
   private async buildStatus(): Promise<any> {
     const balances = this.execEngine.getBalances();
-    const positions = this.execEngine.getPositions();
+    const positions = await this.getPositionsCached();
     const tickers = await this.getTickersWithTelemetry();
     const coinPerformance = await this.getCoinPerformanceStats();
 
@@ -235,7 +235,7 @@ export class DashboardServer {
 
     let sqliteStats: any = null;
     try {
-      const dbPath = path.resolve(__dirname, '../../data/criptobot_v3.sqlite');
+      const dbPath = path.resolve(__dirname, '../../data/criptobot_v4.sqlite');
       if (fs.existsSync(dbPath)) {
         const stats = fs.statSync(dbPath);
         let dbSizeBytes = stats.size;
@@ -452,6 +452,37 @@ export class DashboardServer {
     );
   }
 
+  
+  private lastPositionsCache: any[] = [];
+  private lastPositionsFetchTime: number = 0;
+
+  private async getPositionsCached(): Promise<any[]> {
+    const now = Date.now();
+    if (now - this.lastPositionsFetchTime < 2000 && this.lastPositionsCache.length > 0) {
+      return this.lastPositionsCache;
+    }
+    try {
+      const dbPath = path.resolve(__dirname, '../../data/criptobot_v4.sqlite');
+      if (fs.existsSync(dbPath)) {
+        const sqlite3 = require('sqlite3').verbose();
+        const db = new sqlite3.Database(dbPath);
+        const rows: any[] = await new Promise((resolve) => {
+          db.all('SELECT * FROM v4_positions ORDER BY id DESC LIMIT 20;', [], (err: any, res: any[]) => {
+            db.close();
+            if (err || !res) resolve([]);
+            else resolve(res);
+          });
+        });
+        if (rows.length > 0) {
+          this.lastPositionsCache = rows;
+          this.lastPositionsFetchTime = now;
+          return rows;
+        }
+      }
+    } catch (e) {}
+    return this.execEngine ? this.execEngine.getPositions() : [];
+  }
+
   private lastPredictionLogsCache: any[] = [];
   private lastPredictionLogsFetchTime: number = 0;
 
@@ -461,12 +492,12 @@ export class DashboardServer {
       return this.lastPredictionLogsCache;
     }
     try {
-      const dbPath = path.resolve(__dirname, '../../data/criptobot_v3.sqlite');
+      const dbPath = path.resolve(__dirname, '../../data/criptobot_v4.sqlite');
       if (fs.existsSync(dbPath)) {
         const sqlite3 = require('sqlite3').verbose();
         const db = new sqlite3.Database(dbPath);
         const rows: any[] = await new Promise((resolve) => {
-          db.all('SELECT * FROM predicciones_log ORDER BY id DESC LIMIT 30;', [], (err: any, res: any[]) => {
+          db.all('SELECT * FROM v4_disparos_log ORDER BY id DESC LIMIT 30;', [], (err: any, res: any[]) => {
             db.close();
             if (err || !res) resolve([]);
             else resolve(res);
@@ -494,7 +525,7 @@ export class DashboardServer {
     if (ws.readyState !== WebSocket.OPEN) return;
 
     const balances = this.execEngine.getBalances();
-    const positions = this.execEngine.getPositions();
+    const positions = await this.getPositionsCached();
     const tickers = await this.getTickersWithTelemetry();
     const coinPerformance = await this.getCoinPerformanceStats();
     const predictionLogs = await this.getPredictionLogsCached();
@@ -517,7 +548,7 @@ export class DashboardServer {
     if (this.wss.clients.size === 0) return;
 
     const balances = this.execEngine.getBalances();
-    const positions = this.execEngine.getPositions();
+    const positions = await this.getPositionsCached();
     const tickersWithOdds = await this.getTickersWithTelemetry();
     const coinPerformance = await this.getCoinPerformanceStats();
     const predictionLogs = await this.getPredictionLogsCached();
