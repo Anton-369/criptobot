@@ -1,5 +1,5 @@
 /**
- * ⚡ HYBRID HFT REACTIVE ENGINE V4 (CON TP/SL Y GESTIÓN DE POSICIONES EN TIEMPO REAL)
+ * ⚡ HYBRID HFT REACTIVE ENGINE V4.1.0 (CON AUDITORÍA DE PNL Y CIERRES CONSERVADORES)
  */
 
 import sqlite3 from 'sqlite3';
@@ -38,7 +38,14 @@ export interface OpenPosition {
   tokenId: string;
   openedAt: number;
   status: 'OPEN' | 'CLOSED_TP' | 'CLOSED_SL' | 'CLOSED_EXPIRED';
+  entryBid?: number;
+  entryAsk?: number;
+  entrySpread?: number;
+  spotDeltaEntry?: number;
+  openedAtUtc?: string;
 }
+
+export const DISABLED_RULES = [20, 29, 30];
 
 export const MARKET_FLAGS = {
   ENABLE_5M: true,
@@ -98,6 +105,7 @@ export class HFTReactiveEngine {
 
   constructor(private orderbook: LocalOrderbookManager) {
     this.signer = new PolymarketFastSigner();
+    console.log('[V4 ENGINE] 🚫 REGLAS DESACTIVADAS: #20 HYPE 15M DOWN, #29 HYPE 5M UP, #30 HYPE 5M DOWN');
     
     const dbPath = path.resolve(process.cwd(), 'data', 'criptobot_v4.sqlite');
     this.db = new sqlite3.Database(dbPath, (err) => {
@@ -108,7 +116,7 @@ export class HFTReactiveEngine {
 
   private initDbSchema(): void {
     const sqlLog = 'CREATE TABLE IF NOT EXISTS v4_disparos_log (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp_et TEXT, coin TEXT, timeframe TEXT, side TEXT, delta_trigger REAL, score REAL, price_entry REAL, bullet_size REAL, status TEXT)';
-    const sqlPositions = 'CREATE TABLE IF NOT EXISTS v4_positions (id INTEGER PRIMARY KEY AUTOINCREMENT, rule_id INTEGER, coin TEXT, timeframe TEXT, side TEXT, price_entry REAL, price_exit REAL, take_profit REAL, stop_loss REAL, bullet_size REAL, token_id TEXT, opened_at TEXT, closed_at TEXT, status TEXT)';
+    const sqlPositions = 'CREATE TABLE IF NOT EXISTS v4_positions (id INTEGER PRIMARY KEY AUTOINCREMENT, rule_id INTEGER, coin TEXT, timeframe TEXT, side TEXT, price_entry REAL, price_exit REAL, take_profit REAL, stop_loss REAL, bullet_size REAL, token_id TEXT, opened_at TEXT, closed_at TEXT, status TEXT, exit_reason TEXT DEFAULT "UNKNOWN", final_settlement_win INTEGER, final_spot_delta REAL, pnl_real REAL, entry_bid REAL, entry_ask REAL, entry_spread REAL, exit_bid REAL, exit_ask REAL, exit_spread REAL, spot_delta_entry REAL, spot_delta_exit REAL, opened_at_utc TEXT, closed_at_utc TEXT, engine_version TEXT)';
     this.db.run(sqlLog);
     this.db.run(sqlPositions, (err) => {
       if (!err) console.log('[HFTEngine] 🗄️ Tablas v4_disparos_log y v4_positions en SQLite verificadas.');
@@ -120,84 +128,110 @@ export class HFTReactiveEngine {
     const delta15M = HFTSharedState.getDelta15M(coin);
     const delta5M = HFTSharedState.getDelta5M(coin);
 
-    const now = Date.now();
-    if (coin === 'HYPE' && now - this.lastDebugLog > 10000) {
-      this.lastDebugLog = now;
-      console.log('[HFTEngine V4 Live] 📊 HYPE Spot: $' + HFTSharedState.getSpotPrice('HYPE').toFixed(2) + ' | Delta1H: ' + delta1H.toFixed(2) + '% | Delta15M: ' + delta15M.toFixed(2) + '% | Delta5M: ' + delta5M.toFixed(2) + '% | AskDOWN: $' + HFTSharedState.getPolyAsk('HYPE', 'DOWN', '15M').toFixed(3) + ' | PosicionesActivas: ' + this.activePositions.size);
-    }
-
-    // Monitor TP/SL for all active positions of this coin
-    this.monitorActivePositions(coin);
-
     const rules = APPROVED_V4_RULES.filter(r => r.coin === coin);
     for (const rule of rules) {
-      if (rule.tf === '5M' && !MARKET_FLAGS.ENABLE_5M) continue;
-      if (rule.tf === '15M' && !MARKET_FLAGS.ENABLE_15M) continue;
-      if (rule.tf === '1H' && !MARKET_FLAGS.ENABLE_1H) continue;
+      let delta = 0;
+      if (rule.tf === '1H' && MARKET_FLAGS.ENABLE_1H) delta = delta1H;
+      else if (rule.tf === '15M' && MARKET_FLAGS.ENABLE_15M) delta = delta15M;
+      else if (rule.tf === '5M' && MARKET_FLAGS.ENABLE_5M) delta = delta5M;
+      else continue;
 
-      let currentDelta = delta1H;
-      if (rule.tf === '15M') currentDelta = delta15M;
-      if (rule.tf === '5M') currentDelta = delta5M;
+      if (!this.isWithinSafeExecutionWindow(rule.tf)) {
+        continue;
+      }
 
-      if (!this.isWithinSafeExecutionWindow(rule.tf)) continue;
-      this.checkRule(rule, currentDelta);
+      this.checkRule(rule, delta);
     }
+
+    this.monitorActivePositions();
   }
 
-  private monitorActivePositions(coin: string): void {
+  public monitorActivePositions(): void {
     const now = Date.now();
-    const currentSpot = HFTSharedState.getSpotPrice(coin);
-
-    for (const [key, pos] of Array.from(this.activePositions.entries())) {
-      if (pos.coin !== coin) continue;
-
+    for (const [key, pos] of this.activePositions.entries()) {
       const ageMs = now - pos.openedAt;
-
-      // Determine current best bid for exit
       const realTokenId = pos.tokenId;
       const orderbookBid = realTokenId ? this.orderbook.getBestBid(realTokenId) : 0;
       const sharedBid = HFTSharedState.getPolyBid(pos.coin, pos.side, pos.tf);
       const currentBid = orderbookBid > 0 ? orderbookBid : (sharedBid > 0 ? sharedBid : 0);
 
-      // Calculate spot delta from entry spot
-      let spotDeltaPct = 0;
+      const orderbookAsk = realTokenId ? this.orderbook.getBestAsk(realTokenId) : 0;
+      const sharedAsk = HFTSharedState.getPolyAsk(pos.coin, pos.side, pos.tf);
+      const currentAsk = orderbookAsk > 0 ? orderbookAsk : (sharedAsk > 0 ? sharedAsk : 0);
+      const currentSpread = (currentAsk > 0 && currentBid > 0) ? (currentAsk - currentBid) : 0;
+
+      const currentSpot = HFTSharedState.getSpotPrice(pos.coin);
+      let rawSpotDeltaPct = 0;
       if (pos.entrySpotPrice && pos.entrySpotPrice > 0 && currentSpot > 0) {
-        spotDeltaPct = ((currentSpot - pos.entrySpotPrice) / pos.entrySpotPrice) * 100;
-        if (pos.side === 'DOWN') {
-          spotDeltaPct = -spotDeltaPct; // Favorable if DOWN and spot decreased
-        }
+        rawSpotDeltaPct = ((currentSpot - pos.entrySpotPrice) / pos.entrySpotPrice) * 100;
       }
 
-      // 🎯 1. CHECK TAKE PROFIT (Bid Poly >= 0.75 o Movimiento Spot Binance >= +0.30%)
-      if (currentBid >= pos.takeProfit || (spotDeltaPct >= 0.30 && currentBid >= 0.65)) {
-        const exitPrice = currentBid >= pos.takeProfit ? currentBid : Math.max(currentBid, pos.takeProfit);
-        console.log('[HFTEngine] 🎯 TAKE PROFIT ALCANZADO: ' + pos.coin + ' ' + pos.tf + ' ' + pos.side + ' | Entry: $' + pos.priceEntry.toFixed(3) + ' -> Exit: $' + exitPrice.toFixed(3) + ' (Spot Delta: ' + spotDeltaPct.toFixed(2) + '%)');
-        this.closePosition(key, pos, exitPrice, 'CLOSED_TP');
+      // Effective delta is side-aware
+      const effectiveDelta = pos.side === 'UP' ? rawSpotDeltaPct : -rawSpotDeltaPct;
+
+      // 🎯 1. CHECK TAKE PROFIT (currentBid >= pos.takeProfit)
+      // PROHIBIDO registrar salida mayor que currentBid. No usar Math.max(currentBid, pos.takeProfit).
+      if (currentBid >= pos.takeProfit) {
+        const exitPrice = currentBid;
+        const exitReason = 'EARLY_TP_BID';
+        console.log(`[HFTEngine] 🎯 TAKE PROFIT ALCANZADO: ${pos.coin} ${pos.tf} ${pos.side} | Entry: $${pos.priceEntry.toFixed(3)} -> Exit: $${exitPrice.toFixed(3)} (Exit Reason: ${exitReason})`);
+        this.closePosition(key, pos, exitPrice, 'CLOSED_TP', exitReason, currentBid, currentAsk, currentSpread, rawSpotDeltaPct);
         continue;
       }
 
-      // 🛑 2. CHECK STOP LOSS (INVALIDACIÓN PURA POR PRECIO SPOT EN BINANCE <= -0.40%)
-      // Se elimina el Stop Loss por Bid de Polymarket para evitar barridos por falta de liquidez
-      if (ageMs >= 15000 && spotDeltaPct <= -0.40) {
+      // 🛑 2. CHECK STOP LOSS SIDE-AWARE (effectiveDelta <= -0.40%)
+      if (ageMs >= 15000 && effectiveDelta <= -0.40) {
         const exitPrice = currentBid > 0 ? currentBid : pos.stopLoss;
-        console.log('[HFTEngine] 🛑 STOP LOSS POR INVALIDACIÓN SPOT BINANCE: ' + pos.coin + ' ' + pos.tf + ' ' + pos.side + ' | Entry: $' + pos.priceEntry.toFixed(3) + ' -> Exit: $' + exitPrice.toFixed(3) + ' (Spot Delta: ' + spotDeltaPct.toFixed(2) + '%, Age: ' + Math.round(ageMs/1000) + 's)');
-        this.closePosition(key, pos, exitPrice, 'CLOSED_SL');
+        const exitReason = 'STOP_SPOT_INVALIDATION';
+        console.log(`[HFTEngine] 🛑 STOP LOSS POR INVALIDACIÓN SPOT BINANCE: ${pos.coin} ${pos.tf} ${pos.side} | Entry: $${pos.priceEntry.toFixed(3)} -> Exit: $${exitPrice.toFixed(3)} | Effective Delta: ${effectiveDelta.toFixed(2)}%`);
+        this.closePosition(key, pos, exitPrice, 'CLOSED_SL', exitReason, currentBid, currentAsk, currentSpread, rawSpotDeltaPct);
         continue;
       }
 
-      // ⏱️ 3. CHECK CYCLE EXPIRY / SETTLEMENT AL VENCIMIENTO (5M = 5m, 15M = 15m, 1H = 60m)
+      // ⏱️ 3. CHECK CYCLE EXPIRY / SETTLEMENT AL VENCIMIENTO SIDE-AWARE
       const maxAgeMs = pos.tf === '5M' ? 5 * 60000 : (pos.tf === '15M' ? 15 * 60000 : 60 * 60000);
-      if (ageMs > maxAgeMs) {
-        const isWinAtExpiry = spotDeltaPct >= 0 || currentBid >= 0.50;
-        const exitPrice = isWinAtExpiry ? 1.00 : 0.00;
-        const finalStatus = isWinAtExpiry ? 'CLOSED_TP' : 'CLOSED_EXPIRED';
-        console.log('[HFTEngine] ⏱️ SETTLEMENT AL VENCIMIENTO ($1.00 WIN / $0.00 LOSS): ' + pos.coin + ' ' + pos.tf + ' ' + pos.side + ' | Spot Delta Final: ' + spotDeltaPct.toFixed(2) + '% | Resultado: ' + finalStatus + ' ($' + exitPrice.toFixed(2) + ')');
-        this.closePosition(key, pos, exitPrice, finalStatus);
+      if (ageMs >= maxAgeMs) {
+        let exitPrice = 0.00;
+        let finalStatus: 'CLOSED_TP' | 'CLOSED_EXPIRED' = 'CLOSED_EXPIRED';
+        let exitReason = 'SETTLEMENT_LOSS';
+        let settlementWin: number | null = 0;
+
+        if (effectiveDelta > 0) {
+          exitPrice = 1.00;
+          finalStatus = 'CLOSED_TP';
+          exitReason = 'SETTLEMENT_WIN';
+          settlementWin = 1;
+        } else if (effectiveDelta < 0) {
+          exitPrice = 0.00;
+          finalStatus = 'CLOSED_EXPIRED';
+          exitReason = 'SETTLEMENT_LOSS';
+          settlementWin = 0;
+        } else {
+          // Empate / Delta == 0
+          exitPrice = pos.priceEntry;
+          finalStatus = 'CLOSED_EXPIRED';
+          exitReason = 'SETTLEMENT_PUSH';
+          settlementWin = null;
+        }
+
+        console.log(`[HFTEngine] ⏱️ SETTLEMENT AL VENCIMIENTO (${exitReason}): ${pos.coin} ${pos.tf} ${pos.side} | Effective Delta Final: ${effectiveDelta.toFixed(2)}% | Exit Price: $${exitPrice.toFixed(2)}`);
+        this.closePosition(key, pos, exitPrice, finalStatus, exitReason, currentBid, currentAsk, currentSpread, rawSpotDeltaPct, settlementWin);
       }
     }
   }
 
-  private closePosition(key: string, pos: OpenPosition, exitPrice: number, status: 'CLOSED_TP' | 'CLOSED_SL' | 'CLOSED_EXPIRED'): void {
+  private closePosition(
+    key: string,
+    pos: OpenPosition,
+    exitPrice: number,
+    status: 'CLOSED_TP' | 'CLOSED_SL' | 'CLOSED_EXPIRED',
+    exitReason: string,
+    exitBid: number = 0,
+    exitAsk: number = 0,
+    exitSpread: number = 0,
+    spotDeltaExit: number = 0,
+    finalSettlementWin: number | null = null
+  ): void {
     this.activePositions.delete(key);
 
     // Execute Sell Order in Live/Shadow
@@ -209,40 +243,72 @@ export class HFTReactiveEngine {
       tokenId: pos.tokenId
     });
 
-    // Update DB
     const timestampEt = new Date().toISOString().replace('T', ' ').substring(0, 19);
-    const sql = 'UPDATE v4_positions SET price_exit = ?, closed_at = ?, status = ? WHERE id = ?';
+    const timestampUtc = new Date().toISOString();
+    const pnlReal = pos.bulletSize * (exitPrice - pos.priceEntry);
+
+    const sql = `UPDATE v4_positions SET 
+      price_exit = ?, 
+      closed_at = ?, 
+      status = ?, 
+      exit_reason = ?, 
+      pnl_real = ?, 
+      exit_bid = ?, 
+      exit_ask = ?, 
+      exit_spread = ?, 
+      spot_delta_exit = ?, 
+      closed_at_utc = ?,
+      final_settlement_win = COALESCE(?, final_settlement_win),
+      final_spot_delta = COALESCE(?, final_spot_delta),
+      engine_version = 'v4.1.0'
+      WHERE id = ?`;
+
     if (pos.id) {
-      this.db.run(sql, [exitPrice, timestampEt, status, pos.id]);
+      this.db.run(sql, [
+        exitPrice,
+        timestampEt,
+        status,
+        exitReason,
+        pnlReal,
+        exitBid,
+        exitAsk,
+        exitSpread,
+        spotDeltaExit,
+        timestampUtc,
+        finalSettlementWin,
+        spotDeltaExit,
+        pos.id
+      ]);
     }
   }
 
-    public isWithinSafeExecutionWindow(tf: '1H' | '15M' | '5M'): boolean {
+  public isWithinSafeExecutionWindow(tf: '1H' | '15M' | '5M'): boolean {
     const now = new Date();
     const min = now.getMinutes();
     const sec = now.getSeconds();
 
     if (tf === '5M') {
       const secInCycle = (min * 60 + sec) % 300;
-      // Permitir solo entre segundo 30 y segundo 240 (Minuto 0.5 a 4.0 de la vela de 5M)
       return secInCycle >= 30 && secInCycle <= 240;
     } else if (tf === '15M') {
       const minInCycle = min % 15;
-      // Permitir solo entre minuto 1 y minuto 10 de la vela de 15M (Bloquea min 00, 11, 12, 13, 14)
       return minInCycle >= 1 && minInCycle <= 10;
     } else if (tf === '1H') {
-      // Permitir solo entre minuto 2 y minuto 45 de la vela de 1H (Bloquea min 46-59)
       return min >= 2 && min <= 45;
     }
     return true;
   }
 
   private checkRule(rule: ApprovedRule, currentDelta: number): void {
+    if (DISABLED_RULES.includes(rule.id)) {
+      return; // Skip disabled rules #20, #29, #30
+    }
+
     const coin = rule.coin;
     const now = Date.now();
     const key = coin + '_' + rule.tf + '_' + rule.side;
 
-    if (this.activePositions.has(key)) return; // Position already open for this rule
+    if (this.activePositions.has(key)) return;
     if (now - (this.lastTriggerTimes.get(key) || 0) < this.cooldownMs) return;
 
     if ((rule.side === 'UP' && currentDelta >= rule.deltaTrigger) || (rule.side === 'DOWN' && currentDelta <= rule.deltaTrigger)) {
@@ -251,7 +317,7 @@ export class HFTReactiveEngine {
       const sharedAsk = HFTSharedState.getPolyAsk(coin, rule.side, rule.tf);
       const effectivePrice = orderbookAsk > 0 ? orderbookAsk : (sharedAsk > 0 ? sharedAsk : 0);
       if (effectivePrice <= 0) {
-        return; // No disparar si el precio Ask real en RAM es 0 (Libro vacio o no registrado)
+        return;
       }
 
       if (effectivePrice >= rule.minAsk && effectivePrice <= rule.maxAsk) {
@@ -259,25 +325,36 @@ export class HFTReactiveEngine {
         rule.tradeCount = (rule.tradeCount || 0) + 1;
         this.lastTriggerTimes.set(key, now);
 
+        const spotPrice = HFTSharedState.getSpotPrice(coin);
+        const orderbookBid = realTokenId ? this.orderbook.getBestBid(realTokenId) : 0;
+        const sharedBid = HFTSharedState.getPolyBid(coin, rule.side, rule.tf);
+        const effectiveBid = orderbookBid > 0 ? orderbookBid : (sharedBid > 0 ? sharedBid : 0);
+        const spread = (effectivePrice > 0 && effectiveBid > 0) ? (effectivePrice - effectiveBid) : 0;
+
         console.log('[HFTEngine] ⚡ DISPARO FOK ' + rule.side + ': ' + coin + ' ' + rule.tf + ' | Delta: ' + currentDelta.toFixed(2) + '% | Entry Price: $' + effectivePrice.toFixed(3) + ' | TP Target: $' + rule.takeProfit + ' | SL Target: $' + rule.stopLoss + ' | Bala: $' + bulletInfo.amountUsdc);
 
         this.saveTriggerToDb(coin, rule.tf, rule.side, currentDelta, rule.score, effectivePrice, bulletInfo.amountUsdc);
 
         const tokenId = realTokenId || ('TOKEN_' + coin + '_' + rule.side);
 
-        // Open Position for TP/SL monitoring
         const position: OpenPosition = {
           ruleId: rule.id,
           coin: rule.coin,
           tf: rule.tf,
           side: rule.side,
           priceEntry: effectivePrice,
+          entrySpotPrice: spotPrice,
           takeProfit: rule.takeProfit,
           stopLoss: rule.stopLoss,
           bulletSize: bulletInfo.amountUsdc,
           tokenId: tokenId,
           openedAt: now,
-          status: 'OPEN'
+          status: 'OPEN',
+          entryBid: effectiveBid,
+          entryAsk: effectivePrice,
+          entrySpread: spread,
+          spotDeltaEntry: currentDelta,
+          openedAtUtc: new Date().toISOString()
         };
 
         this.savePositionToDb(position, (posId) => {
@@ -297,7 +374,7 @@ export class HFTReactiveEngine {
   }
 
   private calculateBulletSize(rule: ApprovedRule): { amountUsdc: number } {
-    return { amountUsdc: 1.00 }; // Fixed .00 bullet size
+    return { amountUsdc: 1.00 };
   }
 
   private saveTriggerToDb(coin: string, tf: string, side: string, deltaTrigger: number, score: number, priceEntry: number, bulletSize: number): void {
@@ -308,8 +385,16 @@ export class HFTReactiveEngine {
 
   private savePositionToDb(pos: OpenPosition, callback: (id: number) => void): void {
     const timestampEt = new Date().toISOString().replace('T', ' ').substring(0, 19);
-    const sql = 'INSERT INTO v4_positions (rule_id, coin, timeframe, side, price_entry, take_profit, stop_loss, bullet_size, token_id, opened_at, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
-    this.db.run(sql, [pos.ruleId, pos.coin, pos.tf, pos.side, pos.priceEntry, pos.takeProfit, pos.stopLoss, pos.bulletSize, pos.tokenId, timestampEt, 'OPEN'], function(err) {
+    const timestampUtc = new Date().toISOString();
+    const sql = `INSERT INTO v4_positions (
+      rule_id, coin, timeframe, side, price_entry, take_profit, stop_loss, bullet_size, token_id, opened_at, status,
+      entry_bid, entry_ask, entry_spread, spot_delta_entry, opened_at_utc, engine_version
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'v4.1.0')`;
+
+    this.db.run(sql, [
+      pos.ruleId, pos.coin, pos.tf, pos.side, pos.priceEntry, pos.takeProfit, pos.stopLoss, pos.bulletSize, pos.tokenId, timestampEt, 'OPEN',
+      pos.entryBid || pos.priceEntry, pos.entryAsk || pos.priceEntry, pos.entrySpread || 0, pos.spotDeltaEntry || 0, timestampUtc
+    ], function(err) {
       if (!err && this.lastID) callback(this.lastID);
       else callback(Date.now());
     });
