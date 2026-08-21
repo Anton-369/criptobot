@@ -111,6 +111,44 @@ async function startV4Engine() {
     });
   });
 
+  app.get('/api/v4/summary', (req, res) => {
+    db.get(`
+      SELECT 
+        ROUND(SUM(pnl_real), 3) as pnl_total, 
+        COUNT(*) as total_trades,
+        SUM(CASE WHEN pnl_real > 0 THEN 1 ELSE 0 END) as wins,
+        SUM(CASE WHEN pnl_real <= 0 THEN 1 ELSE 0 END) as losses
+      FROM v4_positions 
+      WHERE status IN ('CLOSED_TP', 'CLOSED_EXPIRED', 'CLOSED_SL') AND pnl_real IS NOT NULL;
+    `, [], (err, row: any) => {
+      if (err || !row) return res.json({ pnlTotal: 0, totalTrades: 0, wins: 0, losses: 0, winRate: '0.0' });
+      const total = row.total_trades || 0;
+      const wins = row.wins || 0;
+      const losses = row.losses || 0;
+      const pnlTotal = row.pnl_total !== null && row.pnl_total !== undefined ? row.pnl_total : 0;
+      const winRate = total > 0 ? ((wins / total) * 100).toFixed(1) : '0.0';
+      res.json({ success: true, pnlTotal, totalTrades: total, wins, losses, winRate });
+    });
+  });
+
+  app.get('/api/v4/alpha', (req, res) => {
+    db.get(`
+      SELECT 
+        SUM(CASE WHEN exit_reason LIKE 'EARLY%' AND final_settlement_win = 0 THEN 1 ELSE 0 END) as trades_salvados_de_perdida,
+        SUM(CASE WHEN exit_reason LIKE 'EARLY%' AND final_settlement_win = 1 THEN 1 ELSE 0 END) as trades_con_ganancia_recortada,
+        ROUND(SUM(CASE WHEN exit_reason LIKE 'EARLY%' AND final_settlement_win = 0 THEN pnl_real ELSE 0 END), 3) as usdc_salvado
+      FROM v4_positions;
+    `, [], (err, row: any) => {
+      if (err || !row) return res.json({ tradesSalvados: 0, tradesRecortados: 0, usdcSalvado: 0 });
+      res.json({
+        success: true,
+        tradesSalvados: row.trades_salvados_de_perdida || 0,
+        tradesRecortados: row.trades_con_ganancia_recortada || 0,
+        usdcSalvado: row.usdc_salvado !== null && row.usdc_salvado !== undefined ? row.usdc_salvado : 0
+      });
+    });
+  });
+
   app.get('/api/v4/positions', (req, res) => {
     db.all('SELECT * FROM v4_positions ORDER BY id DESC LIMIT 50;', [], (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });

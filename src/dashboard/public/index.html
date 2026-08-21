@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Criptobot V4 — HFT Control Panel</title>
+  <title>Criptobot V4 — Dashboard Oficial v4.1.1</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -35,138 +35,134 @@
       border-bottom: 1px solid var(--border-color);
       margin-bottom: 1.5rem;
     }
-    .brand h1 {
-      font-size: 1.8rem;
-      font-weight: 800;
-      background: linear-gradient(135deg, #ffffff 0%, var(--accent-cyan) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .badge {
-      padding: 0.35rem 0.85rem;
-      border-radius: 20px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.78rem;
-      font-weight: 800;
-      text-transform: uppercase;
-    }
-    .badge-live {
+    .brand h1 { font-size: 1.8rem; font-weight: 800; }
+    .brand p { color: var(--text-muted); font-size: 0.9rem; }
+    .status-pill {
       background: rgba(0, 230, 118, 0.15);
       color: var(--accent-green);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.85rem;
       border: 1px solid rgba(0, 230, 118, 0.3);
     }
-    .badge-v4 {
-      background: rgba(0, 229, 255, 0.15);
-      color: var(--accent-cyan);
-      border: 1px solid rgba(0, 229, 255, 0.3);
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.2rem;
+      margin-bottom: 1.5rem;
     }
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.2rem;
+    }
+    .kpi-card h3 { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem; }
+    .kpi-card .value { font-size: 1.8rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
+    .kpi-card .subtext { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.4rem; }
+    
     .card-section {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
       border-radius: 12px;
-      padding: 1.2rem 1.5rem;
+      padding: 1.2rem;
       margin-bottom: 1.5rem;
     }
     .section-title {
       font-size: 1.1rem;
       font-weight: 700;
-      color: var(--accent-cyan);
       margin-bottom: 1rem;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
     }
-    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem; }
-    th { padding: 10px 12px; color: var(--text-muted); border-bottom: 1px solid var(--border-color); font-size: 0.75rem; text-transform: uppercase; }
-    td { padding: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); font-family: 'JetBrains Mono', monospace; }
-    .status-executed { color: var(--accent-cyan); font-weight: bold; }
-    .status-closed-tp { color: var(--accent-green); font-weight: bold; background: rgba(0,230,118,0.1); padding: 2px 8px; border-radius: 4px; }
-    .status-closed-sl { color: var(--accent-red); font-weight: bold; background: rgba(255,23,68,0.1); padding: 2px 8px; border-radius: 4px; }
-    .status-open { color: var(--accent-gold); font-weight: bold; background: rgba(255,214,0,0.1); padding: 2px 8px; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
+    th, td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); }
+    th { color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; }
+    
+    .badge { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+    .badge-active { background: rgba(0, 230, 118, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
+    .badge-disabled { background: rgba(255, 23, 68, 0.2); color: var(--accent-red); border: 1px solid var(--accent-red); }
+    .badge-v4 { background: rgba(0, 229, 255, 0.2); color: var(--accent-cyan); }
   </style>
 </head>
 <body>
+
   <header>
     <div class="brand">
-      <h1>⚡ CRIPTOBOT V4 — HFT MOTOR EN VIVO</h1>
+      <h1>⚡ CRIPTOBOT V4.1.1 — SHADOW DASHBOARD</h1>
+      <p>Monitoreo cuantitativo en tiempo real | Expiración UTC & Alpha de Cierre Temprano</p>
     </div>
-    <div style="display:flex; gap:0.6rem;">
-      <div class="badge badge-live">⚡ MODO SHADOW (REAL ENGINE)</div>
-      <div class="badge badge-v4">🗄️ BASE DE DATOS: criptobot_v4.sqlite</div>
+    <div class="status-pill">
+      ● MODO SHADOW ACTIVO (100% SEGURO)
     </div>
   </header>
 
-  <!-- TABLA 1: MATRIZ RAM -->
-  <div class="card-section" style="border: 1px solid var(--accent-cyan);">
-    <div class="section-title">
-      <span>⚡ 1. MATRIZ HFT V4 — MONITOREO TICK A TICK EN MEMORIA RAM</span>
-      <span class="badge badge-live">ONLINE</span>
+  <!-- SECCIÓN KPI CARDS -->
+  <div class="kpi-grid">
+    <!-- CARD 1: PNL Y WIN RATE -->
+    <div class="kpi-card">
+      <h3>📊 PnL Total Real & Win Rate (v4.1.1)</h3>
+      <div class="value" id="kpiPnlTotal">+$0.000</div>
+      <div class="subtext" id="kpiWinRate">Win Rate: 0.0% (0 Wins / 0 Losses) | 0 Trades Total</div>
     </div>
-    <table>
-      <thead>
-        <tr>
-          <th>MONEDA</th>
-          <th>PRECIO SPOT (BINANCE)</th>
-          <th>DELTA 1H %</th>
-          <th>DELTA 15M %</th>
-          <th>DELTA 5M (ACELERADOR)</th>
-          <th>ASK 5M (UP | DN)</th>
-          <th>ASK 15M (UP | DN)</th>
-          <th>ASK 1H (UP | DN)</th>
-        </tr>
-      </thead>
-      <tbody id="v4MatrixTableBody">
-        <tr><td colspan="8" style="text-align:center; padding:1rem; color:var(--text-muted);">Cargando Matriz RAM V4...</td></tr>
-      </tbody>
-    </table>
+
+    <!-- CARD 2: ALPHA DE CIERRE TEMPRANO -->
+    <div class="kpi-card" style="border-color: var(--accent-cyan);">
+      <h3>🛡️ Alpha de Cierre Temprano (Take Profit)</h3>
+      <div class="value" style="color: var(--accent-cyan);" id="kpiUsdcSalvado">+$0.000 USDC</div>
+      <div class="subtext" id="kpiAlphaStats">
+        🛡️ Salvados de Pérdida: 0 | ✂️ Ganancia Recortada: 0
+      </div>
+    </div>
   </div>
 
-  <!-- TABLA 2: HISTORIAL DE DISPAROS -->
+  <!-- TABLA 1: MATRIZ DE REGLAS DE ESTRATEGIA (30 REGLAS) -->
   <div class="card-section">
     <div class="section-title">
-      <span>🎯 2. HISTORIAL DE DISPAROS EN VIVO (v4_disparos_log) — ORDENES FOK INGRESADAS</span>
-      <span class="badge badge-v4">NATIVO SQLITE V4</span>
+      <span>📐 1. MATRIZ DE ESTRATEGIAS (30 REGLAS) — MONITOR DE ESTADO Y DESACTIVACIÓN</span>
+      <span class="badge badge-v4">ESTADO DE FILTROS</span>
     </div>
     <table>
       <thead>
         <tr>
-          <th>HORA (ET / UTC)</th>
+          <th>REGULA ID</th>
           <th>MONEDA</th>
           <th>TIMEFRAME</th>
           <th>LADO</th>
           <th>DELTA TRIGGER</th>
-          <th>PRECIO POLY ENTRADA</th>
-          <th>BALA (USD)</th>
-          <th>ESTADO ENTRADA</th>
+          <th>MIN ASK TARGET</th>
+          <th>ESTADO REGULATORIO</th>
         </tr>
       </thead>
-      <tbody id="v4DisparosTableBody">
-        <tr><td colspan="8" style="text-align:center; padding:1rem; color:var(--text-muted);">Cargando Disparos V4...</td></tr>
+      <tbody id="v4RulesTableBody">
+        <tr><td colspan="7" style="text-align:center; padding:1rem; color:var(--text-muted);">Cargando Matriz de 30 Reglas...</td></tr>
       </tbody>
     </table>
   </div>
 
-  <!-- TABLA 3: POSICIONES ABIERTAS Y RESULTADO DE SALIDA TP/SL -->
+  <!-- TABLA 2: HISTORIAL DE POSICIONES Y MOTIVO DE CIERRE -->
   <div class="card-section" style="border: 1px solid var(--accent-gold);">
     <div class="section-title">
-      <span>💼 3. TRACKING DE POSICIONES Y RESULTADO DE SALIDA TP / SL (v4_positions)</span>
-      <span class="badge badge-live">MONITOREO DE SALIDAS REALES</span>
+      <span>💼 2. HISTORIAL DE TRADES Y MOTIVO DE CIERRE (v4_positions)</span>
+      <span class="badge badge-v4">EVIDENCIA COMPLETA</span>
     </div>
     <table>
       <thead>
         <tr>
           <th>ID</th>
+          <th>RULE</th>
           <th>MONEDA</th>
           <th>TF</th>
           <th>LADO</th>
           <th>ENTRADA ($)</th>
           <th>SALIDA REAL ($)</th>
-          <th>TARGET TP</th>
-          <th>TARGET SL</th>
-          <th>PNL NETO ($)</th>
-          <th>APERTURA</th>
-          <th>CIERRE</th>
-          <th>ESTADO / RESULTADO</th>
+          <th>PNL REAL ($)</th>
+          <th>MOTIVO DE CIERRE (exit_reason)</th>
+          <th>SETTLEMENT WIN</th>
+          <th>APERTURA (UTC)</th>
+          <th>ESTADO</th>
         </tr>
       </thead>
       <tbody id="v4PositionsTableBody">
@@ -176,65 +172,101 @@
   </div>
 
 <script>
-  async function fetchV4State() {
+  // List of all 30 Rules with #20, #29, #30 marked DISABLED
+  const RULES_DEF = [
+    { id: 1, coin: 'SOL', tf: '1H', side: 'UP', trigger: '+1.50%', ask: '0.65', status: 'ACTIVE' },
+    { id: 2, coin: 'SOL', tf: '1H', side: 'DOWN', trigger: '-1.50%', ask: '0.65', status: 'ACTIVE' },
+    { id: 3, coin: 'XRP', tf: '1H', side: 'UP', trigger: '+1.50%', ask: '0.65', status: 'ACTIVE' },
+    { id: 4, coin: 'XRP', tf: '1H', side: 'DOWN', trigger: '-1.50%', ask: '0.65', status: 'ACTIVE' },
+    { id: 5, coin: 'DOGE', tf: '1H', side: 'UP', trigger: '+1.50%', ask: '0.65', status: 'ACTIVE' },
+    { id: 6, coin: 'DOGE', tf: '1H', side: 'DOWN', trigger: '-1.50%', ask: '0.65', status: 'ACTIVE' },
+    { id: 7, coin: 'BNB', tf: '1H', side: 'UP', trigger: '+1.50%', ask: '0.65', status: 'ACTIVE' },
+    { id: 8, coin: 'BNB', tf: '1H', side: 'DOWN', trigger: '-1.50%', ask: '0.65', status: 'ACTIVE' },
+    { id: 9, coin: 'HYPE', tf: '1H', side: 'UP', trigger: '+1.50%', ask: '0.65', status: 'ACTIVE' },
+    { id: 10, coin: 'HYPE', tf: '1H', side: 'DOWN', trigger: '-1.50%', ask: '0.65', status: 'ACTIVE' },
+    { id: 11, coin: 'SOL', tf: '15M', side: 'UP', trigger: '+0.80%', ask: '0.65', status: 'ACTIVE' },
+    { id: 12, coin: 'SOL', tf: '15M', side: 'DOWN', trigger: '-0.80%', ask: '0.65', status: 'ACTIVE' },
+    { id: 13, coin: 'XRP', tf: '15M', side: 'UP', trigger: '+0.80%', ask: '0.65', status: 'ACTIVE' },
+    { id: 14, coin: 'XRP', tf: '15M', side: 'DOWN', trigger: '-0.80%', ask: '0.63', status: 'ACTIVE' },
+    { id: 15, coin: 'DOGE', tf: '15M', side: 'UP', trigger: '+0.80%', ask: '0.65', status: 'ACTIVE' },
+    { id: 16, coin: 'DOGE', tf: '15M', side: 'DOWN', trigger: '-0.80%', ask: '0.65', status: 'ACTIVE' },
+    { id: 17, coin: 'BNB', tf: '15M', side: 'UP', trigger: '+0.80%', ask: '0.60', status: 'ACTIVE' },
+    { id: 18, coin: 'BNB', tf: '15M', side: 'DOWN', trigger: '-0.80%', ask: '0.65', status: 'ACTIVE' },
+    { id: 19, coin: 'HYPE', tf: '15M', side: 'UP', trigger: '+0.80%', ask: '0.57', status: 'ACTIVE' },
+    { id: 20, coin: 'HYPE', tf: '15M', side: 'DOWN', trigger: '-0.80%', ask: '0.65', status: 'DISABLED' },
+    { id: 21, coin: 'SOL', tf: '5M', side: 'UP', trigger: '+0.40%', ask: '0.65', status: 'ACTIVE' },
+    { id: 22, coin: 'SOL', tf: '5M', side: 'DOWN', trigger: '-0.40%', ask: '0.65', status: 'ACTIVE' },
+    { id: 23, coin: 'XRP', tf: '5M', side: 'UP', trigger: '+0.40%', ask: '0.61', status: 'ACTIVE' },
+    { id: 24, coin: 'XRP', tf: '5M', side: 'DOWN', trigger: '-0.40%', ask: '0.65', status: 'ACTIVE' },
+    { id: 25, coin: 'DOGE', tf: '5M', side: 'UP', trigger: '+0.40%', ask: '0.65', status: 'ACTIVE' },
+    { id: 26, coin: 'DOGE', tf: '5M', side: 'DOWN', trigger: '-0.40%', ask: '0.65', status: 'ACTIVE' },
+    { id: 27, coin: 'BNB', tf: '5M', side: 'UP', trigger: '+0.40%', ask: '0.63', status: 'ACTIVE' },
+    { id: 28, coin: 'BNB', tf: '5M', side: 'DOWN', trigger: '-0.40%', ask: '0.65', status: 'ACTIVE' },
+    { id: 29, coin: 'HYPE', tf: '5M', side: 'UP', trigger: '+0.40%', ask: '0.53', status: 'DISABLED' },
+    { id: 30, coin: 'HYPE', tf: '5M', side: 'DOWN', trigger: '-0.40%', ask: '0.65', status: 'DISABLED' }
+  ];
+
+  function renderRulesTable() {
+    const tbody = document.getElementById('v4RulesTableBody');
+    if (!tbody) return;
+    let html = '';
+    for (const r of RULES_DEF) {
+      const isDev = r.status === 'DISABLED';
+      const badgeClass = isDev ? 'badge-disabled' : 'badge-active';
+      const badgeText = isDev ? 'DESACTIVADA' : 'ACTIVA';
+      const sideColor = r.side === 'UP' ? 'var(--accent-green)' : 'var(--accent-red)';
+
+      html += '<tr style="' + (isDev ? 'opacity: 0.6; background: rgba(255, 23, 68, 0.05);' : '') + '">' +
+        '<td><strong>#' + r.id + '</strong></td>' +
+        '<td>' + r.coin + '</td>' +
+        '<td>' + r.tf + '</td>' +
+        '<td style="color:' + sideColor + '; font-weight:bold;">' + r.side + '</td>' +
+        '<td>' + r.trigger + '</td>' +
+        '<td>$' + r.ask + '</td>' +
+        '<td><span class="badge ' + badgeClass + '">' + badgeText + '</span></td>' +
+      '</tr>';
+    }
+    tbody.innerHTML = html;
+  }
+
+  async function fetchSummary() {
     try {
-      const res = await fetch('/api/v4/state');
+      const res = await fetch('/api/v4/summary');
       const data = await res.json();
-      if (!data || !data.matrix) return;
+      if (!data) return;
 
-      const tbody = document.getElementById('v4MatrixTableBody');
-      if (!tbody) return;
+      const pnlEl = document.getElementById('kpiPnlTotal');
+      const winRateEl = document.getElementById('kpiWinRate');
 
-      let html = '';
-      for (const [coin, info] of Object.entries(data.matrix)) {
-        const d1hColor = parseFloat(info.delta1H) >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
-        const d15mColor = parseFloat(info.delta15M) >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
-        const filter5MColor = info.filter5MState === 'BULLISH' ? 'var(--accent-green)' : info.filter5MState === 'BEARISH' ? 'var(--accent-red)' : 'var(--text-muted)';
-
-        html += '<tr>' +
-          '<td><strong>' + coin + '</strong></td>' +
-          '<td>$' + info.spotPrice + '</td>' +
-          '<td style="color:' + d1hColor + ';">' + info.delta1H + '%</td>' +
-          '<td style="color:' + d15mColor + ';">' + info.delta15M + '%</td>' +
-          '<td style="color:' + filter5MColor + ';font-weight:bold;">' + info.delta5M + '% (' + info.filter5MState + ')</td>' +
-          '<td>' + (info.ask5M || '—') + '</td>' +
-          '<td>' + (info.ask15M || '—') + '</td>' +
-          '<td>' + (info.ask1H || '—') + '</td>' +
-        '</tr>';
+      const pnl = parseFloat(data.pnlTotal || 0);
+      if (pnlEl) {
+        pnlEl.innerText = (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(3);
+        pnlEl.style.color = pnl >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
       }
-      tbody.innerHTML = html;
+
+      if (winRateEl) {
+        winRateEl.innerText = 'Win Rate Real: ' + data.winRate + '% (' + data.wins + ' Wins / ' + data.losses + ' Losses) | ' + data.totalTrades + ' Trades Total';
+      }
     } catch(e) {}
   }
 
-  async function fetchV4Disparos() {
+  async function fetchAlpha() {
     try {
-      const res = await fetch('/api/v4/disparos');
+      const res = await fetch('/api/v4/alpha');
       const data = await res.json();
-      if (!data || !data.disparos) return;
+      if (!data) return;
 
-      const tbody = document.getElementById('v4DisparosTableBody');
-      if (!tbody) return;
+      const usdcEl = document.getElementById('kpiUsdcSalvado');
+      const statsEl = document.getElementById('kpiAlphaStats');
 
-      if (data.disparos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:1rem; color:var(--text-muted);">Sin disparos registrados aún en v4_disparos_log.</td></tr>';
-        return;
+      const usdc = parseFloat(data.usdcSalvado || 0);
+      if (usdcEl) {
+        usdcEl.innerText = '+$' + usdc.toFixed(3) + ' USDC';
       }
 
-      let html = '';
-      for (const d of data.disparos) {
-        const sideColor = d.side === 'UP' ? 'var(--accent-green)' : 'var(--accent-red)';
-        html += '<tr>' +
-          '<td>' + (d.timestamp_et || d.created_at) + '</td>' +
-          '<td><strong>' + d.coin + '</strong></td>' +
-          '<td>' + d.timeframe + '</td>' +
-          '<td style="color:' + sideColor + '; font-weight:bold;">' + d.side + '</td>' +
-          '<td>' + d.delta_trigger + '%</td>' +
-          '<td>$' + parseFloat(d.price_entry).toFixed(3) + '</td>' +
-          '<td>$' + parseFloat(d.bullet_size).toFixed(2) + '</td>' +
-          '<td><span class="status-executed">' + d.status + '</span></td>' +
-        '</tr>';
+      if (statsEl) {
+        statsEl.innerText = '🛡️ Trades Salvados por TP Temprano: ' + data.tradesSalvados + ' (Habrían perdido) | ✂️ Ganancia Recortada: ' + data.tradesRecortados + ' (Habrían ganado $1.00)';
       }
-      tbody.innerHTML = html;
     } catch(e) {}
   }
 
@@ -248,62 +280,47 @@
       if (!tbody) return;
 
       if (data.positions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:1rem; color:var(--text-muted);">Sin posiciones abiertas ni cerradas aún en v4_positions.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:1rem; color:var(--text-muted);">Sin posiciones en v4_positions.</td></tr>';
         return;
       }
 
       let html = '';
       for (const p of data.positions) {
         const sideColor = p.side === 'UP' ? 'var(--accent-green)' : 'var(--accent-red)';
-        let statusClass = 'status-open';
-        if (p.status === 'CLOSED_TP') statusClass = 'status-closed-tp';
-        if (p.status === 'CLOSED_SL') statusClass = 'status-closed-sl';
-
         const pEntry = parseFloat(p.price_entry || 0);
         const pExit = p.price_exit !== null && p.price_exit !== undefined ? parseFloat(p.price_exit) : 0;
+        const pnlReal = p.pnl_real !== null && p.pnl_real !== undefined ? parseFloat(p.pnl_real) : (pExit - pEntry);
 
-        let pnlText = '—';
-        let pnlColor = 'var(--text-muted)';
-
-        if (p.status === 'CLOSED_TP') {
-          const diff = (pExit > 0 ? pExit : parseFloat(p.take_profit)) - pEntry;
-          pnlText = '+$' + diff.toFixed(3);
-          pnlColor = 'var(--accent-green)';
-        } else if (p.status === 'CLOSED_SL') {
-          const diff = (pExit > 0 ? pExit : parseFloat(p.stop_loss)) - pEntry;
-          pnlText = '-$' + Math.abs(diff).toFixed(3);
-          pnlColor = 'var(--accent-red)';
-        } else if (p.status === 'OPEN' && pExit > 0) {
-          const diff = pExit - pEntry;
-          pnlText = (diff >= 0 ? '+' : '') + '$' + diff.toFixed(3);
-          pnlColor = diff >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
-        }
+        const pnlColor = pnlReal > 0 ? 'var(--accent-green)' : (pnlReal < 0 ? 'var(--accent-red)' : 'var(--text-muted)');
+        const exitReason = p.exit_reason || (p.status === 'CLOSED_TP' ? 'EARLY_TP_BID' : p.status);
+        const setWin = p.final_settlement_win !== null && p.final_settlement_win !== undefined ? p.final_settlement_win : '—';
 
         html += '<tr>' +
           '<td>#' + p.id + '</td>' +
-          '<td><strong>' + p.coin + '</strong></td>' +
+          '<td><strong>#' + (p.rule_id || '—') + '</strong></td>' +
+          '<td>' + p.coin + '</td>' +
           '<td>' + p.timeframe + '</td>' +
           '<td style="color:' + sideColor + '; font-weight:bold;">' + p.side + '</td>' +
           '<td>$' + pEntry.toFixed(3) + '</td>' +
-          '<td>' + (pExit > 0 ? '$' + pExit.toFixed(3) : '— (Buscando Exit Bid)') + '</td>' +
-          '<td style="color:var(--accent-green); font-weight:600;">$' + parseFloat(p.take_profit).toFixed(3) + '</td>' +
-          '<td style="color:var(--accent-red); font-weight:600;">$' + parseFloat(p.stop_loss).toFixed(3) + '</td>' +
-          '<td style="color:' + pnlColor + '; font-weight:bold;">' + pnlText + '</td>' +
-          '<td>' + (p.opened_at ? (p.opened_at.length > 10 ? p.opened_at.substring(11, 19) : p.opened_at) : '—') + '</td>' +
-          '<td>' + (p.closed_at ? (p.closed_at.length > 10 ? p.closed_at.substring(11, 19) : p.closed_at) : '—') + '</td>' +
-          '<td><span class="' + statusClass + '">' + p.status + '</span></td>' +
+          '<td>$' + pExit.toFixed(3) + '</td>' +
+          '<td style="color:' + pnlColor + '; font-weight:bold;">' + (pnlReal >= 0 ? '+' : '') + '$' + pnlReal.toFixed(3) + '</td>' +
+          '<td><span class="badge badge-v4">' + exitReason + '</span></td>' +
+          '<td>' + setWin + '</td>' +
+          '<td>' + (p.opened_at || '—') + '</td>' +
+          '<td><span class="badge badge-active">' + p.status + '</span></td>' +
         '</tr>';
       }
       tbody.innerHTML = html;
     } catch(e) {}
   }
 
-  setInterval(fetchV4State, 1000);
-  setInterval(fetchV4Disparos, 1000);
-  setInterval(fetchV4Positions, 1000);
+  renderRulesTable();
+  setInterval(fetchSummary, 2000);
+  setInterval(fetchAlpha, 2000);
+  setInterval(fetchV4Positions, 2000);
 
-  fetchV4State();
-  fetchV4Disparos();
+  fetchSummary();
+  fetchAlpha();
   fetchV4Positions();
 </script>
 </body>

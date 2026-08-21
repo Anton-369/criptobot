@@ -115,6 +115,76 @@ export class DashboardServer {
       });
     });
 
+
+    this.app.get('/api/v4/disparos', async (req, res) => {
+      const logs = await this.getPredictionLogsCached();
+      res.json({ disparos: logs });
+    });
+
+    this.app.get('/api/v4/positions', async (req, res) => {
+      const positions = await this.getPositionsCached();
+      res.json({ positions });
+    });
+
+    this.app.get('/api/v4/summary', async (req, res) => {
+      try {
+        const sqlite3 = require('sqlite3').verbose();
+        const dbPath = path.resolve(__dirname, '../../data/criptobot_v4.sqlite');
+        if (fs.existsSync(dbPath)) {
+          const db = new sqlite3.Database(dbPath);
+          const row: any = await new Promise((resolve) => {
+            db.get(`
+              SELECT 
+                ROUND(SUM(pnl_real), 3) as pnl_total, 
+                COUNT(*) as total_trades,
+                SUM(CASE WHEN pnl_real > 0 THEN 1 ELSE 0 END) as wins,
+                SUM(CASE WHEN pnl_real <= 0 THEN 1 ELSE 0 END) as losses
+              FROM v4_positions 
+              WHERE status IN ('CLOSED_TP', 'CLOSED_EXPIRED', 'CLOSED_SL');
+            `, [], (err: any, r: any) => {
+              db.close();
+              resolve(r || {});
+            });
+          });
+          const total = row.total_trades || 0;
+          const wins = row.wins || 0;
+          const losses = row.losses || 0;
+          const pnlTotal = row.pnl_total || 0;
+          const winRate = total > 0 ? ((wins / total) * 100).toFixed(1) : '0.0';
+          return res.json({ pnlTotal, totalTrades: total, wins, losses, winRate });
+        }
+      } catch (e) {}
+      res.json({ pnlTotal: 0, totalTrades: 0, wins: 0, losses: 0, winRate: '0.0' });
+    });
+
+    this.app.get('/api/v4/alpha', async (req, res) => {
+      try {
+        const sqlite3 = require('sqlite3').verbose();
+        const dbPath = path.resolve(__dirname, '../../data/criptobot_v4.sqlite');
+        if (fs.existsSync(dbPath)) {
+          const db = new sqlite3.Database(dbPath);
+          const row: any = await new Promise((resolve) => {
+            db.get(`
+              SELECT 
+                SUM(CASE WHEN exit_reason LIKE 'EARLY%' AND final_settlement_win = 0 THEN 1 ELSE 0 END) as trades_salvados_de_perdida,
+                SUM(CASE WHEN exit_reason LIKE 'EARLY%' AND final_settlement_win = 1 THEN 1 ELSE 0 END) as trades_con_ganancia_recortada,
+                ROUND(SUM(CASE WHEN exit_reason LIKE 'EARLY%' AND final_settlement_win = 0 THEN pnl_real ELSE 0 END), 3) as usdc_salvado
+              FROM v4_positions;
+            `, [], (err: any, r: any) => {
+              db.close();
+              resolve(r || {});
+            });
+          });
+          return res.json({
+            tradesSalvados: row.trades_salvados_de_perdida || 0,
+            tradesRecortados: row.trades_con_ganancia_recortada || 0,
+            usdcSalvado: row.usdc_salvado || 0
+          });
+        }
+      } catch (e) {}
+      res.json({ tradesSalvados: 0, tradesRecortados: 0, usdcSalvado: 0 });
+    });
+
     this.app.get('/api/status', async (req, res) => {
       res.json(await this.buildStatus());
     });
