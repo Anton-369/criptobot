@@ -144,6 +144,7 @@ export class HFTReactiveEngine {
     }
 
     this.monitorActivePositions();
+    this.checkPendingSettlements();
   }
 
   public monitorActivePositions(): void {
@@ -220,7 +221,84 @@ export class HFTReactiveEngine {
     }
   }
 
-    public getOfficialCandleExpiryMs(openedAtMs: number, tf: '1H' | '15M' | '5M'): number {
+    
+  private lastSettlementCheckTime = 0;
+
+  public checkPendingSettlements(): void {
+    const now = Date.now();
+    if (now - this.lastSettlementCheckTime < 10000) return;
+    this.lastSettlementCheckTime = now;
+
+    const sql = "SELECT id, coin, timeframe, side, opened_at_utc, opened_at FROM v4_positions WHERE status != 'OPEN' AND final_settlement_win IS NULL LIMIT 10";
+    this.db.all(sql, async (err, rows: any[]) => {
+      if (err || !rows || rows.length === 0) return;
+      for (const row of rows) {
+        try {
+          const dateStr = row.opened_at_utc || row.opened_at;
+          if (!dateStr) continue;
+          const openedAtMs = new Date(dateStr.replace(' ', 'T') + (dateStr.includes('Z') ? '' : 'Z')).getTime();
+          const cycleExpiryMs = this.getOfficialCandleExpiryMs(openedAtMs, row.timeframe);
+
+          if (now < cycleExpiryMs) continue;
+
+          const cycleStartMs = this.getOfficialCandleStartMs(openedAtMs, row.timeframe);
+          const coin = row.coin;
+          const tf = row.timeframe.toLowerCase();
+          let openPx: number | null = null;
+          let closePx: number | null = null;
+
+          if (coin === 'HYPE') {
+            const res = await (globalThis as any).fetch('https://api.hyperliquid.xyz/info', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: 'candleSnapshot',
+                req: { coin: 'HYPE', interval: tf, startTime: cycleStartMs, endTime: cycleExpiryMs }
+              })
+            });
+            if (res.ok) {
+              const candles: any = await res.json();
+              if (candles && candles.length > 0) {
+                openPx = parseFloat(candles[0].o);
+                closePx = parseFloat(candles[0].c);
+              }
+            }
+          } else {
+            const sym = coin.toUpperCase() + 'USDT';
+            const url = `https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${tf}&startTime=${cycleStartMs}&limit=1`;
+            const res = await (globalThis as any).fetch(url);
+            if (res.ok) {
+              const data: any = await res.json();
+              if (data && data.length > 0) {
+                openPx = parseFloat(data[0][1]);
+                closePx = parseFloat(data[0][4]);
+              }
+            }
+          }
+
+          if (openPx !== null && closePx !== null && openPx > 0) {
+            const deltaPct = ((closePx - openPx) / openPx) * 100;
+            let settlementWin: number | null = null;
+            if (row.side === 'UP') {
+              settlementWin = deltaPct > 0 ? 1 : (deltaPct < 0 ? 0 : null);
+            } else if (row.side === 'DOWN') {
+              settlementWin = deltaPct < 0 ? 1 : (deltaPct > 0 ? 0 : null);
+            }
+
+            this.db.run(
+              "UPDATE v4_positions SET official_open_price = ?, official_close_price = ?, official_delta_pct = ?, final_settlement_win = ? WHERE id = ?",
+              [openPx, closePx, deltaPct, settlementWin, row.id]
+            );
+            console.log(`[HFTEngine] 📊 Settlement Resolution Trade #${row.id} (${row.coin} ${row.timeframe} ${row.side}): Delta=${deltaPct.toFixed(4)}% -> Win=${settlementWin}`);
+          }
+        } catch (e) {
+          // Soft ignore
+        }
+      }
+    });
+  }
+
+  public getOfficialCandleExpiryMs(openedAtMs: number, tf: '1H' | '15M' | '5M'): number {
     const dt = new Date(openedAtMs);
     const min = dt.getUTCMinutes();
     const tfMin = tf === '5M' ? 5 : (tf === '15M' ? 15 : 60);
