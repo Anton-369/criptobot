@@ -220,14 +220,24 @@ export class HFTReactiveEngine {
     }
   }
 
-  public getOfficialCandleExpiryMs(openedAtMs: number, tf: '1H' | '15M' | '5M'): number {
+    public getOfficialCandleExpiryMs(openedAtMs: number, tf: '1H' | '15M' | '5M'): number {
     const dt = new Date(openedAtMs);
-    const min = dt.getMinutes();
+    const min = dt.getUTCMinutes();
     const tfMin = tf === '5M' ? 5 : (tf === '15M' ? 15 : 60);
     const cycleStartMin = Math.floor(min / tfMin) * tfMin;
-    const cycleEndDt = new Date(dt);
-    cycleEndDt.setMinutes(cycleStartMin + tfMin, 0, 0);
+    const cycleEndDt = new Date(dt.getTime());
+    cycleEndDt.setUTCMinutes(cycleStartMin + tfMin, 0, 0);
     return cycleEndDt.getTime();
+  }
+
+  public getOfficialCandleStartMs(openedAtMs: number, tf: '1H' | '15M' | '5M'): number {
+    const dt = new Date(openedAtMs);
+    const min = dt.getUTCMinutes();
+    const tfMin = tf === '5M' ? 5 : (tf === '15M' ? 15 : 60);
+    const cycleStartMin = Math.floor(min / tfMin) * tfMin;
+    const cycleStartDt = new Date(dt.getTime());
+    cycleStartDt.setUTCMinutes(cycleStartMin, 0, 0);
+    return cycleStartDt.getTime();
   }
 
   private closePosition(
