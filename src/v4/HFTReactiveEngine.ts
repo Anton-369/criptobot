@@ -188,9 +188,9 @@ export class HFTReactiveEngine {
         continue;
       }
 
-      // ⏱️ 3. CHECK CYCLE EXPIRY / SETTLEMENT AL VENCIMIENTO SIDE-AWARE
-      const maxAgeMs = pos.tf === '5M' ? 5 * 60000 : (pos.tf === '15M' ? 15 * 60000 : 60 * 60000);
-      if (ageMs >= maxAgeMs) {
+      // ⏱️ 3. CHECK CYCLE EXPIRY AL FINAL DE VELA OFICIAL DE BINANCE (:00, :15, :30, :45 para 15M / cada 5m para 5M)
+      const cycleExpiryMs = this.getOfficialCandleExpiryMs(pos.openedAt, pos.tf);
+      if (now >= cycleExpiryMs) {
         let exitPrice = 0.00;
         let finalStatus: 'CLOSED_TP' | 'CLOSED_EXPIRED' = 'CLOSED_EXPIRED';
         let exitReason = 'SETTLEMENT_LOSS';
@@ -218,6 +218,16 @@ export class HFTReactiveEngine {
         this.closePosition(key, pos, exitPrice, finalStatus, exitReason, currentBid, currentAsk, currentSpread, rawSpotDeltaPct, settlementWin);
       }
     }
+  }
+
+  public getOfficialCandleExpiryMs(openedAtMs: number, tf: '1H' | '15M' | '5M'): number {
+    const dt = new Date(openedAtMs);
+    const min = dt.getMinutes();
+    const tfMin = tf === '5M' ? 5 : (tf === '15M' ? 15 : 60);
+    const cycleStartMin = Math.floor(min / tfMin) * tfMin;
+    const cycleEndDt = new Date(dt);
+    cycleEndDt.setMinutes(cycleStartMin + tfMin, 0, 0);
+    return cycleEndDt.getTime();
   }
 
   private closePosition(
